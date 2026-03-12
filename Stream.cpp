@@ -34,7 +34,7 @@ int Stream::timedRead()
   do {
     c = read();
     if (c >= 0) return c;
-	 _delay_ms(1);
+	 sleep_ms(1);
   } while(++_startMillis < _timeout);
   return -1;     // -1 indicates timeout
 }
@@ -47,7 +47,7 @@ int Stream::timedPeek()
   do {
     c = peek();
     if (c >= 0) return c;
-	 _delay_ms(1);
+	 sleep_ms(1);
   } while(++_startMillis < _timeout);
   return -1;     // -1 indicates timeout
 }
@@ -139,7 +139,7 @@ long Stream::parseInt()
 // this allows format characters (typically commas) in values to be ignored
 long Stream::parseInt(char skipChar)
 {
-  boolean isNegative = false;
+  bool isNegative = false;
   long value = 0;
   int c;
 
@@ -175,8 +175,8 @@ float Stream::parseFloat()
 // as above but the given skipChar is ignored
 // this allows format characters (typically commas) in values to be ignored
 float Stream::parseFloat(char skipChar){
-  boolean isNegative = false;
-  boolean isFraction = false;
+  bool isNegative = false;
+  bool isFraction = false;
   long value = 0;
   char c;
   float fraction = 1.0;

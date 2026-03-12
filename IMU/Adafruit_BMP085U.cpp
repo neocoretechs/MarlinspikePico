@@ -14,8 +14,8 @@
   Written by Kevin Townsend for Adafruit Industries.  
   BSD license, all text above must be included in any redistribution
  ***************************************************************************/
-#include "../pico/stdlib.h"
-#include "../TwoWire.h"
+#include "pico/stdlib.h"
+#include "pico/TwoWire.h"
 #include <math.h>
 #include <limits.h>
 #include "Adafruit_BMP085U.h"

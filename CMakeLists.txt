@@ -25,7 +25,7 @@ endif()
 # ====================================================================================
 set(PICO_BOARD pico CACHE STRING "Board type")
 
-# Pull in Raspberry Pi Pico SDK (must be before project)
+# Pull in Raspberry Pi Pico SDK (muscppt be before project)
 include(pico_sdk_import.cmake)
 
 project(Marlinspike C CXX ASM)
@@ -41,6 +41,30 @@ pico_sdk_init()
 
 add_executable(Marlinspike
     main.cpp
+    RoboCore_main.cpp
+    Ultrasonic.cpp
+    DigitalPin.h
+    AnalogPin.h
+    IMU/Adafruit_10DOF.cpp
+    IMU/Adafruit_BMP085U.cpp
+    IMU/Adafruit_L3GD20U.cpp
+    IMU/Adafruit_LSM303U.cpp
+    IMU/PitchRollHeading.cpp
+    Propulsion/AbstractMotorControl.cpp
+    Propulsion/AbstractSmartMotorControl.h
+    Propulsion/DelayHBridgeDriver.cpp
+    Propulsion/HBridgeDriver.cpp
+    Propulsion/RoboteqDevice.cpp
+    Propulsion/SplitBridgeDriver.cpp
+    Propulsion/SwitchBridgeDriver.cpp
+    DiffDrive.cpp
+    new.cpp
+    Print.cpp
+    Stream.cpp
+    VariablePWMDriver.cpp
+    WPWM.cpp
+    WShift.cpp
+    WString.cpp
     )
      
 # Make sure tusb_config.h is visible to TinyUSB
@@ -52,7 +76,7 @@ message(STATUS "Project source dir: ${CMAKE_CURRENT_SOURCE_DIR}")
 message(STATUS "Looking for tusb_config.h in: ${CMAKE_CURRENT_SOURCE_DIR}")
 # pull in common dependencies
 target_link_libraries(Marlinspike pico_stdlib 
-hardware_uart hardware_timer hardware_gpio 
+hardware_uart hardware_timer hardware_pwm hardware_gpio hardware_and_adc 
 tinyusb_device tinyusb_board
 )
 

@@ -46,11 +46,11 @@
 #include <inttypes.h>
 
 #include "Configuration.h"
-#include "pins.h"
 #include "stdlib.h"
-#include "arduino-compat.h"
 #include "Ultrasonic.h"
 #include "DigitalPin.h"
+#include "AnalogPin.h"
+#include "PWM.h"
 #include "tusb.h"
 void setup();
 void loop();

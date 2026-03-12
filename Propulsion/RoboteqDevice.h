@@ -1,7 +1,7 @@
 #ifndef ROBOTEQ_H
 #define ROBOTEQ_H
 
-#include "../HardwareSerial/HardwareSerial.h"
+#include "HardwareSerial.h"
 #include "AbstractMotorControl.h"
 #include "AbstractSmartMotorControl.h"
 

@@ -21,7 +21,6 @@
 #ifndef __SWITCHBRIDGEDRIVER_H__
 #define __SWITCHBRIDGEDRIVER_H__
 #include "AbstractMotorControl.h"
-#include "../pins.h"
 #include <stdio.h>
 
 class SwitchBridgeDriver : public AbstractMotorControl

@@ -8,8 +8,8 @@
 #define WSHIFT_H_
 
 #include "pico/stdlib.h"
-#include "pins_pico/stdlib.h"
-#include "WDigital.h"
+#include "stdlib.h"
+#include "DigitalPin.h"
 class Shift : public Digital {
 	private:
 	uint8_t clockPin, bitOrder;

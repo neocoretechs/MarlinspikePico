@@ -11,7 +11,6 @@
 #include <hardware/clocks.h>
 #include <hardware/pwm.h>
 #include <hardware/irq.h>
-#include <intctrl.h>
 	/*
 	* Constructor 
 	*/

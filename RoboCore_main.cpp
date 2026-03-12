@@ -35,14 +35,10 @@
  * Author: Jonathan Neville Groff
  */
 
-#include "pico/stdlib.h"
-#include "watchdog.h"
 #include "language.h"
 #include "RoboCore.h"
-#include "pins.h"
 #include "new.h"
 #include "math.h"
-#include "Servo.h"
 #include "Propulsion/AbstractMotorControl.h"
 #include "Propulsion/RoboteqDevice.h"
 #include "Propulsion/HBridgeDriver.h"

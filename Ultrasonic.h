@@ -11,6 +11,7 @@
 class Ultrasonic {
 	private:
 		unsigned long duration;
+		Digital *pin;
 	public:
 	
 		float getRange();

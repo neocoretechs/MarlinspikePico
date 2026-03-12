@@ -20,13 +20,13 @@
 #ifndef __ADAFRUIT_10DOF_H__
 #define __ADAFRUIT_10DOF_H__
 
-#include "../pico/stdlib.h"
+#include "pico/stdlib.h"
 
 #include "Adafruit_Sensor.h"
 #include "Adafruit_LSM303U.h"
 #include "Adafruit_BMP085U.h"
 #include "Adafruit_L3GD20U.h"
-#include "../TwoWire.h"
+#include "pico/TwoWire.h"
 
 /** Sensor axis */
 typedef enum

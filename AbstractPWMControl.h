@@ -34,7 +34,6 @@
 
 #ifndef __ABSTRACTPWMCONTROL_H__
 #define __ABSTRACTPWMCONTROL_H__
-#include "pins.h"
 #include "WPWM.h"
 #include <stdio.h>
 

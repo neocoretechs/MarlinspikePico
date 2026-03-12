@@ -1,6 +1,6 @@
-#include "../pico/stdlib.h"
+#include "pico/stdlib.h"
 #include "RoboteqDevice.h"
-#include "../HardwareSerial/HardwareSerial.h"
+#include "HardwareSerial/HardwareSerial.h"
 #include <util\delay.h>
 
 

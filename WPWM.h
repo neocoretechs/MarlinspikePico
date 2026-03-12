@@ -9,6 +9,9 @@
 
 #include "WInterruptService.h"
 #include <cstdint>
+#include <cstddef>
+#include <intctrl.h>
+#include "pico/stdlib.h"
 using namespace std;
 class PWM {
 	public:

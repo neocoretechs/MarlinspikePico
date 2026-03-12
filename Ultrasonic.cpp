@@ -6,7 +6,6 @@
  */
 #include "Ultrasonic.h"
 #include <time.h>
-#include "arduino-compat.h"
 
 #define LOW 0
 #define HIGH 1

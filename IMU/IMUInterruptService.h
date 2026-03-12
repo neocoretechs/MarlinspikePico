@@ -10,9 +10,9 @@
 #include <math.h>
 #include <stdlib.h>
 #include <inttypes.h>
-#include "../WInterruptService.h"
-#include "../pico/stdlib.h"
-#include "../pins_pico/stdlib.h"
+#include "WInterruptService.h"
+#include "pico/stdlib.h"
+#include "pins_pico/stdlib.h"
 #include "PitchRollHeading.h"
 #include "Adafruit_Sensor.h"
 
