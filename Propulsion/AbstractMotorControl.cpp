@@ -34,9 +34,8 @@
 * facing - 1 the sensor is facing forward (default), 0 - sensor facing backward
 */
 void AbstractMotorControl::linkDistanceSensor(Ultrasonic** us, uint8_t upin, uint32_t distance, uint8_t facing) {
-	usensor = us;
 	for(int i = 0; i < 10; i++) {
-		if( us[i] && us[i]->getPin() == upin ) {
+		if( usensor[i] && usensor[i]->getPin() == upin ) {
 			ultrasonicIndex[i][0] = i;
 			ultrasonicIndex[i][1] = facing;
 			minMotorDist[i] = distance;

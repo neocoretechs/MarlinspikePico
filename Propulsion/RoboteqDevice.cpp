@@ -1,7 +1,6 @@
 #include "pico/stdlib.h"
 #include "RoboteqDevice.h"
-#include "HardwareSerial/HardwareSerial.h"
-#include <util\delay.h>
+#include "../HardwareSerial.h"
 
 
 char* chomp(char* s) {
@@ -38,7 +37,7 @@ int RoboteqDevice::isConnected() {
 				}
 			}
 		}
-		_delay_ms(10);
+		sleep_ms(10);
 	}
 	// timeout
 	return 0;
@@ -500,7 +499,7 @@ int RoboteqDevice::sendCommand(const char *command, size_t commandSize) {
 	for(int i = 0 ; i < commandSize; i++) {
 		this->m_Serial->write(*(command+i));
 		this->m_Serial->flush();
-		_delay_ms(1);
+		sleep_ms(1);
 		this->m_Serial->read(); // absorb echo
 	}
 	//this->m_Serial->flush();
@@ -531,7 +530,7 @@ int RoboteqDevice::sendQuery(const char *query, size_t querySize, uint8_t *buf, 
 	for(int i = 0 ; i < querySize; i++) {
 		this->m_Serial->write(*(query+i));
 		this->m_Serial->flush();
-		_delay_ms(1);
+		sleep_ms(1);
 		this->m_Serial->read(); // absorb echo
 	}
 	//this->m_Serial->flush();
@@ -561,7 +560,7 @@ int RoboteqDevice::readResponse(uint8_t *buf, size_t bufferSize) {
 		
 			}
 		}
-		_delay_ms(10);
+		sleep_ms(10);
 	}
 	// timeout
 	return ROBOTEQ_TIMEOUT;
@@ -589,5 +588,3 @@ void RoboteqDevice::getDriverInfo(uint8_t ch, char* outStr) {
 			break;
 	 }
 }
-RoboteqDevice::~RoboteqDevice(){}
-//RoboteqDevice roboteqDevice;

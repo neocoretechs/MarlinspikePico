@@ -18,7 +18,8 @@
 * Created: 10/2/2016 1:42:24 PM
 * Author: jg
 */
-
+#define LOW 0
+#define HIGH 1
 #include "HBridgeDriver.h"
 #include "..\Configuration_adv.h"
 
@@ -29,8 +30,6 @@ int HBridgeDriver::commandEmergencyStop(int status)
 		int pindex = motorDrive[j][0];
 		if(pindex != 255) {
 			ppwms[pindex]->init(ppwms[pindex]->pin);
-			ppwms[pindex]->setPWMPrescale(motorDrive[j][2]);
-			ppwms[pindex]->setPWMResolution(motorDrive[j][3]);
 			ppwms[pindex]->pwmOff();
 		}
 	}
@@ -159,8 +158,6 @@ int HBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPower) {
 			int pindex = motorDrive[motorChannel-1][0];
 			// writing power 0 sets mode 0 and timer turnoff
 			ppwms[pindex]->init(ppwms[pindex]->pin);
-			ppwms[pindex]->setPWMPrescale(timer_pre);
-			ppwms[pindex]->setPWMResolution(timer_res);
 			//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
 			ppwms[pindex]->pwmWrite(motorPower, timer_mode);
 		}
@@ -191,7 +188,6 @@ void HBridgeDriver::getDriverInfo(uint8_t ch, char* outStr) {
 		itoa(-1, dout2, 10);
 	} else {
 		itoa(ppwms[motorDrive[ch-1][0]]->pin, dout1, 10);
-		itoa(ppwms[motorDrive[ch-1][0]]->mode, dout2, 10);
 	}
 	itoa(motorDrive[ch-1][1], dout3, 10);
 	itoa(motorDrive[ch-1][2], dout4, 10);
@@ -251,10 +247,5 @@ void HBridgeDriver::getDriverInfo(uint8_t ch, char* outStr) {
 	}
 
 }
-
-// default destructor
-HBridgeDriver::~HBridgeDriver() 
-{
-} //~HBridgeDriver
 
 //HBridgeDriver hBridgeDriver;

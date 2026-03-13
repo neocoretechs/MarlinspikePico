@@ -18,7 +18,7 @@ class Ultrasonic {
 		Ultrasonic(int ipin) {
 			pin = new Digital(ipin);
 		}
-		uint getPin(void) { return 0;}//pin->pin; }
+		uint8_t getPin(void) { return 0;}//pin->pin; }
 		/*The measured distance from the range 0 to 400 Centimeters*/
 		long microsecondsToCentimeters(void);
 		/*The measured distance from the range 0 to 157 Inches*/

@@ -18,9 +18,9 @@ extern "C" {
 class InterruptsBase {
 	private:
 	public:
-	virtual uint attachInterrupt(InterruptService* userFunc, int mode)=0;
-	virtual void attachInterrupt(uint interruptNum, InterruptService* userFunc, int mode);
-	virtual void detachInterrupt(uint interruptNum);
+	virtual uint attachInterrupt(int mode)=0;
+	virtual void attachInterrupt(uint8_t interruptNum, int mode);
+	virtual void detachInterrupt(uint8_t interruptNum);
 };
 
 #ifdef __cplusplus

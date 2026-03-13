@@ -19,7 +19,7 @@ public:
 	virtual int commandMotorPower(uint ch, int p)=0;//make AbstractMotorControl not inst
 	void setMinMotorPower(uint8_t ch, uint32_t mpow) { 
 		if (ch >= 1 && ch <= NUM_CHANNELS)
-            minMotorPower[ch - 1] = std::abs(mpow) / 4;
+            minMotorPower[ch - 1] = abs(mpow) / 4;
 	}
 	void setMaxMotorPower(int p) { MAXMOTORPOWER = std::abs(p)/4; }
 	void setMotorPowerScale(int p) { MOTORPOWERSCALE = std::abs(p)/4;}

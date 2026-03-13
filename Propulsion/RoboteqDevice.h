@@ -48,7 +48,7 @@ class RoboteqDevice : public AbstractSmartMotorControl {
 	    RoboteqDevice() : AbstractSmartMotorControl(1000) {
 				m_Timeout = ROBOTEQ_DEFAULT_TIMEOUT;
 				setChannels(2);
-				m_Serial = &Serial2;
+				m_Serial = &Serial1;
 				//m_Serial->begin(115200); must do this later in setup as this is default ctor and static initializer too early
 		}
         RoboteqDevice(HardwareSerial *serial);
@@ -263,7 +263,8 @@ class RoboteqDevice : public AbstractSmartMotorControl {
         void setTimeout(uint16_t timeout);
 		
 		void getDriverInfo(uint8_t ch, char* outStr);
-
+        
+        int queryBrushlessCounter(uint8_t ch);
     // Private Methods
     private:
 

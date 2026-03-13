@@ -23,6 +23,8 @@
 #define __HBRIDGEDRIVER_H__
 #include "AbstractMotorControl.h"
 #include "AbstractPWMMotorControl.h"
+#include "DigitalPin.h"
+#include "WPWM.h"
 #include <stdio.h>
 
 class HBridgeDriver : public AbstractPWMMotorControl

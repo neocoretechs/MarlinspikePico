@@ -49,13 +49,13 @@
 
 #include "../CounterInterruptService.h"
 #include "../WInterruptService.h"
-
+#include "../Ultrasonic.h"
 class AbstractMotorControl
 {
 private:
 	uint channels = 0;
 	// Ultrasonic arrays by channel:
-	
+	Ultrasonic* usensor[10]; // pointer to ultrasonic sensor array, set by linkDistanceSensor
 	uint32_t minMotorDist[10] = {0,0,0,0,0,0,0,0,0,0}; // Ranging device motor shutdown range, by channel
 	// Ultrasonic array by channel:
 	// 0-index in 'usensor' to ultrasonic distance sensor for minimum distance safety shutdown.
@@ -83,7 +83,7 @@ public:
 	virtual int queryFaultFlag(void)=0;
     virtual int queryStatusFlag(void)=0;
 	virtual int queryBrushlessCounter(uint8_t ch)=0;
-	void linkDistanceSensor(Ultrasonic** us, uint upin, uint32_t distance, uint8_t facing=1);
+	void linkDistanceSensor(Ultrasonic** us, uint8_t upin, uint32_t distance, uint8_t facing=1);
 	bool checkUltrasonicShutdown(void);
 	bool checkEncoderShutdown(void);
 	void createEncoder(uint8_t channel, uint8_t encode_pin);
@@ -103,7 +103,7 @@ public:
 	int getMotorSpeed(uint8_t ch) { return motorSpeed[ch-1]; }
 	uint8_t getCurrentDirection(uint8_t ch) { return currentDirection[ch-1]; }
 	uint8_t getDefaultDirection(uint8_t ch) { return defaultDirection[ch-1]; }
-	PCInterrupts* getWheelEncoder(uint8_t ch) { return wheelEncoder[ch-1]; }
+	InterruptService* getWheelEncoder(uint8_t ch) { return wheelEncoder[ch-1]; }
 	CounterInterruptService* getWheelEncoderService(uint8_t ch) { return wheelEncoderService[ch-1]; }
 	void setChannels(uint8_t ch) { channels = ch; }
 	uint8_t getChannels(void) { return channels; }
