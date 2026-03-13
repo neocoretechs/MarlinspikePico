@@ -50,9 +50,7 @@ int HBridgeDriver::commandEmergencyStop(int status)
 void HBridgeDriver::createPWM(uint8_t channel, uint8_t pin_number, uint8_t dir_pin, uint8_t dir_default, int timer_pre, int timer_res) {
 	// Attempt to assign PWM pin, lock to 8 bits no prescale, mode 2 CTC
 	if( getChannels() < channel ) setChannels(channel);
-	if( assignPin(pin_number) ) {
 		// Set up the digital direction pin
-		if( assignPin(dir_pin) ) {
 			Digital* dpin = new Digital(dir_pin);
 			dpin->pinMode(OUTPUT);
 			for(int i = 0; i < 10; i++) {
@@ -78,8 +76,6 @@ void HBridgeDriver::createPWM(uint8_t channel, uint8_t pin_number, uint8_t dir_p
 			PWM* ppin = new PWM(pin_number);
 			ppwms[pindex] = ppin;
 			ppwms[pindex]->init(pin_number);
-		}
-	}
 }
 /*
 * Command the bridge driver power level. Manage direction pin. If necessary limit min and max power and

@@ -47,9 +47,8 @@
 #ifndef __ABSTRACTMOTORCONTROL_H__
 #define __ABSTRACTMOTORCONTROL_H__
 
-#include "../CounterInterruptService.h"
-#include "../WInterruptService.h"
 #include "../Ultrasonic.h"
+#include "../CounterInterruptService.h"
 class AbstractMotorControl
 {
 private:
@@ -69,12 +68,12 @@ protected:
 	uint defaultDirection[10] = {0,0,0,0,0,0,0,0,0,0};
 	uint minMotorPower[10] = {0,0,0,0,0,0,0,0,0,0}; // Offset to add to G5, use with care, meant to compensate for mechanical differences
 	CounterInterruptService* wheelEncoderService[10] = {0,0,0,0,0,0,0,0,0,0}; // encoder service
-	InterruptService* wheelEncoder[10] = {0,0,0,0,0,0,0,0,0,0};
 	int MOTORPOWERSCALE = 0; // Motor scale, divisor for motor power to reduce 0-1000 scale if non zero
 	uint MOTORSHUTDOWN = 0; // Override of motor controls, puts it up on blocks
 	int MAXMOTORPOWER = 255; // Max motor power in PWM final timer units
 	int fault_flag = 0;
 public:
+  AbstractMotorControl(int maxPower) : MAXMOTORPOWER(maxPower) {}
 	virtual ~AbstractMotorControl();
 	virtual int commandMotorPower(uint ch, int p)=0;//make AbstractMotorControl not instantiable
 	virtual int commandEmergencyStop(int status)=0;
@@ -103,7 +102,7 @@ public:
 	int getMotorSpeed(uint8_t ch) { return motorSpeed[ch-1]; }
 	uint8_t getCurrentDirection(uint8_t ch) { return currentDirection[ch-1]; }
 	uint8_t getDefaultDirection(uint8_t ch) { return defaultDirection[ch-1]; }
-	InterruptService* getWheelEncoder(uint8_t ch) { return wheelEncoder[ch-1]; }
+	InterruptService* getWheelEncoder(uint8_t ch) { return wheelEncoderService[ch-1]; }
 	CounterInterruptService* getWheelEncoderService(uint8_t ch) { return wheelEncoderService[ch-1]; }
 	void setChannels(uint8_t ch) { channels = ch; }
 	uint8_t getChannels(void) { return channels; }

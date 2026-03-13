@@ -10,7 +10,7 @@
 class AbstractSmartMotorControl : public AbstractMotorControl {
 //functions
 public:
-	AbstractSmartMotorControl(int maxPower) : MAXMOTORPOWER(maxPower) {};
+	AbstractSmartMotorControl(int maxPower) : AbstractMotorControl(maxPower) {};
 	~AbstractSmartMotorControl();
 	void setMinMotorPower(uint ch, uint mpow) {setMinMotorPower(ch,mpow);}
 	void setMaxMotorPower(int p) {MAXMOTORPOWER = p;}

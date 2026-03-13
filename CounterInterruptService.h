@@ -16,9 +16,7 @@ class CounterInterruptService: public InterruptService {
 	volatile int counter;
 	int maxcount;
 	public:
-	CounterInterruptService(int tmax) {
-		this->maxcount = tmax;
-		counter = 0;
+	CounterInterruptService(int tmax) : InterruptService(), counter(0), maxcount(tmax) {
 	}
 	//Interrupt Service Routine. RoboCore provides a virtual base defining the 'service' method for all unified interrupt requests
 	void service(void)
@@ -37,6 +35,15 @@ class CounterInterruptService: public InterruptService {
 		counter = cntx;
 	}
 
+	uint8_t attachInterrupt(int mode) override {
+    	return 0;
+	}
+
+	void detachInterrupt(uint8_t interruptNum) override {
+	}
+
+	void attachInterrupt(uint8_t mode, int change) override {
+	}
 };
 
 #endif /* COUNTERINTERRUPTSERVICE_H_ */

@@ -23,8 +23,6 @@
 #ifndef __DELAYHBRIDGEDRIVER_H__
 #define __DELAYHBRIDGEDRIVER_H__
 #include "HBridgeDriver.h"
-#include "HBridgeDriver.h"
-#include "../pins.h"
 #include <stdio.h>
 
 class DelayHBridgeDriver : public HBridgeDriver
@@ -35,7 +33,7 @@ protected:
 //functions
 private:
 public:
-	DelayHBridgeDriver(void) : HBridgeDriver(255){};
+	DelayHBridgeDriver(void) : HBridgeDriver(){};
 	~DelayHBridgeDriver() override = default;
 	int commandMotorPower(uint8_t ch, int16_t p);
 	void getDriverInfo(uint8_t ch, char* outStr);
