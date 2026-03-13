@@ -15,18 +15,8 @@
   BSD license, all text above must be included in any redistribution
  ****************************************************/
 #include "pico/stdlib.h"
-#include "pico/TwoWire.h"
 #include <limits.h>
 #include "Adafruit_L3GD20U.h"
-
-/**************************************************************************/
-/*!
-    @brief  Instantiates a new Adafruit_L3GD20_Unified class
-*/
-/**************************************************************************/
-Adafruit_L3GD20_Unified::Adafruit_L3GD20_Unified() {
-  _autoRangeEnabled = false;
-}
 
  
 /**************************************************************************/
@@ -36,9 +26,7 @@ Adafruit_L3GD20_Unified::Adafruit_L3GD20_Unified() {
 /**************************************************************************/
 bool Adafruit_L3GD20_Unified::begin(gyroRange_t rng)
 {
-  boolean idd = false;
-  /* Enable I2C */
-  Wire.begin();
+  bool idd = false;
 
   /* Set the range the an appropriate value */  
   _range = rng;
@@ -46,12 +34,12 @@ bool Adafruit_L3GD20_Unified::begin(gyroRange_t rng)
   /* Make sure we have the correct chip ID since this checks
      for correct address and that the IC is properly connected */
   L3GD20_ADDRESS = L3GD20_ADDRESS_SA0_LOW;   
-  L3GD20_ID = read8(L3GD20_ADDRESS, GYRO_REGISTER_WHO_AM_I); 
+  L3GD20_ID = wire->read8(L3GD20_ADDRESS, GYRO_REGISTER_WHO_AM_I); 
   if (L3GD20_ID == 0xD4 || L3GD20_ID == 0xD7) {
 	idd = true;
   } else {
 	L3GD20_ADDRESS = L3GD20_ADDRESS_SA0_HIGH;
-	L3GD20_ID = read8(L3GD20_ADDRESS, GYRO_REGISTER_WHO_AM_I); 
+	L3GD20_ID = wire->read8(L3GD20_ADDRESS, GYRO_REGISTER_WHO_AM_I); 
 	if (L3GD20_ID == 0xD4 || L3GD20_ID == 0xD7) idd = true;
   }
 
@@ -69,7 +57,7 @@ bool Adafruit_L3GD20_Unified::begin(gyroRange_t rng)
 
   /* Reset then switch to normal mode and enable all three channels */
   //write8(L3GD20_ADDRESS, GYRO_REGISTER_CTRL_REG1, 0x00);
-  write8(L3GD20_ADDRESS, GYRO_REGISTER_CTRL_REG1,  0b00001111);
+  wire->write8(L3GD20_ADDRESS, GYRO_REGISTER_CTRL_REG1,  0b00001111);
 
   /* ------------------------------------------------------------------ */
 
@@ -117,13 +105,13 @@ bool Adafruit_L3GD20_Unified::begin(gyroRange_t rng)
   switch(_range)
   {
     case GYRO_RANGE_250DPS:
-      write8(L3GD20_ADDRESS, GYRO_REGISTER_CTRL_REG4, 0x00);
+      wire->write8(L3GD20_ADDRESS, GYRO_REGISTER_CTRL_REG4, 0x00);
       break;
     case GYRO_RANGE_500DPS:
-      write8(L3GD20_ADDRESS, GYRO_REGISTER_CTRL_REG4, 0x10);
+      wire->write8(L3GD20_ADDRESS, GYRO_REGISTER_CTRL_REG4, 0x10);
       break;
     case GYRO_RANGE_2000DPS:
-      write8(L3GD20_ADDRESS, GYRO_REGISTER_CTRL_REG4, 0x20);
+      wire->write8(L3GD20_ADDRESS, GYRO_REGISTER_CTRL_REG4, 0x20);
       break;
   }
   /* ------------------------------------------------------------------ */
@@ -180,12 +168,12 @@ void Adafruit_L3GD20_Unified::getEvent(sensors_event_t* event)
   {
     event->timestamp = 0;//millis();
  
-    uint8_t xlo = read8(L3GD20_ADDRESS, GYRO_REGISTER_OUT_X_L);
-    uint8_t xhi = read8(L3GD20_ADDRESS, GYRO_REGISTER_OUT_X_H);
-    uint8_t ylo = read8(L3GD20_ADDRESS, GYRO_REGISTER_OUT_Y_L);
-    uint8_t yhi = read8(L3GD20_ADDRESS, GYRO_REGISTER_OUT_Y_H);
-    uint8_t zlo = read8(L3GD20_ADDRESS, GYRO_REGISTER_OUT_Z_L);
-    uint8_t zhi = read8(L3GD20_ADDRESS, GYRO_REGISTER_OUT_Z_H);
+    uint8_t xlo = wire->read8(L3GD20_ADDRESS, GYRO_REGISTER_OUT_X_L);
+    uint8_t xhi = wire->read8(L3GD20_ADDRESS, GYRO_REGISTER_OUT_X_H);
+    uint8_t ylo = wire->read8(L3GD20_ADDRESS, GYRO_REGISTER_OUT_Y_L);
+    uint8_t yhi = wire->read8(L3GD20_ADDRESS, GYRO_REGISTER_OUT_Y_H);
+    uint8_t zlo = wire->read8(L3GD20_ADDRESS, GYRO_REGISTER_OUT_Z_L);
+    uint8_t zhi = wire->read8(L3GD20_ADDRESS, GYRO_REGISTER_OUT_Z_H);
 	
 	
     /* Shift values to create properly formed integer (low byte first) */
@@ -211,20 +199,20 @@ void Adafruit_L3GD20_Unified::getEvent(sensors_event_t* event)
           case GYRO_RANGE_500DPS:
             /* Push the range up to 2000dps */
             _range = GYRO_RANGE_2000DPS;
-            write8(L3GD20_ADDRESS, GYRO_REGISTER_CTRL_REG1, 0x00);
-            write8(L3GD20_ADDRESS, GYRO_REGISTER_CTRL_REG1, 0x0F);
-            write8(L3GD20_ADDRESS, GYRO_REGISTER_CTRL_REG4, 0x20);
-            write8(L3GD20_ADDRESS, GYRO_REGISTER_CTRL_REG5, 0x80);
+            wire->write8(L3GD20_ADDRESS, GYRO_REGISTER_CTRL_REG1, 0x00);
+            wire->write8(L3GD20_ADDRESS, GYRO_REGISTER_CTRL_REG1, 0x0F);
+            wire->write8(L3GD20_ADDRESS, GYRO_REGISTER_CTRL_REG4, 0x20);
+            wire->write8(L3GD20_ADDRESS, GYRO_REGISTER_CTRL_REG5, 0x80);
             readingValid = false;
             // Serial.println("Changing range to 2000DPS");
             break;
           case GYRO_RANGE_250DPS:
             /* Push the range up to 500dps */
             _range = GYRO_RANGE_500DPS;
-            write8(L3GD20_ADDRESS, GYRO_REGISTER_CTRL_REG1, 0x00);
-            write8(L3GD20_ADDRESS, GYRO_REGISTER_CTRL_REG1, 0x0F);
-            write8(L3GD20_ADDRESS, GYRO_REGISTER_CTRL_REG4, 0x10);
-            write8(L3GD20_ADDRESS, GYRO_REGISTER_CTRL_REG5, 0x80);
+            wire->write8(L3GD20_ADDRESS, GYRO_REGISTER_CTRL_REG1, 0x00);
+            wire->write8(L3GD20_ADDRESS, GYRO_REGISTER_CTRL_REG1, 0x0F);
+            wire->write8(L3GD20_ADDRESS, GYRO_REGISTER_CTRL_REG4, 0x10);
+            wire->write8(L3GD20_ADDRESS, GYRO_REGISTER_CTRL_REG5, 0x80);
             readingValid = false;
             // Serial.println("Changing range to 500DPS");
             break;

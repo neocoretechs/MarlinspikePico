@@ -185,7 +185,6 @@ class RoboteqDevice : public AbstractSmartMotorControl {
          */
         int queryEncoderRelativeSpeed(uint8_t ch);
 
-		int queryBrushlessCounter(uint8_t ch);
 		int queryBrushlessCounterRelative(uint8_t ch);
 		int queryBrushlessSpeed(uint8_t ch);
 		int queryBrushlessSpeedRelative(uint8_t ch);

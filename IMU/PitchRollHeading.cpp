@@ -7,13 +7,14 @@
 #include "IMUInterruptService.h" 
 #include "PitchRollHeading.h"
 
-PitchRollHeading::PitchRollHeading() {
+PitchRollHeading::PitchRollHeading(Wire* w) : wire(w)
+{
 		/* Assign a unique ID to the sensors */
-		dof   = new Adafruit_10DOF();
-		accel = new Adafruit_LSM303_Accel_Unified(LSM303_ADDRESS_ACCEL);
-		mag   = new Adafruit_LSM303_Mag_Unified(LSM303_ADDRESS_MAG);
-		bmp   = new Adafruit_BMP085_Unified(BMP085_ADDRESS);
-		gyro  = new Adafruit_L3GD20_Unified();
+		dof   = new Adafruit_10DOF(w, -1, ADAFRUIT_10DOF_ADDRESS);
+		accel = new Adafruit_LSM303_Accel_Unified(w, LSM303_ID, LSM303_ADDRESS_ACCEL);
+		mag   = new Adafruit_LSM303_Mag_Unified(w, LSM303_ID, LSM303_ADDRESS_MAG);
+		bmp   = new Adafruit_BMP085_Unified(w, -1, BMP085_ADDRESS);
+		gyro  = new Adafruit_L3GD20_Unified(w, 0xD7, 0x6B);
 		//interruptsActive = false;
 		// set up pin change interrupts
 		//gyroInt = new PCInterrupts();
@@ -45,6 +46,7 @@ void PitchRollHeading::initSensors()
 sensors_vec_t PitchRollHeading::getPitchRollHeading(void)
 {
 	interruptsActive = false;
+	sensors_axis_t axis = SENSOR_AXIS_Z; // for tilt compensation and heading, use Z axis as reference
 	sensors_event_t accel_event;
 	sensors_event_t mag_event;
 	sensors_event_t bmp_event;
@@ -65,7 +67,7 @@ sensors_vec_t PitchRollHeading::getPitchRollHeading(void)
 	
 	/* Calculate the heading using the magnetometer */
 	mag->getEvent(&mag_event);
-	volatile bool mgo = dof->magGetOrientation(SENSOR_AXIS_Z, &mag_event, &orientation);
+	volatile bool mgo = dof->magGetOrientation(axis, &mag_event, &orientation);
 	/* 'orientation' should have valid .heading data now */
 	//Serial.print(F("Heading: "));
 	//Serial.print(orientation.heading);

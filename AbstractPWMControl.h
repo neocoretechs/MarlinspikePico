@@ -36,7 +36,7 @@
 #define __ABSTRACTPWMCONTROL_H__
 #include "WPWM.h"
 #include <stdio.h>
-
+#include "DigitalPin.h"
 class AbstractPWMControl
 {
 private:
@@ -54,7 +54,7 @@ protected:
 	// 2-timer prescale (1-none)
 	// 3-timer resolution (8 bit)
 	uint pwmDrive[10][4]={{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8}};
-	uint32_t maxPWMDuration[10] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1}; // number of milliseconds operation before auto shutdown
+	int32_t maxPWMDuration[10] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1}; // number of milliseconds operation before auto shutdown
 	// 10 channels of last PWM value
 	int pwmLevel[10] = {0,0,0,0,0,0,0,0,0,0};
 	uint32_t minPWMLevel[10] = {0,0,0,0,0,0,0,0,0,0}; // Offset to add to G6, use with care, meant to compensate for electrical differences

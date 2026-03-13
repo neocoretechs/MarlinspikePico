@@ -18,13 +18,7 @@
 #include <Math.h>
 
 #include "Adafruit_10DOF.h"
-
-/**************************************************************************
-    Instantiates a new Adafruit_10DOF class
-*************************************************************************/
-Adafruit_10DOF::Adafruit_10DOF(void) 
-{
-}
+#define PI 3.14159265F
 
 
 /**************************************************************************/
@@ -91,7 +85,7 @@ bool Adafruit_10DOF::accelGetOrientation(sensors_event_t *event, sensors_vec_t *
 /*!
     @brief  Utilize the sensor data from an accelerometer to compensate
             the magnetic sensor measurements when the sensor is tilted
-            (the pitch and roll angles are not equal 0°)
+            (the pitch and roll angles are not equal 0ï¿½)
 
     @param  axis          The given axis (SENSOR_AXIS_X/Y/Z) that is
                           parallel to the gravity of the Earth
@@ -182,7 +176,7 @@ bool Adafruit_10DOF::magTiltCompensation(sensors_axis_t axis, sensors_event_t *m
 /**************************************************************************/
 /*!
     @brief  Populates the .heading fields in the sensors_vec_t
-            struct with the right angular data (0-359°)
+            struct with the right angular data (0-359ï¿½)
 
             Heading increases when measuring clockwise
 
@@ -234,7 +228,7 @@ bool Adafruit_10DOF::magGetOrientation(sensors_axis_t axis, sensors_event_t *eve
       return false;
   }
 
-  /* Normalize to 0-359° */
+  /* Normalize to 0-359ï¿½ */
   if (orientation->heading < 0)
   {
     orientation->heading = 360 + orientation->heading;

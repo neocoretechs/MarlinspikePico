@@ -16,21 +16,18 @@
  ****************************************************/
 #ifndef ADAFRUIT_L3GD20U_H_
 #define ADAFRUIT_L3GD20U_H_
-#include "../pico/stdlib.h"
 
 #include "Adafruit_Sensor.h"
-#include "../TwoWire.h"
 
 /*=========================================================================
     I2C ADDRESS/BITS AND SETTINGS
     -----------------------------------------------------------------------*/
 	#define L3GD20_ADDRESS_SA0_LOW    0x6A
 	#define L3GD20_ADDRESS_SA0_HIGH   0x6B
- 
-    #define L3GD20_POLL_TIMEOUT      (100)         // Maximum number of read attempts
-    #define GYRO_SENSITIVITY_250DPS  (0.00875F)    // Roughly 22/256 for fixed point match
-    #define GYRO_SENSITIVITY_500DPS  (0.0175F)     // Roughly 45/256
-    #define GYRO_SENSITIVITY_2000DPS (0.070F)      // Roughly 18/256
+  #define L3GD20_POLL_TIMEOUT      (100)         // Maximum number of read attempts
+  #define GYRO_SENSITIVITY_250DPS  (0.00875F)    // Roughly 22/256 for fixed point match
+  #define GYRO_SENSITIVITY_500DPS  (0.0175F)     // Roughly 45/256
+  #define GYRO_SENSITIVITY_2000DPS (0.070F)      // Roughly 18/256
 /*=========================================================================*/
 
 /*=========================================================================
@@ -81,19 +78,21 @@
 class Adafruit_L3GD20_Unified : public Adafruit_Sensor
 {
   public:
-    uint8_t L3GD20_ADDRESS; //  (0x6B)        // 1101011
-	uint8_t L3GD20_ID;      // (0b11010111)  // was bits 1:0 = 00? Datasheet says this means SDO pin connected?
-    Adafruit_L3GD20_Unified();
+    Adafruit_L3GD20_Unified(Wire* w, int32_t sensorID = 0xD7, uint8_t addr = 0x6B)
+        : wire(w), _addr(addr) , _sensorID(sensorID) {}
 
+private:
+    Wire* wire;
+    uint8_t _addr;
+    int32_t _sensorID;
+    gyroRange_t _range;
+    uint8_t L3GD20_ADDRESS = 0x6B;
+    uint8_t L3GD20_ID  = 0xD7;
+    bool        _autoRangeEnabled;
     bool begin           ( gyroRange_t rng = GYRO_RANGE_250DPS );
     void enableAutoRange ( bool enabled );
     void getEvent        ( sensors_event_t* );
     void getSensor       ( sensor_t* );
-
-  private:
-    gyroRange_t _range;
-    int32_t     _sensorID;
-    bool        _autoRangeEnabled;
 };
 
 

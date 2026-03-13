@@ -82,6 +82,7 @@ public:
 	virtual void getDriverInfo(uint ch, char* outStr)=0;
 	virtual int queryFaultFlag(void)=0;
     virtual int queryStatusFlag(void)=0;
+	virtual int queryBrushlessCounter(uint8_t ch)=0;
 	void linkDistanceSensor(Ultrasonic** us, uint upin, uint32_t distance, uint8_t facing=1);
 	bool checkUltrasonicShutdown(void);
 	bool checkEncoderShutdown(void);

@@ -15,7 +15,6 @@
 #ifndef ADAFRUIT_LSM303U_H_
 #define ADAFRUIT_LSM303U_H_
 
-#include "../pico/stdlib.h"
 #include "Adafruit_Sensor.h"
 
 /*=========================================================================
@@ -130,24 +129,27 @@
 class Adafruit_LSM303_Accel_Unified : public Adafruit_Sensor
 {
   public:
-    Adafruit_LSM303_Accel_Unified(int32_t sensorID = -1);
+    Adafruit_LSM303_Accel_Unified(Wire* w, int32_t sensorID = LSM303_ID, uint8_t addr = LSM303_ADDRESS_ACCEL)
+        : wire(w), _addr(addr) , _sensorID(sensorID) {}
   
+private:
+    Wire* wire;
+    uint8_t _addr;
+    lsm303AccelData _accelData;   // Last read accelerometer data will be available here
+    int32_t _sensorID;
+    void read(void);
     bool begin(void);
     void getEvent(sensors_event_t*);
     void getSensor(sensor_t*);
 
-  private:
-    lsm303AccelData _accelData;   // Last read accelerometer data will be available here
-    int32_t         _sensorID;
-
-    void read(void);
 };
 
 /* Unified sensor driver for the magnetometer */
 class Adafruit_LSM303_Mag_Unified : public Adafruit_Sensor
 {
   public:
-    Adafruit_LSM303_Mag_Unified(int32_t sensorID = -1);
+    Adafruit_LSM303_Mag_Unified(Wire* w, int32_t sensorID = LSM303_ID, uint8_t addr = LSM303_ADDRESS_MAG )
+        : wire(w), _addr(addr) , _sensorID(sensorID) {}
   
     bool begin(void);
     void enableAutoRange(bool enable);
@@ -156,11 +158,12 @@ class Adafruit_LSM303_Mag_Unified : public Adafruit_Sensor
     void getSensor(sensor_t*);
 
   private:
+    Wire* wire;
+    uint8_t _addr;
+    int32_t         _sensorID;
     lsm303MagGain   _magGain;
     lsm303MagData   _magData;     // Last read magnetometer data will be available here
-    int32_t         _sensorID;
     bool            _autoRangeEnabled;
-    
     void read(void);
 };
 

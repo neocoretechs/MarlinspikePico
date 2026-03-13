@@ -15,7 +15,7 @@
  ***************************************************************************/
 #include "pico/stdlib.h"
 
-#include "pico/TwoWire.h"
+
 #include <limits.h>
 #include "Adafruit_LSM303U.h"
 
@@ -37,29 +37,18 @@ void Adafruit_LSM303_Accel_Unified::read()
 {
   // Read the accelerometer
   
-    uint8_t xlo = read8((byte)LSM303_ADDRESS_ACCEL,(byte)LSM303_REGISTER_ACCEL_OUT_X_L_A) | 0x80; //s two compliment
-    uint8_t xhi = read8((byte)LSM303_ADDRESS_ACCEL,(byte)LSM303_REGISTER_ACCEL_OUT_X_H_A) | 0x80;
-    uint8_t ylo = read8((byte)LSM303_ADDRESS_ACCEL,(byte)LSM303_REGISTER_ACCEL_OUT_Y_L_A) | 0x80;
-    uint8_t yhi = read8((byte)LSM303_ADDRESS_ACCEL,(byte)LSM303_REGISTER_ACCEL_OUT_Y_H_A) | 0x80;
-    uint8_t zlo = read8((byte)LSM303_ADDRESS_ACCEL,(byte)LSM303_REGISTER_ACCEL_OUT_Z_L_A) | 0x80;
-    uint8_t zhi = read8((byte)LSM303_ADDRESS_ACCEL,(byte)LSM303_REGISTER_ACCEL_OUT_Z_H_A) | 0x80; 
+    uint8_t xlo = wire->read8((uint8_t)LSM303_ADDRESS_ACCEL,(uint8_t)LSM303_REGISTER_ACCEL_OUT_X_L_A) | 0x80; //s two compliment
+    uint8_t xhi = wire->read8((uint8_t)LSM303_ADDRESS_ACCEL,(uint8_t)LSM303_REGISTER_ACCEL_OUT_X_H_A) | 0x80;
+    uint8_t ylo = wire->read8((uint8_t)LSM303_ADDRESS_ACCEL,(uint8_t)LSM303_REGISTER_ACCEL_OUT_Y_L_A) | 0x80;
+    uint8_t yhi = wire->read8((uint8_t)LSM303_ADDRESS_ACCEL,(uint8_t)LSM303_REGISTER_ACCEL_OUT_Y_H_A) | 0x80;
+    uint8_t zlo = wire->read8((uint8_t)LSM303_ADDRESS_ACCEL,(uint8_t)LSM303_REGISTER_ACCEL_OUT_Z_L_A) | 0x80;
+    uint8_t zhi = wire->read8((uint8_t)LSM303_ADDRESS_ACCEL,(uint8_t)LSM303_REGISTER_ACCEL_OUT_Z_H_A) | 0x80; 
 	 
-  // Shift values to create properly formed integer (low byte first)
+  // Shift values to create properly formed integer (low uint8_t first)
   _accelData.x = (int16_t)(xlo | (xhi << 8)) >> 4;
   _accelData.y = (int16_t)(ylo | (yhi << 8)) >> 4;
   _accelData.z = (int16_t)(zlo | (zhi << 8)) >> 4;
 }
-
- 
-/**************************************************************************/
-/*!
-    @brief  Instantiates a new Adafruit_LSM303 class
-*/
-/**************************************************************************/
-Adafruit_LSM303_Accel_Unified::Adafruit_LSM303_Accel_Unified(int32_t sensorID) {
-  _sensorID = sensorID;
-}
-
 
 /**************************************************************************/
 /*!
@@ -68,8 +57,6 @@ Adafruit_LSM303_Accel_Unified::Adafruit_LSM303_Accel_Unified(int32_t sensorID) {
 /**************************************************************************/
 bool Adafruit_LSM303_Accel_Unified::begin()
 {
-  // Enable I2C
-  Wire.begin();
 
   // Enable the accelerometer
   // 0x57 = 0b01010111
@@ -77,10 +64,10 @@ bool Adafruit_LSM303_Accel_Unified::begin()
   // 0x23 = 1hz
   // 0x39 = 10hz
   // 0x47 = 50hz
-  write8(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_CTRL_REG1_A, 0x39);
+  wire->write8(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_CTRL_REG1_A, 0x39);
   //write8(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_CTRL_REG3_A, 0xFE); // enable all interrupts
   // set gauss scale
-  write8(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_CTRL_REG6_A, 0xE0);
+  wire->write8(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_CTRL_REG6_A, 0xE0);
   return true;
 }
 
@@ -137,34 +124,20 @@ void Adafruit_LSM303_Accel_Unified::getSensor(sensor_t *sensor) {
 void Adafruit_LSM303_Mag_Unified::read()
 {
   // Read the magnetometer  
-    uint8_t xlo = read8((byte)LSM303_ADDRESS_MAG,(byte)LSM303_REGISTER_MAG_OUT_X_L_M) | 0x80; //s two compliment
-    uint8_t xhi = read8((byte)LSM303_ADDRESS_MAG,(byte)LSM303_REGISTER_MAG_OUT_X_H_M) | 0x80;
-    uint8_t ylo = read8((byte)LSM303_ADDRESS_MAG,(byte)LSM303_REGISTER_MAG_OUT_Y_L_M) | 0x80;
-    uint8_t yhi = read8((byte)LSM303_ADDRESS_MAG,(byte)LSM303_REGISTER_MAG_OUT_Y_H_M) | 0x80;
-    uint8_t zlo = read8((byte)LSM303_ADDRESS_MAG,(byte)LSM303_REGISTER_MAG_OUT_Z_L_M) | 0x80;
-    uint8_t zhi = read8((byte)LSM303_ADDRESS_MAG,(byte)LSM303_REGISTER_MAG_OUT_Z_H_M) | 0x80; 
+    uint8_t xlo = wire->read8((uint8_t)LSM303_ADDRESS_MAG,(uint8_t)LSM303_REGISTER_MAG_OUT_X_L_M) | 0x80; //s two compliment
+    uint8_t xhi = wire->read8((uint8_t)LSM303_ADDRESS_MAG,(uint8_t)LSM303_REGISTER_MAG_OUT_X_H_M) | 0x80;
+    uint8_t ylo = wire->read8((uint8_t)LSM303_ADDRESS_MAG,(uint8_t)LSM303_REGISTER_MAG_OUT_Y_L_M) | 0x80;
+    uint8_t yhi = wire->read8((uint8_t)LSM303_ADDRESS_MAG,(uint8_t)LSM303_REGISTER_MAG_OUT_Y_H_M) | 0x80;
+    uint8_t zlo = wire->read8((uint8_t)LSM303_ADDRESS_MAG,(uint8_t)LSM303_REGISTER_MAG_OUT_Z_L_M) | 0x80;
+    uint8_t zhi = wire->read8((uint8_t)LSM303_ADDRESS_MAG,(uint8_t)LSM303_REGISTER_MAG_OUT_Z_H_M) | 0x80; 
 	  
-  // Shift values to create properly formed integer (low byte first)
+  // Shift values to create properly formed integer (low uint8_t first)
   _magData.x = (int16_t)(xlo | ((int16_t)xhi << 8));
   _magData.y = (int16_t)(ylo | ((int16_t)yhi << 8));
   _magData.z = (int16_t)(zlo | ((int16_t)zhi << 8));
   
   // ToDo: Calculate orientation
   _magData.orientation = 0.0;
-}
-
-/***************************************************************************
- CONSTRUCTOR
- ***************************************************************************/
- 
-/**************************************************************************/
-/*!
-    @brief  Instantiates a new Adafruit_LSM303 class
-*/
-/**************************************************************************/
-Adafruit_LSM303_Mag_Unified::Adafruit_LSM303_Mag_Unified(int32_t sensorID) {
-  _sensorID = sensorID;
-  _autoRangeEnabled = false;
 }
 
 /***************************************************************************
@@ -178,11 +151,9 @@ Adafruit_LSM303_Mag_Unified::Adafruit_LSM303_Mag_Unified(int32_t sensorID) {
 /**************************************************************************/
 bool Adafruit_LSM303_Mag_Unified::begin()
 {
-  // Enable I2C
-  Wire.begin(LSM303_ADDRESS_MAG);
 
   // Enable the magnetometer
-  write8(LSM303_ADDRESS_MAG, LSM303_REGISTER_MAG_MR_REG_M, 0x00);
+  wire->write8(LSM303_ADDRESS_MAG, LSM303_REGISTER_MAG_MR_REG_M, 0x00);
   
   // Set the gain to a known level
   setMagGain(LSM303_MAGGAIN_1_3);
@@ -207,7 +178,7 @@ void Adafruit_LSM303_Mag_Unified::enableAutoRange(bool enabled)
 /**************************************************************************/
 void Adafruit_LSM303_Mag_Unified::setMagGain(lsm303MagGain gain)
 {
-  write8(LSM303_ADDRESS_MAG, LSM303_REGISTER_MAG_CRB_REG_M, (byte)gain);
+  wire->write8(LSM303_ADDRESS_MAG, LSM303_REGISTER_MAG_CRB_REG_M, (uint8_t)gain);
   
   _magGain = gain;
  

@@ -26,7 +26,6 @@
 #include "Adafruit_LSM303U.h"
 #include "Adafruit_BMP085U.h"
 #include "Adafruit_L3GD20U.h"
-#include "pico/TwoWire.h"
 
 /** Sensor axis */
 typedef enum
@@ -35,20 +34,22 @@ typedef enum
   SENSOR_AXIS_Y  = (2),
   SENSOR_AXIS_Z  = (3)
 } sensors_axis_t;
-
+#define ADAFRUIT_10DOF_ADDRESS 0x29
 /* Driver for the the 10DOF breakout sensors */
 class Adafruit_10DOF
 {
   public:
-    Adafruit_10DOF(void);
+    Adafruit_10DOF(Wire* w, int32_t sensorID = -1, uint8_t addr = ADAFRUIT_10DOF_ADDRESS)
+        : wire(w), _addr(addr) , _sensorID(sensorID) {}
+  bool  magGetOrientation    ( sensors_axis_t axis, sensors_event_t *event, sensors_vec_t *mag_orientation );
+private:
+    Wire* wire;
+    uint8_t _addr;
+    int32_t _sensorID;
     bool begin(void);
-    
     bool  accelGetOrientation  ( sensors_event_t *event, sensors_vec_t *orientation );
     bool  magTiltCompensation  ( sensors_axis_t axis, sensors_event_t *mag_event, sensors_event_t *accel_event );
-    bool  magGetOrientation    ( sensors_axis_t axis, sensors_event_t *event, sensors_vec_t *mag_orientation );
     bool  fusionGetOrientation ( sensors_event_t *accel_event, sensors_event_t *mag_event, sensors_vec_t *orientation );
-
-  private:
 };
 
 #endif /* ADAFRUIT_10DOF.H_H_ */

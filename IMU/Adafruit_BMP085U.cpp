@@ -15,7 +15,6 @@
   BSD license, all text above must be included in any redistribution
  ***************************************************************************/
 #include "pico/stdlib.h"
-#include "pico/TwoWire.h"
 #include <math.h>
 #include <limits.h>
 #include "Adafruit_BMP085U.h"
@@ -46,17 +45,17 @@ void Adafruit_BMP085_Unified::readCoefficients(void)
     _bmp085_coeffs.md  = 2868;
     _bmp085Mode        = 0;
   #else
-    _bmp085_coeffs.ac1 = (int)read16(BMP085_ADDRESS, BMP085_REGISTER_CAL_AC1);
-    _bmp085_coeffs.ac2 = (int)read16(BMP085_ADDRESS,BMP085_REGISTER_CAL_AC2);
-    _bmp085_coeffs.ac3 = (int)read16(BMP085_ADDRESS,BMP085_REGISTER_CAL_AC3);
-    _bmp085_coeffs.ac4 = read16(BMP085_ADDRESS,BMP085_REGISTER_CAL_AC4);
-    _bmp085_coeffs.ac5 = read16(BMP085_ADDRESS,BMP085_REGISTER_CAL_AC5);
-    _bmp085_coeffs.ac6 = read16(BMP085_ADDRESS,BMP085_REGISTER_CAL_AC6);
-    _bmp085_coeffs.b1 = (int)read16(BMP085_ADDRESS,BMP085_REGISTER_CAL_B1);
-    _bmp085_coeffs.b2 = (int)read16(BMP085_ADDRESS,BMP085_REGISTER_CAL_B2);
-    _bmp085_coeffs.mb = (int)read16(BMP085_ADDRESS,BMP085_REGISTER_CAL_MB);
-    _bmp085_coeffs.mc = (int)read16(BMP085_ADDRESS,BMP085_REGISTER_CAL_MC);
-    _bmp085_coeffs.md = (int)read16(BMP085_ADDRESS,BMP085_REGISTER_CAL_MD);
+    _bmp085_coeffs.ac1 = (int)wire->read16(BMP085_ADDRESS, BMP085_REGISTER_CAL_AC1);
+    _bmp085_coeffs.ac2 = (int)wire->read16(BMP085_ADDRESS,BMP085_REGISTER_CAL_AC2);
+    _bmp085_coeffs.ac3 = (int)wire->read16(BMP085_ADDRESS,BMP085_REGISTER_CAL_AC3);
+    _bmp085_coeffs.ac4 = wire->read16(BMP085_ADDRESS,BMP085_REGISTER_CAL_AC4);
+    _bmp085_coeffs.ac5 = wire->read16(BMP085_ADDRESS,BMP085_REGISTER_CAL_AC5);
+    _bmp085_coeffs.ac6 = wire->read16(BMP085_ADDRESS,BMP085_REGISTER_CAL_AC6);
+    _bmp085_coeffs.b1 = (int)wire->read16(BMP085_ADDRESS,BMP085_REGISTER_CAL_B1);
+    _bmp085_coeffs.b2 = (int)wire->read16(BMP085_ADDRESS,BMP085_REGISTER_CAL_B2);
+    _bmp085_coeffs.mb = (int)wire->read16(BMP085_ADDRESS,BMP085_REGISTER_CAL_MB);
+    _bmp085_coeffs.mc = (int)wire->read16(BMP085_ADDRESS,BMP085_REGISTER_CAL_MC);
+    _bmp085_coeffs.md = (int)wire->read16(BMP085_ADDRESS,BMP085_REGISTER_CAL_MD);
   #endif
 }
 
@@ -68,9 +67,9 @@ void Adafruit_BMP085_Unified::readRawTemperature(int32_t *temperature)
   #if BMP085_USE_DATASHEET_VALS
     *temperature = 27898;
   #else
-    write8(BMP085_ADDRESS, BMP085_REGISTER_CONTROL, BMP085_REGISTER_READTEMPCMD);
-    _delay_ms(5);
-    *temperature = read16(BMP085_ADDRESS, BMP085_REGISTER_TEMPDATA);
+    wire->write8(BMP085_ADDRESS, BMP085_REGISTER_CONTROL, BMP085_REGISTER_READTEMPCMD);
+    sleep_ms(5);
+    *temperature = wire->read16(BMP085_ADDRESS, BMP085_REGISTER_TEMPDATA);
   #endif
 }
 
@@ -88,27 +87,27 @@ void Adafruit_BMP085_Unified::readRawPressure(int32_t *pressure)
     uint16_t p16;
     int32_t  p32;
 
-    write8(BMP085_ADDRESS, BMP085_REGISTER_CONTROL, BMP085_REGISTER_READPRESSURECMD + (_bmp085Mode << 6));
+    wire->write8(BMP085_ADDRESS, BMP085_REGISTER_CONTROL, BMP085_REGISTER_READPRESSURECMD + (_bmp085Mode << 6));
     switch(_bmp085Mode)
     {
       case BMP085_MODE_ULTRALOWPOWER:
-        _delay_ms(5);
+        sleep_ms(5);
         break;
       case BMP085_MODE_STANDARD:
-        _delay_ms(8);
+        sleep_ms(8);
         break;
       case BMP085_MODE_HIGHRES:
-        _delay_ms(14);
+        sleep_ms(14);
         break;
       case BMP085_MODE_ULTRAHIGHRES:
       default:
-        _delay_ms(26);
+        sleep_ms(26);
         break;
     }
 
-    p16 = read16(BMP085_ADDRESS,BMP085_REGISTER_PRESSUREDATA);
+    p16 = wire->read16(BMP085_ADDRESS,BMP085_REGISTER_PRESSUREDATA);
     p32 = (uint32_t)p16 << 8;
-    p8 = read8(BMP085_ADDRESS,BMP085_REGISTER_PRESSUREDATA+2);
+    p8 = wire->read8(BMP085_ADDRESS,BMP085_REGISTER_PRESSUREDATA+2);
     p32 += p8;
     p32 >>= (8 - _bmp085Mode);
     
@@ -116,14 +115,6 @@ void Adafruit_BMP085_Unified::readRawPressure(int32_t *pressure)
   #endif
 }
 
-/**************************************************************************/
-/*!
-    @brief  Instantiates a new Adafruit_BMP085_Unified class
-*/
-/**************************************************************************/
-Adafruit_BMP085_Unified::Adafruit_BMP085_Unified(int32_t sensorID) {
-  _sensorID = sensorID;
-}
 
 /***************************************************************************
  PUBLIC FUNCTIONS
@@ -136,9 +127,6 @@ Adafruit_BMP085_Unified::Adafruit_BMP085_Unified(int32_t sensorID) {
 /**************************************************************************/
 bool Adafruit_BMP085_Unified::begin(bmp085_mode_t mode)
 {
-  // Enable I2C
-  Wire.begin();
-
   /* Mode boundary check */
   if ((mode > BMP085_MODE_ULTRAHIGHRES) || (mode < 0))
   {
@@ -146,7 +134,7 @@ bool Adafruit_BMP085_Unified::begin(bmp085_mode_t mode)
   }
 
   /* Make sure we have the right device */
-  uint8_t id = read8(BMP085_ADDRESS,BMP085_REGISTER_CHIPID);
+  uint8_t id = wire->read8(BMP085_ADDRESS,BMP085_REGISTER_CHIPID);
   if(id != 0x55)
   {
     return false;
@@ -282,9 +270,6 @@ float Adafruit_BMP085_Unified::seaLevelForAltitude(float altitude, float atmosph
   
   return (float)pow((((altitude*0.0065)/(temp + 273.15F))+1), (1.0/0.190223F))*atmospheric;
 }
-
-
-
 /**************************************************************************/
 /*!
     @brief  Provides the sensor_t data for this sensor
@@ -315,10 +300,8 @@ void Adafruit_BMP085_Unified::getSensor(sensor_t *sensor)
 void Adafruit_BMP085_Unified::getEvent(sensors_event_t *event)
 {
   float pressure_kPa;
-
   /* Clear the event */
   memset(event, 0, sizeof(sensors_event_t));
-
   event->version   = sizeof(sensors_event_t);
   event->sensor_id = _sensorID;
   event->type      = SENSOR_TYPE_PRESSURE;

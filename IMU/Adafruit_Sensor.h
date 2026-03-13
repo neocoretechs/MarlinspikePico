@@ -21,10 +21,9 @@
  
 #ifndef _ADAFRUIT_SENSOR_H
 #define _ADAFRUIT_SENSOR_H
-
-#include "../pico/stdlib.h"
-
-
+#include <cstring>
+#include "pico/stdlib.h"
+#include "Wire.h"
 /* Intentionally modeled after sensors.h in the Android API:
  * https://github.com/android/platform_hardware_libhardware/blob/master/include/hardware/sensors.h */
 
@@ -133,56 +132,13 @@ typedef struct
     float    resolution;                      /**< smallest difference between two values reported by this sensor */
     int32_t  min_delay;                       /**< min delay in microseconds between events. zero = not a constant rate */
 } sensor_t;
-
 class Adafruit_Sensor {
  public:
-  // Constructor(s)
-  void constructor();
-
+  virtual ~Adafruit_Sensor() {}
   // These must be defined by the subclass
   virtual void enableAutoRange(bool enabled) {};
-  virtual void getEvent(sensors_event_t*);
-  virtual void getSensor(sensor_t*);
-  /*************************************************************************
-  * Write a byte to register at address
-  *************************************************************************/
-  virtual void write8(byte address, byte reg, byte value)
-  {
-	Wire.beginTransmission(address);
-	Wire.send(reg);
-	Wire.send(value);
-	Wire.endTransmission();
-  }
-
-  /**************************************************************************
-  * Read a byte from register at address
-  *************************************************************************/
-  virtual byte read8(byte address, byte reg)
-  {
-	byte value;
-	Wire.beginTransmission(address);
-	Wire.send(reg);
-	Wire.endTransmission();
-	Wire.requestFrom(address, (byte)1);
-	value = Wire.receive(); 
-	Wire.endTransmission();
-	return value;
-  }
-  /*************************************************************************
-    Reads a 16 bit value over I2C
-  **************************************************************************/
-  virtual uint16_t read16(byte address, byte reg)
-  {
-	uint16_t value;
-	Wire.beginTransmission(address);
-	Wire.send(reg);
-	Wire.endTransmission();
-	Wire.requestFrom(address, (byte)2);
-	value = (Wire.receive() << 8) | Wire.receive(); 
-	Wire.endTransmission();
-	return value;
-  }
-
+  virtual void getEvent(sensors_event_t*)=0;
+  virtual void getSensor(sensor_t*)=0;
  private:
   bool _autoRange;
 };

@@ -50,7 +50,7 @@
 #include "Ultrasonic.h"
 #include "DigitalPin.h"
 #include "AnalogPin.h"
-#include "PWM.h"
+#include "WPWM.h"
 #include "tusb.h"
 void setup();
 void loop();

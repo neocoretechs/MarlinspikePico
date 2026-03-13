@@ -30,19 +30,11 @@ class CounterInterruptService: public InterruptService {
 	}
 	
 	int get_counter() {
-		int cntx;
-		uint8_t oldSREG = SREG;
-		cli();
-		cntx = counter;
-		SREG = oldSREG;
-		return cntx; 
+		return counter; 
 	}
 		
 	void set_counter(int cntx) {
-		uint8_t oldSREG = SREG;
-		cli();
 		counter = cntx;
-		SREG = oldSREG;
 	}
 
 };

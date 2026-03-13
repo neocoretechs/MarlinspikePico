@@ -11,8 +11,6 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include "WInterruptService.h"
-#include "pico/stdlib.h"
-#include "pins_pico/stdlib.h"
 #include "PitchRollHeading.h"
 #include "Adafruit_Sensor.h"
 
@@ -24,7 +22,7 @@ class IMUInterruptService: public InterruptService {
 	sensors_vec_t orientation;
 	IMUInterruptService(PitchRollHeading* imu) { this->imu = imu; }
 	//Pin Change Interrupt Service Routine.
-	void IMUInterruptService::service(void)
+	void service(void)
 	{
 		if( imu->interruptsActive) {
 			orientation = imu->getPitchRollHeading();

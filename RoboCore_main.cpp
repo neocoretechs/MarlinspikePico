@@ -47,7 +47,6 @@
 #include "CounterInterruptService.h"
 #include "AbstractPWMControl.h"
 #include "VariablePWMDriver.h"
-#include "AccelStepper.h"
 
 // look here for descriptions of gcodes: http://linuxcnc.org/handbook/gcode/g-code.html, protocol here is different but similar
 // When 'stopped' is true the Gcodes G0-G5 are ignored as a safety interlock.

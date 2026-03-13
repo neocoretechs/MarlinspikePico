@@ -10,7 +10,6 @@
 #include <math.h>
 
 /* Load the custom typedefs for tracking encoder info */
-#include "pid_params.h"
 #include "RoboCore.h"
 /* Maximum value speed param */
 #define MAXOUTPUT 1000 // absolute val
@@ -73,17 +72,14 @@ void DiffDrive::updateOdom() {
 void DiffDrive::setAngularVelocity(float linearX, float angularZ) {
   x = linearX; // m/s
   th = angularZ; // rad/s
-
   if (x == 0 && th == 0) {
     moving = 0;
     MotorControl.commandMotorPower(1, 0);
-	MotorControl.commandMotorPower(2, 0);
+	  MotorControl.commandMotorPower(2, 0);
     return;
   }
-
   /* Indicate that we are moving */
   moving = 1;
-
   if (x == 0) {
     // Turn in place
     spd_right = th * wheelTrack / 2.0;
@@ -92,41 +88,33 @@ void DiffDrive::setAngularVelocity(float linearX, float angularZ) {
   else if (th == 0) {
     // Pure forward/backward motion
     spd_left = spd_right = x;
-  } 
-  else {
+  } else {
     // Rotation about a point in space
     spd_left = x - th * wheelTrack / 2.0;
     spd_right = x + th * wheelTrack / 2.0;
   }
-
   /* Set the target speeds in meters per second */
   leftPID.TargetSpeed = spd_left;
   rightPID.TargetSpeed = spd_right;
-
   /* Convert speeds to encoder ticks per frame */
   leftPID.TargetTicksPerFrame = SpeedToTicks(leftPID.TargetSpeed);
   rightPID.TargetTicksPerFrame = SpeedToTicks(rightPID.TargetSpeed);
 }
 
-
 /* PID routine to compute the next motor commands */
 void DiffDrive::doPID(SetPointInfo* p) {
   Perror = p->TargetTicksPerFrame - (p->Encoder - p->PrevEnc);
-
   // Derivative error is the delta Perror
   output = (Kp * Perror + Kd * (Perror - p->PrevErr) + Ki * p->Ierror) / Ko;
   p->PrevErr = Perror;
   p->PrevEnc = p->Encoder;
-
   output += p->output;
-  
   if (output >= MAXOUTPUT)
     output = MAXOUTPUT;
   else if (output <= -MAXOUTPUT)
     output = -MAXOUTPUT;
   else
     p->Ierror += Perror;
-
   p->output = output;
 }
 

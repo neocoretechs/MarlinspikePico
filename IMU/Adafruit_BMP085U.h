@@ -18,10 +18,7 @@
 #ifndef ADAFRUIT_BMP085U_H_
 #define ADAFRUIT_BMP085U_H_
 
-#include "../pico/stdlib.h"
 #include "Adafruit_Sensor.h"
-#include "../TwoWire.h"
-
 /*=========================================================================
     I2C ADDRESS/BITS
     -----------------------------------------------------------------------*/
@@ -89,8 +86,12 @@
 class Adafruit_BMP085_Unified : public Adafruit_Sensor
 {
   public:
-    Adafruit_BMP085_Unified(int32_t sensorID = -1);
-  
+    Adafruit_BMP085_Unified( Wire* w, int32_t sensorID = -1, uint8_t addr = BMP085_ADDRESS)
+        : wire(w), _addr(addr) , _sensorID(sensorID) {}
+private:
+    Wire* wire;
+    uint8_t _addr;
+    int32_t _sensorID;
     bool  begin(bmp085_mode_t mode = BMP085_MODE_ULTRAHIGHRES);
     void  getTemperature(float *temp);
     void  getPressure(float *pressure);
@@ -101,8 +102,6 @@ class Adafruit_BMP085_Unified : public Adafruit_Sensor
 	void readRawPressure(int32_t *pressure);
 	void readRawTemperature(int32_t *temperature);
 	void readCoefficients(void);
-  private:
-    int32_t           _sensorID;
 };
 
 #endif /* ADAFRUIT_BMP085U_H_ */
