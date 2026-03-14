@@ -53,7 +53,7 @@ void  VariablePWMDriver::createPWM(uint channel, uint pin_number, uint enable_pi
 	if( getChannels() < channel ) setChannels(channel);
 	int foundPin = 0;
 	Digital* dpin = new Digital(enable_pin);
-	dpin->pinMode(OUTPUT);
+	dpin->pinMode(PinMode::OUTPUT);
 	for(int i = 0; i < 10; i++) {
 		if(!pdigitals[i]) {
 			pdigitals[i] = dpin;
@@ -112,7 +112,7 @@ int VariablePWMDriver::commandPWMLevel(uint8_t pwmChannel, int16_t pwmPower) {
 	for(int i = 0; i < 10; i++) {
 		if(pdigitals[i] && pdigitals[i]->pin ==  pwmDrive[pwmChannel-1][1]) {
 				//pdigitals[i]->setPin(motorDrive[motorChannel-1][1]);
-				pdigitals[i]->pinMode(OUTPUT);
+				pdigitals[i]->pinMode(PinMode::OUTPUT);
 				pdigitals[i]->digitalWrite(HIGH);
 				foundPin = 1;
 				break;
@@ -133,15 +133,15 @@ int VariablePWMDriver::commandPWMLevel(uint8_t pwmChannel, int16_t pwmPower) {
 		pwmPower /= PWMPOWERSCALE;
 	//
 	// find the PWM pin and get the object we set up in M3 to write to power level
-	int timer_mode = 2;
-	int timer_pre = pwmDrive[pwmChannel-1][2]; // prescale from M3
-	int timer_res = pwmDrive[pwmChannel-1][3]; // timer resolution in bits from M3
+	//int timer_mode = 2;
+	//int timer_pre = pwmDrive[pwmChannel-1][2]; // prescale from M3
+	//int timer_res = pwmDrive[pwmChannel-1][3]; // timer resolution in bits from M3
 	// element 0 of motorDrive has index to PWM array
 	int pindex = pwmDrive[pwmChannel-1][0];
 	// writing power 0 sets mode 0 and timer turnoff
 	ppwms[pindex]->init(ppwms[pindex]->pin);
 	//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
-	ppwms[pindex]->pwmWrite(pwmPower, timer_mode);
+	ppwms[pindex]->pwmWrite(true, pwmPower);
 	fault_flag = 0;
 	return 0;
 }

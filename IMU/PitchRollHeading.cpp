@@ -10,7 +10,7 @@
 PitchRollHeading::PitchRollHeading(Wire* w) : wire(w)
 {
 		/* Assign a unique ID to the sensors */
-		dof   = new Adafruit_10DOF(w, -1, ADAFRUIT_10DOF_ADDRESS);
+		dof   = new Adafruit_10DOF(w, -1, (uint8_t)ADAFRUIT_10DOF_ADDRESS);
 		accel = new Adafruit_LSM303_Accel_Unified(w, LSM303_ID, LSM303_ADDRESS_ACCEL);
 		mag   = new Adafruit_LSM303_Mag_Unified(w, LSM303_ID, LSM303_ADDRESS_MAG);
 		bmp   = new Adafruit_BMP085_Unified(w, -1, BMP085_ADDRESS);

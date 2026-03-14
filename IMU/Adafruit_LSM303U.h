@@ -156,8 +156,6 @@ class Adafruit_LSM303_Mag_Unified : public Adafruit_Sensor
     void setMagGain(lsm303MagGain gain);
     void getEvent(sensors_event_t*);
     void getSensor(sensor_t*);
-
-  private:
     Wire* wire;
     uint8_t _addr;
     int32_t         _sensorID;

@@ -78,7 +78,6 @@ bool Stopped=false;
 
 bool target_direction;
 
-byte mcu;
 Analog* apin;
 Digital* dpin;
 PWM* ppin;
@@ -86,7 +85,7 @@ int nread = 0;
 uint32_t micros = 0;
 int* values;
 String motorCntrlResp;
-int status;
+int scode,status;
 int fault = 0;
 // Dynamically defined ultrasonic rangers
 Ultrasonic* psonics[10]={0,0,0,0,0,0,0,0,0,0};
@@ -102,28 +101,24 @@ Digital* pdigitals[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 PWM* ppwms[12]={0,0,0,0,0,0,0,0,0,0,0,0};
 
 uint8_t channel;
-  
+uint8_t slot;
 int digitarg;
-static int uspin = 0;
+int uspin = 0;
 unsigned long t;
 int pin_number, pin_numberB;
 int dir_pin, dir_default, enable_pin;
 int encode_pin = 0;
 uint8_t dir_face;
 uint32_t dist;
-int timer_res = 8; // resolution in bits
-int timer_pre = 1; // 1 is no prescale
 
 // &roboteqDevice, new HBridgeDriver, new SplitBridgeDriver...
 AbstractMotorControl* motorControl[10]={0,0,0,0,0,0,0,0,0,0};
 AbstractPWMControl* pwmControl[10]={0,0,0,0,0,0,0,0,0,0};
 	
 #define STEPS_PER_TURN 2048 // number of steps in 360deg;	
-AccelStepper* accelStepper;
 //===========================================================================
 //=============================ROUTINES=============================
 //===========================================================================
-
 
 #define POLY 0x8408
 int crc_ok = 0x470F;
@@ -214,9 +209,239 @@ const char* itoa(int value) {
     buf[pos] = '\0';
     return buf;
 }
+void FlushSerialRequestResend()
+{
+  //char cmdbuffer[bufindr][100]="Resend:";
+  tud_cdc_write_flush();
+  tud_cdc_write(MSG_RESEND, strlen(MSG_RESEND));
+  tud_cdc_write(itoa(gcode_LastN + 1), strlen(itoa(gcode_LastN + 1)));
+  tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
+  tud_cdc_write_flush();
+}
+
+
+/*---------------------------------------------------
+* Arrive here at the end of each command processing iteration to check for status related events
+* ---------------------------------------------------
+*/
+void manage_inactivity() {
+  // check motor controllers
+  for(int j =0; j < 10; j++) {
+	  if(motorControl[j]) {
+		if( motorControl[j]->isConnected() ) {
+			motorControl[j]->checkEncoderShutdown();
+			motorControl[j]->checkUltrasonicShutdown();
+			if( motorControl[j]->queryFaultFlag() != fault ) {
+				fault = motorControl[j]->queryFaultFlag();
+				publishMotorFaultCode(fault);
+				tud_cdc_write_flush();
+			}
+		}
+	  }
+  }
+  
+  if( realtime_output ) {		
+	// Check the ultrasonic ranging for all devices defined by successive M301 directives
+	for(int i = 0 ; i < 10; i++) {
+		if( psonics[i] ) {
+			printUltrasonic(psonics[i], i);
+			tud_cdc_write_flush();
+		}
+	}  
+  }// realtime output
+}
+
+void kill() {
+#if defined(PS_ON_PIN) && PS_ON_PIN > -1
+  Digital psoPin = new Digital(PS_ON_PIN);
+  psoPin.pinMode(PinMode::INPUT);
+#endif
+  for(int j = 0; j < 10; j++) {
+	motorControl[j]->commandEmergencyStop(-2);
+  }
+  //SERIAL_ERROR_START;
+  //SERIAL_ERRORLNPGM(MSG_ERR_KILLED);
+  suicide();
+  while(1) { /* Intentionally left empty */ } // Wait for reset
+}
+
+void Stop() {
+  if(!Stopped) {
+    Stopped = true;
+    Stopped_gcode_LastN = gcode_LastN; // Save last g_code for restart
+	for(int i = 0; i < 10; i++)
+		if(motorControl[i])
+			motorControl[i]->commandEmergencyStop(-3);
+    //SERIAL_ERROR_START;
+    //SERIAL_ERRORLNPGM(MSG_ERR_STOPPED);
+  }
+}
+/*
+* The fault code is bit-ordered for 8 cases
+*/
+void publishMotorFaultCode(int fault) {
+	uint8_t bfault = 0;
+	uint8_t j = 1;
+	tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
+	tud_cdc_write(motorFaultCntrlHdr, strlen(motorFaultCntrlHdr));
+	tud_cdc_write(MSG_DELIMIT, strlen(MSG_DELIMIT));
+	for(int i = 0; i < 8 ; i++) {
+		bfault = fault & (1<<i);
+		switch(bfault) {
+			default:
+			case 0: // bit not set
+				break;
+			case 1:
+				tud_cdc_write(itoa(j++), strlen(itoa(j)));
+				tud_cdc_write(" ", 1);
+				tud_cdc_write(MSG_MOTORCONTROL_1, strlen(MSG_MOTORCONTROL_1));
+				break;
+			case 2:
+				tud_cdc_write(itoa(j++), strlen(itoa(j)));
+				tud_cdc_write(" ", 1);
+				tud_cdc_write(MSG_MOTORCONTROL_2, strlen(MSG_MOTORCONTROL_2));
+				break;
+			case 4:
+				tud_cdc_write(itoa(j++), strlen(itoa(j)));
+				tud_cdc_write(" ", 1);
+				tud_cdc_write(MSG_MOTORCONTROL_3, strlen(MSG_MOTORCONTROL_3));
+				break;
+			case 8:
+				tud_cdc_write(itoa(j++), strlen(itoa(j)));
+				tud_cdc_write(" ", 1);
+				tud_cdc_write(MSG_MOTORCONTROL_4, strlen(MSG_MOTORCONTROL_4));
+				break;
+			case 16:
+				tud_cdc_write(itoa(j++), strlen(itoa(j)));
+				tud_cdc_write(" ", 1);
+				tud_cdc_write(MSG_MOTORCONTROL_5, strlen(MSG_MOTORCONTROL_5));
+				break;
+			case 32:
+				tud_cdc_write(itoa(j++), strlen(itoa(j)));
+				tud_cdc_write(" ", 1);
+				tud_cdc_write(MSG_MOTORCONTROL_6, strlen(MSG_MOTORCONTROL_6));
+				break;
+			case 64:
+				tud_cdc_write(itoa(j++), strlen(itoa(j)));
+				tud_cdc_write(" ", 1);
+				tud_cdc_write(MSG_MOTORCONTROL_7, strlen(MSG_MOTORCONTROL_7));
+				break;
+			case 128:
+				tud_cdc_write(itoa(j++), strlen(itoa(j)));
+				tud_cdc_write(" ", 1);
+				tud_cdc_write(MSG_MOTORCONTROL_8, strlen(MSG_MOTORCONTROL_8));
+				break;
+		}
+	}
+	tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
+	tud_cdc_write(motorFaultCntrlHdr, strlen(motorFaultCntrlHdr));
+	tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
+}
+/*
+* Deliver the battery voltage from smart controller
+*/
+void publishBatteryVolts(int volts) {
+	tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
+	tud_cdc_write(batteryCntrlHdr, strlen(batteryCntrlHdr));
+	tud_cdc_write(MSG_DELIMIT, strlen(MSG_DELIMIT));
+	tud_cdc_write("1 ", 2);
+	tud_cdc_write(itoa(volts*10), strlen(itoa(volts*10)));
+	tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
+	tud_cdc_write(batteryCntrlHdr, strlen(batteryCntrlHdr));
+	tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
+}
+/************************************************************************/
+/* only call this if we know code is stall                              */
+/************************************************************************/
+void publishMotorStatCode(int stat) {
+	tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+	tud_cdc_write(motorFaultCntrlHdr,strlen(motorFaultCntrlHdr));
+	tud_cdc_write(MSG_DELIMIT, strlen(MSG_DELIMIT));
+	tud_cdc_write("1 ", 2);
+	tud_cdc_write(MSG_MOTORCONTROL_9, strlen(MSG_MOTORCONTROL_9));
+	tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
+	tud_cdc_write(motorFaultCntrlHdr, strlen(motorFaultCntrlHdr));
+	tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
+}
+
+/*
+* Print the ultrasonic range
+*/
+void printUltrasonic(Ultrasonic* us, int index) {
+		float range = us->getRange();
+		uint8_t ultpin = us->getPin();
+		if( range != sonicDist[index] ) {
+			sonicDist[index] = range;
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write(sonicCntrlHdr, strlen(sonicCntrlHdr));
+			tud_cdc_write(MSG_DELIMIT, strlen(MSG_DELIMIT));
+			tud_cdc_write("1 ", 2); // pin
+			tud_cdc_write(itoa(ultpin), strlen(itoa(ultpin)));
+			tud_cdc_write("2 ", 2); // sequence
+			tud_cdc_write(itoa(range*10), strlen(itoa(range*10))); // range
+			tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
+			tud_cdc_write(sonicCntrlHdr, strlen(sonicCntrlHdr));
+			tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
+		}
+}
+void checkSmartController(void)
+{
+}
+/*
+ * If we have values in analogRanges for this pin, check the reading and if it is between these ranges
+ * reject the reading. This allows us to define a center or rest point for a joystick etc.
+ * If no values were specified on the M code invocation, ignore and process regardless of value.
+ */
+void printAnalog(Analog* apin, int index) {
+	//pin = new Analog(upin);
+	int nread = apin->analogRead();
+	// jitter comp.
+	nread = apin->analogRead();
+	if( analogRanges[0][index] != 0 && nread >= analogRanges[0][index] && nread <= analogRanges[1][index])
+		return;
+	tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
+	tud_cdc_write(analogPinHdr, strlen(analogPinHdr));
+	tud_cdc_write(MSG_DELIMIT, strlen(MSG_DELIMIT));
+	tud_cdc_write("1", 1); // sequence
+	tud_cdc_write(" ", 1);
+	// 0 element is pin number
+	tud_cdc_write(itoa(apin->pin), strlen(itoa(apin->pin)));
+	tud_cdc_write("2", 1); // sequence
+	tud_cdc_write(" ", 1);
+	tud_cdc_write(itoa(nread*10), strlen(itoa(nread*10))); // value
+	tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
+	tud_cdc_write(analogPinHdr, strlen(analogPinHdr));
+	tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
+	//delete pin;
+}
+/*
+* 'target' represents the expected value. Two elements returned in sequence. 1 - Pin, 2 - reading
+*/
+void printDigital(Digital* dpin, int target) {
+	//dpin = new Digital(upin);
+	//dpin->pinMode(INPUT);
+	int nread = dpin->digitalRead();
+	//delete dpin;
+	// look for activated value
+	if( !(nread ^ target) ) {
+		tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
+		tud_cdc_write(digitalPinHdr, strlen(digitalPinHdr));
+		tud_cdc_write(MSG_DELIMIT, strlen(MSG_DELIMIT));
+		tud_cdc_write("1", 1); // sequence
+		tud_cdc_write(" ", 1);
+		tud_cdc_write(itoa(dpin->pin), strlen(itoa(dpin->pin)));
+		tud_cdc_write("2", 1); // sequence
+		tud_cdc_write(" ", 1);
+		tud_cdc_write(itoa(nread), strlen(itoa(nread)));
+		tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
+		tud_cdc_write(digitalPinHdr, strlen(digitalPinHdr));
+		tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
+	}
+}
+
 
 /*--------------------------------------------------
-* Main setup a la wiring
+* Main setup routine, runs once at startup. Initializes the USB CDC serial connection and any other hardware setup needed
 */
 void setup()
 {
@@ -224,8 +449,6 @@ void setup()
   //setup_powerhold();
   stdio_init_all();   // enables USB CDC
   tud_init(0);        // initialize TinyUSB
-  // loads data from EEPROM if available else uses defaults (and resets step acceleration rate)
-  Config_RetrieveSettings();
   //Config_PrintSettings();
   //watchdog_init();
 }
@@ -291,7 +514,7 @@ void get_command() {
           } else {
 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
             tud_cdc_write(MSG_ERR_NO_CHECKSUM,strlen(MSG_ERR_NO_CHECKSUM));
-            tud_cdc_write(gcode_LastN,strlen(gcode_LastN));
+            tud_cdc_write(itoa(gcode_LastN),strlen(itoa(gcode_LastN)));
 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
             FlushSerialRequestResend();
             serial_count = 0;
@@ -394,13 +617,13 @@ void process_commands() {
 *---------------------------
 */
 void processGCode(int cval) {
-	  int result;
-	  int motorController, PWMDriver, motorChannel, motorPower, PWMLevel;
-	  unsigned long codenum;
-	  char *starpos = NULL;
-    switch(cval)
-    {
-	    
+	int result;
+	int motorController, PWMDriver, motorChannel, motorPower, PWMLevel;
+	unsigned long codenum;
+	char *starpos = NULL;
+
+    switch(cval) {
+
     case 4: // G4 dwell
       //LCD_MESSAGEPGM(MSG_DWELL);
       codenum = 0;
@@ -545,12 +768,13 @@ void processGCode(int cval) {
 		
     } // switch
   } // if code
-  
-  /*-------------------------------------
-  * M Code processing
-  *--------------------------------------
-  */
-  void processMCode(int cval) {
+} // G code processing
+
+/*-------------------------------------
+* M Code processing
+*--------------------------------------
+*/
+void processMCode(int cval) {
 	  int motorController = 0; 
 	  int PWMDriver = 0;
 	  bool assigned;
@@ -558,6 +782,7 @@ void processGCode(int cval) {
 	  int power;
 	  
     switch( cval ) {
+
 	case 0: // M0 - Set real time output off
 		realtime_output = 0;
 		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
@@ -914,22 +1139,22 @@ void processGCode(int cval) {
 					case 1: // type 1 Hbridge
 						// up to 10 channels, each channel has a direction pin (1), and a PWM pin (0)
 						if(motorControl[motorController]) {
-							// for each channel, delete the direction pin and PWM created in main pin array to prepare new assignment
-							// each controller can have up to 10 channels, each with its own PWM and direction pin
-							for(uint8_t i = 0; i < motorControl[motorController]->getChannels(); i++) {
-									uint8_t pMotor1 = ((HBridgeDriver*)motorControl[motorController])->getMotorPWMPin(i);
-									uint8_t pMotor2 = ((HBridgeDriver*)motorControl[motorController])->getMotorEnablePin(i);
-									if(pMotor2 != 255 && pdigitals[pMotor2]) {
-										delete pdigitals[pMotor2];
-										pdigitals[pMotor2] = 0;
-									}
-									if(pMotor1 != 255 && ppwms[pMotor1]) {
-										delete ppwms[pMotor1];
-										ppwms[pMotor1] = 0;
-									}
-							}
-							delete motorControl[motorController];
-							motorControl[motorController] = 0; // in case assignment below fails
+								// for each channel, delete the direction pin and PWM created in main pin array to prepare new assignment
+								// each controller can have up to 10 channels, each with its own PWM and direction pin
+								for(uint8_t i = 0; i < motorControl[motorController]->getChannels(); i++) {
+										uint8_t pMotor1 = ((HBridgeDriver*)motorControl[motorController])->getMotorPWMPin(i);
+										uint8_t pMotor2 = ((HBridgeDriver*)motorControl[motorController])->getMotorEnablePin(i);
+										if(pMotor2 != 255 && pdigitals[pMotor2]) {
+											delete pdigitals[pMotor2];
+											pdigitals[pMotor2] = 0;
+										}
+										if(pMotor1 != 255 && ppwms[pMotor1]) {
+											delete ppwms[pMotor1];
+											ppwms[pMotor1] = 0;
+										}
+								}
+								delete motorControl[motorController];
+								motorControl[motorController] = 0; // in case assignment below fails
 						}
 						motorControl[motorController] = new HBridgeDriver();
 						tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
@@ -998,7 +1223,17 @@ void processGCode(int cval) {
 						tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 						tud_cdc_write_flush();
 						break;
-					case 4: // Type 4 non-propulsion PWM driver 
+					case 4: // Type 4 switch H-bridge
+						if(motorControl[motorController] != null) {
+							motorControl[motorController] = null; // in case assignment below fails
+						}
+						motorControl[motorController] = new SwitchHBridgeDriver();
+						tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+						tud_cdc_write("M10", strlen("M10"));
+						tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+						tud_cdc_write_flush();
+						break;
+					case 5: // Type 5 non-propulsion PWM driver 
 						if(pwmControl[motorController]) {
 							// for each channel, delete the direction pin and PWM created in main pin array to prepare new assignment
 							// each controller can have up to 10 channels, each with its own PWM and direction pin
@@ -1015,9 +1250,35 @@ void processGCode(int cval) {
 									}
 							}
 							delete pwmControl[motorController];
-							motorControl[motorController] = 0; // in case assignment below fails
+							pwmControl[motorController] = 0; // in case assignment below fails
 						}
 						pwmControl[motorController] = new VariablePWMDriver();
+						tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+						tud_cdc_write("M10", strlen("M10"));
+						tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+						tud_cdc_write_flush();
+						break;
+					case 8: // type 8 delayed H-bridge. Like a regular H-bridge but with a reverse direction delay
+						// up to 10 channels, each channel has a direction pin (1), and a PWM pin (0)
+						if(motorControl[motorController]) {
+							// for each channel, delete the direction pin and PWM created in main pin array to prepare new assignment
+							// each controller can have up to 10 channels, each with its own PWM and direction pin
+							for(int i = 1; i <= motorControl[motorController]->getChannels(); i++) {
+								int pMotor1 = ((HBridgeDriver*)motorControl[motorController])->getMotorPWMIndex(i);
+								int pMotor2 = ((HBridgeDriver*)motorControl[motorController])->getMotorEnablePin(i);
+								if(pMotor2 != 255 && pdigitals[pMotor2]) {
+									delete pdigitals[pMotor2];
+									pdigitals[pMotor2] = null;
+								}
+								if(pMotor1 != 255 && ppwms[pMotor1]) {
+									delete ppwms[pMotor1];
+									ppwms[pMotor1] = null;
+								}
+							}
+							delete motorControl[motorController];
+							motorControl[motorController] = 0; // in case assignment below fails
+						}
+						motorControl[motorController] = new DelayedHBridgeDriver(MAX_MOTOR_POWER);
 						tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 						tud_cdc_write("M10", strlen("M10"));
 						tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
@@ -1026,7 +1287,7 @@ void processGCode(int cval) {
 					default:
 						tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 						tud_cdc_write("BAD CONTROLLER TYPE:", strlen("BAD CONTROLLER TYPE:"));
-						tud_cdc_write(controllerType, strlen(controllerType));
+						tud_cdc_write(itoa(controllerType), strlen(itoa(controllerType)));
 						tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 						tud_cdc_write_flush();
 						break;
@@ -1101,7 +1362,13 @@ void processGCode(int cval) {
 		
 	  case 13: //M13 [Z<slot>] [P<power>] [X<power>]- Set maximum motor power or optionally with X, a PWM control maximum level. If X, slot is PWM
 		if(code_seen('Z')) {
-		  motorController = code_value();
+			motorController = code_value();
+		} else {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M13 SLOT ERROR", strlen("M13 SLOT ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+			break;
 		}
 		if( code_seen('P') ) {
 		  if(motorControl[motorController]) {
@@ -1111,7 +1378,7 @@ void processGCode(int cval) {
 			  tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 			  tud_cdc_write_flush();
 		  }
-		  } else {
+		} else {
 		  	if(code_seen('X')) {
 			  if(pwmControl[motorController]) {
 				  pwmControl[motorController]->setMaxPWMLevel(code_value());
@@ -1120,7 +1387,12 @@ void processGCode(int cval) {
 				  tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 				  tud_cdc_write_flush();
 			  }
-		  }
+			} else {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("M13 MUST BE P OR X POWER ERROR", strlen("M13 MUST BE P OR X POWER ERROR"));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
+			}
 		}
 	  break; 
 	//  
@@ -1135,6 +1407,12 @@ void processGCode(int cval) {
 			interrupt_pin = 0;
 			if(code_seen('Z')) {
 				motorController = (int) code_value();
+			} else {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("M14 SLOT ERROR", strlen("M14 SLOT ERROR"));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
+				break;
 			}
 			if( code_seen('C') ) {
 				channel = (int) code_value();
@@ -1149,12 +1427,18 @@ void processGCode(int cval) {
 					if( code_seen('I')) {
 						interrupt_pin = (int) code_value();
 					}
-					motorControl[motorController].createEncoder(channel, pin, analogRangeL, analogRangeH, counts, interrupt_pin);
+					motorControl[motorController]->createEncoder(channel, pin, analogRangeL, analogRangeH, counts, interrupt_pin);
 					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 			 		tud_cdc_write("M14", strlen("M14"));
 			 		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 					tud_cdc_write_flush();
 				}
+			} else {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("M14 CHANNEL ERROR", strlen("M14 CHANNEL ERROR"));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
+				break;
 			}
 			break;
 			//  
@@ -1171,6 +1455,10 @@ void processGCode(int cval) {
 			if( code_seen('C') ) {
 				channel = (int) code_value();
 				if(channel <= 0) {
+					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+					tud_cdc_write("M15 CHANNEL ERROR", strlen("M15 CHANNEL ERROR"));
+					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+					tud_cdc_write_flush();
 					break;
 				}
 				if(code_seen('P')) {
@@ -1180,12 +1468,17 @@ void processGCode(int cval) {
 					if( code_seen('I')) {
 						interrupt_pin = (int) code_value();
 					}
-					motorControl[motorController].createDigitalEncoder(channel, pin, 1, counts, interrupt_pin);
+					motorControl[motorController]->createDigitalEncoder(channel, pin, 1, counts, interrupt_pin);
 			 		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 			 		tud_cdc_write("M15", strlen("M15"));
 			 		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 			 		tud_cdc_write_flush();
 				}
+			} else {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("M15 CHANNEL ERROR", strlen("M15 CHANNEL ERROR"));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
 			}
 			break;
 			//
@@ -1206,6 +1499,12 @@ void processGCode(int cval) {
 			interrupt_pin = 0;
 			if(code_seen('Z')) {
 				motorController = (int) code_value();
+			} else {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("M16 SLOT ERROR", strlen("M16 SLOT ERROR"));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
+				break;
 			}
 			if(motorControl[motorController] != null) {
 				if(code_seen('P')) {
@@ -1248,10 +1547,16 @@ void processGCode(int cval) {
 					if( code_seen('W')) {
 						encode_pin = (int) code_value();
 					}
-					((HBridgeDriver)motorControl[motorController]).createPWM(channel, pin_number, dir_pin, dir_default, pwm_freq, pwm_duty);
+					((HBridgeDriver)motorControl[motorController])->createPWM(channel, pin_number, dir_pin, dir_default, pwm_freq, pwm_duty);
 					if(encode_pin != 0) {
-						motorControl[motorController].createEncoder(channel, encode_pin, interrupt_pin);
+						motorControl[motorController]->createEncoder(channel, encode_pin, interrupt_pin);
 					}
+				} else {
+					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+					tud_cdc_write("M16 CHANNEL ERROR", strlen("M16 CHANNEL ERROR"));
+					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+					tud_cdc_write_flush();
+					break;
 				}
 				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 				tud_cdc_write("M16", strlen("M16"));
@@ -1268,6 +1573,12 @@ void processGCode(int cval) {
 	// link Motor controller to ultrasonic sensor, the sensor must exist via M301
 		if(code_seen('Z')) {
 			motorController = code_value();
+		} else {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M33 SLOT ERROR", strlen("M33 SLOT ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+			break;
 		}
 		if(motorControl[motorController]) {
 	  		pin_number = 0;
@@ -1308,8 +1619,17 @@ void processGCode(int cval) {
 	  case 35: //M35 - Clear all digital pins
 		for(int i = 0; i < 32; i++) {
 			 if(pdigitals[i]) {
-				unassignPin(pdigitals[i]->pin);
 				delete pdigitals[i];
+				for(int j = 0; j < 10; j++) {
+					if(motorControl[j] && motorControl[j]->usesDigital(i)) {
+						delete motorControl[j];
+						motorControl[j] = 0;
+					}
+					if(pwmControl[j] && pwmControl[j]->usesDigital(i)) {
+						delete pwmControl[j];
+						pwmControl[j] = 0;
+					}
+				}
 				pdigitals[i] = 0;
 			 }
 		}
@@ -1333,6 +1653,18 @@ void processGCode(int cval) {
 	  break;
 	  
 	  case 37: //M37 - Clear all PWM pins, ALL MOTOR AND PWM DISABLED, perhaps not cleanly
+		for(int i = 0; i < 10; i++) {
+			if(motorControl[i]) {
+				delete motorControl[i];
+				motorControl[i] = 0;
+			}
+		}
+		for(int i = 0; i < 10; i++) {
+			if(pwmControl[i]) {
+				delete pwmControl[i];
+				pwmControl[i] = 0;
+			}
+		}
 		for(int i = 0; i < 12; i++) {
 		  if(ppwms[i]) {
 			  delete ppwms[i];
@@ -1352,6 +1684,18 @@ void processGCode(int cval) {
 			bool found = false;
 			for(int i = 0; i < 12; i++) {
 				if(ppwms[i] && ppwms[i]->pin == pin_number) {
+					for(int i = 0; i < 10; i++) {
+						if(motorControl[i] && motorControl[i]->usesPWM(pin_number)) {
+							delete motorControl[i];
+							motorControl[i] = 0;
+						}
+					}
+					for(int i = 0; i < 10; i++) {
+						if(pwmControl[i] && pwmControl[i]->usesPWM(pin_number)) {
+							delete pwmControl[i];
+							pwmControl[i] = 0;
+						}
+					}
 					delete ppwms[i];
 					ppwms[i] = 0;
 					found = true;
@@ -1441,122 +1785,165 @@ void processGCode(int cval) {
 		   }
 	  break;
 		
-	  case 41: //M41 - Create persistent digital pin, Write digital pin HIGH P<pin> (this gives you a 5v source on pin)
+	  case 41: //M41 - Create persistent digital OUTPUT pin if not existing, P<pin> S0(this gives you a grounded pin) S1 (or +VCC)
 	     pin_number = -1;
+		 slot = -1;
 		 found = false;
-	     if (code_seen('P')) {
-		    pin_number = code_value();
-			for(int i = 0; i < 32; i++) {
+	     if(code_seen('P')) {
+			pin_number = code_value();
+			if( code_seen('S')) {
+				 int state = code_value();
+				 if(state != 0 && state != 1) {
+					 tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+					 tud_cdc_write("M41 STATE ERROR", strlen("M41 STATE ERROR"));
+					 tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+					 tud_cdc_write_flush();
+					 break;
+				 }
+			}
+			for(int i = 0; i < 32; i++) { // find a slot or the pin
 				if(!pdigitals[i]) {
-					dpin = new Digital(pin_number);
-					dpin->setPin(pin_number);
-					dpin->pinMode(OUTPUT);
-					dpin->digitalWrite(HIGH);
-					pdigitals[i] = dpin;
-					found = true
-					break;
+					slot = i;
+				} else {
+					if(pdigitals[i]->pin == pin_number) {
+						dpin = pdigitals[i];
+						dpin->pinMode(PinMode::OUTPUT);
+						dpin->digitalWrite(state);
+						found = true;
+						break;
+					}
 				}
 			}
-			if( found ) {
-				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-				tud_cdc_write("M41", strlen("M41"));
-				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-				tud_cdc_write_flush();
-				break;
-			} else {
-				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-				tud_cdc_write("M41 PIN ASSIGN ERROR", strlen("M41 PIN ASSIGN ERROR"));
-				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-				tud_cdc_write_flush();
-				break;
+			if(!found) {
+				if(slot == -1) {
+					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+					tud_cdc_write("M41 SLOTS FULL ERROR", strlen("M41 SLOTS FULL ERROR"));
+					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+					tud_cdc_write_flush();
+					break;
+				}
+				dpin = new Digital(pin_number);
+				dpin->setPin(pin_number);
+				dpin->pinMode(OUTPUT);
+				dpin->digitalWrite(state);
+				pdigitals[slot] = dpin;
 			}
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M41", strlen("M41"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
 		} else {
 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 			tud_cdc_write("M41 PIN ERROR", strlen("M41 PIN ERROR"));
 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 			tud_cdc_write_flush();
-			break;
 		}     
 	break;
-	     
-    case 42: //M42 - Create persistent digital pin, Write digital pin LOW P<pin> (This gives you a grounded pin)
-	  pin_number = -1;
-	  if (code_seen('P')) {
-        pin_number = code_value();
-		if( assignPin(pin_number) ) {
-			dpin = new Digital(pin_number);
-			dpin->pinMode(OUTPUT);
-			dpin->digitalWrite(LOW);
-			for(int i = 0; i < 32; i++) {
+
+	case 42: //M42 - Create persistent digital INPUT pin if not existing, P<pin> S0(read) S1 (read PULLP)
+	     pin_number = -1;
+		 slot = -1;
+		 found = false;
+	     if(code_seen('P')) {
+			pin_number = code_value();
+			if( code_seen('S')) {
+				 int state = code_value();
+				 if(state != 0 && state != 1) {
+					 tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+					 tud_cdc_write("M42 STATE ERROR", strlen("M42 STATE ERROR"));
+					 tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+					 tud_cdc_write_flush();
+					 break;
+				 }
+			}
+			for(int i = 0; i < 32; i++) { // find a slot or the pin
 				if(!pdigitals[i]) {
-					pdigitals[i] = dpin;
-					break;
+					slot = i;
+				} else {
+					if(pdigitals[i]->pin == pin_number) {
+						dpin = pdigitals[i];
+						dpin->pinMode(state == 0 ? PinMode::INPUT : PinMode::INPUT_PULLUP);
+						found = true;
+						break;
+					}
 				}
 			}
+			if(!found) {
+				if(slot == -1) {
+					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+					tud_cdc_write("M41 SLOTS FULL ERROR", strlen("M41 SLOTS FULL ERROR"));
+					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+					tud_cdc_write_flush();
+					break;
+				}
+				dpin = new Digital(pin_number);
+				dpin->setPin(pin_number);
+				dpin->pinMode(state == 0 ? PinMode::INPUT : PinMode::INPUT_PULLUP);
+				pdigitals[slot] = dpin;
+			}
+			int res = dpin->digitalRead();
 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-			tud_cdc_write("M42", strlen("M42"));
+			tud_cdc_write(digitalPinHdr, strlen(digitalPinHdr));
+			tud_cdc_write(MSG_DELIMIT,strlen(MSG_DELIMIT));
+			tud_cdc_write("1 ", strlen("1 "));
+			tud_cdc_write(itoa(pin_number), strlen(itoa(pin_number)));
+			tud_cdc_write("2 ", strlen("2 "));
+			tud_cdc_write(itoa(res), strlen(itoa(res)));
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write(digitalPinHdr, strlen(digitalPinHdr));
 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 			tud_cdc_write_flush();
 		} else {
-			for(int i = 0; i < 32; i++) {
-				if(pdigitals[i] && pdigitals[i]->pin == pin_number) {
-					pdigitals[i]->setPin(pin_number);
-					pdigitals[i]->pinMode(OUTPUT);
-					pdigitals[i]->digitalWrite(LOW);
-					break;
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M41 PIN ERROR", strlen("M41 PIN ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+		}     
+	break;
+
+ 	  case 43: //M43 - Create persistent analog pin if not existing, P<pin>
+	     pin_number = -1;
+		 slot = -1;
+		 found = false;
+	     if(code_seen('P')) {
+			pin_number = code_value();
+			for(int i = 0; i < 16; i++) { // find a slot or the pin
+				if(!panalogs[i]) {
+					slot = i;
+				} else {
+					if(panalogs[i]->pin == pin_number) {
+						apin = panalogs[i];
+						apin->pinMode(PinMode::INPUT);
+						found = true;
+						break;
+					}
 				}
 			}
+			if(!found) {
+				if(slot == -1) {
+					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+					tud_cdc_write("M43 SLOTS FULL ERROR", strlen("M43 SLOTS FULL ERROR"));
+					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+					tud_cdc_write_flush();
+					break;
+				}
+				apin = new Analog(pin_number);
+				apin->setPin(pin_number);
+				apin->pinMode(PinMode::INPUT);
+				panalogs[slot] = apin;
+			}
 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-			tud_cdc_write("M42", strlen("M42"));
+			tud_cdc_write("M43", strlen("M43"));
 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 			tud_cdc_write_flush();
-		}
-	  }
-     break;
-	 
-	
-	case 44: // M44 P<pin> [U] - -Read digital pin with optional pullup
-        pin_number = -1;
-        if (code_seen('P')) {
-          pin_number = code_value();
 		} else {
 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-			tud_cdc_write("M44 PIN ERROR", strlen("M44 PIN ERROR"));
+			tud_cdc_write("M43 PIN ERROR", strlen("M43 PIN ERROR"));
 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 			tud_cdc_write_flush();
-			break;
-		}
-		dpin = 0;
-		for(int i = 0; i < 32; i++) {
-			if(pdigitals[i] && pdigitals[i]->pin == pin_number) {
-				dpin = pdigitals[i];
-				break;
-			}
-		}
-		if(!dpin) {
-			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-			tud_cdc_write("M44 PIN UNASSIGNED ERROR", strlen("M44 PIN UNASSIGNED ERROR"));
-			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-			tud_cdc_write_flush();
-			break;
-		}
-		if(code_seen('U')) {
-			dpin->pinMode(INPUT_PULLUP);
-		}
-		int res = dpin->digitalRead();
-		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-		tud_cdc_write(digitalPinHdr, strlen(digitalPinHdr));
-		tud_cdc_write(MSG_DELIMIT,strlen(MSG_DELIMIT));
-		tud_cdc_write("1 ", strlen("1 "));
-		tud_cdc_write(itoa(pin_number), strlen(itoa(pin_number)));
-		tud_cdc_write("2 ", strlen("2 "));
-		tud_cdc_write(itoa(res), strlen(itoa(res)));
-		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-		tud_cdc_write(digitalPinHdr, strlen(digitalPinHdr));
-		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-		tud_cdc_write_flush();
-		break;
-		
+		}     
+	break;
+
 	 // PWM value between 0 and 1000
 	 // Use M445 to disable pin permanently or use timer more 0 to stop pulse without removing pin assignment
      case 45: // M45 - set up PWM P<pin> S<power val 0-1000>
@@ -1644,23 +2031,23 @@ void processGCode(int cval) {
 		   pin_number = code_value();
 		   digitarg = code_seen('T') ? code_value() : 0;
 		   	for(int i = 0; i < 16; i++) {
-			if(panalogs[i] && panalogs[i]->pin == pin_number) {
-				apin = panalogs[i];
-				int res = apin->analogRead();
-				res = apin->analogRead(); // de-jitter
-				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-				tud_cdc_write(analogPinHdr, strlen(analogPinHdr));
-				tud_cdc_write(MSG_DELIMIT,strlen(MSG_DELIMIT));
-				tud_cdc_write("1 ", 2);
-				tud_cdc_write(itoa(pin_number), strlen(itoa(pin_number)));
-				tud_cdc_write("2 ", 2);
-				tud_cdc_write(itoa(res), strlen(itoa(res)));
-				tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
-				tud_cdc_write(analogPinHdr, strlen(analogPinHdr));
-				tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
-				tud_cdc_write_flush();
+				if(panalogs[i] && panalogs[i]->pin == pin_number) {
+					apin = panalogs[i];
+					int res = apin->analogRead();
+					res = apin->analogRead(); // de-jitter
+					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+					tud_cdc_write(analogPinHdr, strlen(analogPinHdr));
+					tud_cdc_write(MSG_DELIMIT,strlen(MSG_DELIMIT));
+					tud_cdc_write("1 ", 2);
+					tud_cdc_write(itoa(pin_number), strlen(itoa(pin_number)));
+					tud_cdc_write("2 ", 2);
+					tud_cdc_write(itoa(res), strlen(itoa(res)));
+					tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
+					tud_cdc_write(analogPinHdr, strlen(analogPinHdr));
+					tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
+					tud_cdc_write_flush();
+				}
 			}
-		}
 		} else {
 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 			tud_cdc_write("M47 PIN ERROR",strlen("M47 PIN ERROR"));
@@ -1686,9 +2073,7 @@ void processGCode(int cval) {
 	  break;
 
      case 81: // M81 [Z<slot>] X - Turn off Power Z shut down motorcontroller in slot, X shut down PWM, slot -1 do all
-	  int scode;
-	  if( code_seen('Z')) {
-		scode = code_value();
+	  	scode = code_seen('Z') ? code_value() : -1;
 		if(scode == -1) {
 			if(code_seen('X')) {
 				for(int k = 0; k < 10; k++) {
@@ -1723,7 +2108,6 @@ void processGCode(int cval) {
 				}
 			}
 		}
-	  }
       #if defined(SUICIDE_PIN) && SUICIDE_PIN > -1
         suicide();
       #elif defined(PS_ON_PIN) && PS_ON_PIN > -1
@@ -1744,7 +2128,7 @@ void processGCode(int cval) {
 	  tud_cdc_write(MSG_DELIMIT,strlen(MSG_DELIMIT));
 	  tud_cdc_write(MSG_115_REPORT2,strlen(MSG_115_REPORT2));
 	  tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-	  tud_cdc_write(MSG_M115_REPORT, strlen(MSG_115_REPORT));
+	  tud_cdc_write(MSG_M115_REPORT, strlen(MSG_M115_REPORT));
 	  tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
 	  tud_cdc_write_flush();
       break;
@@ -1820,7 +2204,7 @@ void processGCode(int cval) {
 	
 	case 303: // M303 - Check the analog inputs for all pins defined by successive M304 directives. Generate a read and output data if in range.
 		for(int i = 0 ; i < 16; i++) {
-			if( panalogs[i] && panalogs[i]->mode == INPUT) {
+			if( panalogs[i] && panalogs[i]->mode == PinMode::INPUT) {
 				printAnalog(panalogs[i], i);
 				tud_cdc_write_flush();
 			}
@@ -1864,7 +2248,7 @@ void processGCode(int cval) {
 	
 	case 305: // M305 - Read the pins defined in M306 and output them if they are of the defined target value
 		for(int i = 0 ; i < 32; i++) {
-			if( pdigitals[i] && (pdigitals[i]->mode == INPUT || pdigitals[i]->mode == INPUT_PULLUP)) {
+			if( pdigitals[i] && (pdigitals[i]->mode == PinMode::INPUT || pdigitals[i]->mode == PinMode::INPUT_PULLUP)) {
 				printDigital(pdigitals[i], digitalTarget[i]);
 				tud_cdc_write_flush();
 			}
@@ -1887,7 +2271,7 @@ void processGCode(int cval) {
 		for(int i = 0; i < 32; i++) {
 			if(!pdigitals[i] && pdigitals[i]->pin == uspin) {
 				if(code_seen('U')) {
-					pdigitals[i]->pinMode(INPUT_PULLUP);
+					pdigitals[i]->pinMode(PinMode::INPUT_PULLUP);
 				}
 				digitalTarget[i] = digitarg;
 				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
@@ -1951,13 +2335,13 @@ void processGCode(int cval) {
 			if( pdigitals[i] ) {
 				tud_cdc_write(itoa(pdigitals[i]->pin), strlen(itoa(pdigitals[i]->pin)));
 				switch(pdigitals[i]->mode) {
-					case INPUT:
+					case PinMode::INPUT:
 						tud_cdc_write(" INPUT", strlen(" INPUT"));
 						break;
-					case INPUT_PULLUP:
+					case PinMode::INPUT_PULLUP:
 						tud_cdc_write(" INPUT_PULLUP", strlen(" INPUT_PULLUP"));
 						break;
-					case OUTPUT:
+				       	case PinMode::OUTPUT:
 						tud_cdc_write(" OUTPUT", strlen(" OUTPUT"));
 						break;
 					default:
@@ -1980,13 +2364,13 @@ void processGCode(int cval) {
 			if( panalogs[i]  ) {
 				tud_cdc_write(itoa(panalogs[i]->pin), strlen(itoa(panalogs[i]->pin)));
 				switch(panalogs[i]->mode) {
-					case INPUT:
+					case PinMode::INPUT:
 						tud_cdc_write(" INPUT", strlen(" INPUT"));
 						break;
-					case INPUT_PULLUP:
+					case PinMode::INPUT_PULLUP:
 						tud_cdc_write(" INPUT_PULLUP", strlen(" INPUT_PULLUP"));
 						break;
-					case OUTPUT:
+					case PinMode::OUTPUT:
 						tud_cdc_write(" OUTPUT", strlen(" OUTPUT"));
 						break;
 					default:
@@ -2027,7 +2411,6 @@ void processGCode(int cval) {
 				tud_cdc_write(itoa(ppwms[i]->pin), strlen(itoa(ppwms[i]->pin)));
 				tud_cdc_write(" Timer channel:", strlen(" Timer channel:"));
 				tud_cdc_write(itoa(ppwms[i]->channel), strlen(itoa(ppwms[i]->channel)));
-				tud_cdc_write();
 			}
 		}
 		tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
@@ -2055,7 +2438,7 @@ void processGCode(int cval) {
 						tud_cdc_write(itoa(motorControl[j]->getDefaultDirection(i+1)), strlen(itoa(motorControl[j]->getDefaultDirection(i+1))));
 						tud_cdc_write(" Encoder Pin:", strlen(" Encoder Pin:"));
 						if(motorControl[j]->getWheelEncoder(i+1)) {
-							tud_cdc_write(itoa(motorControl[j]->getWheelEncoder(i+1)->pin), strlen(itoa(motorControl[j]->getWheelEncoder(i+1)->pin)));
+				
 							tud_cdc_write(" Count:", strlen(" Count:"));
 							tud_cdc_write(itoa(motorControl[j]->getEncoderCount(i+1)), strlen(itoa(motorControl[j]->getEncoderCount(i+1))));
 							tud_cdc_write(" Duration:", strlen(" Duration:"));
@@ -2113,8 +2496,8 @@ void processGCode(int cval) {
 		tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
 		tud_cdc_write(pinSettingHdr, strlen(pinSettingHdr));
 		tud_cdc_write(MSG_DELIMIT, strlen(MSG_DELIMIT));
-		for(int i = 0; i < 100; i++) {
-			if( pinAssignment(i) == PIN_ASSIGNED ) {
+		for(int i = 0; i < 32; i++) {
+			if( pdigitals[i] ) {
 				tud_cdc_write(itoa(i), strlen(itoa(i)));
 				tud_cdc_write(",", 1);
 			}
@@ -2197,9 +2580,8 @@ void processGCode(int cval) {
 			tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
 			tud_cdc_write_flush();
 		}
-		break;		
-		
-			
+		break;
+
 	case 802: // Acquire analog pin data M802 Pnn Sxxx Mxxx P=Pin number, S=number readings, M=microseconds per reading. X - pullup.
 		// Publish <dataset> 1 - pin, 2 - reading
 		if( code_seen('P')) {
@@ -2241,8 +2623,7 @@ void processGCode(int cval) {
 		tud_cdc_write(analogPinHdr, strlen(analogPinHdr));
 		tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
 		tud_cdc_write_flush();
-		break;	
-		
+		break;		
 		
     case 999: // M999: Reset
 		Stopped = false;
@@ -2263,237 +2644,9 @@ void processGCode(int cval) {
 		tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
 		tud_cdc_write_flush();
 		break;
+	}
 	
   } // switch m code
 
 } //processMCode
 
-void FlushSerialRequestResend()
-{
-  //char cmdbuffer[bufindr][100]="Resend:";
-  tud_cdc_write_flush();
-  tud_cdc_write(MSG_RESEND, strlen(MSG_RESEND));
-  tud_cdc_write(itoa(gcode_LastN + 1), strlen(itoa(gcode_LastN + 1)));
-  tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
-  tud_cdc_write_flush();
-}
-
-
-/*---------------------------------------------------
-* Arrive here at the end of each command processing iteration to check for status related events
-* ---------------------------------------------------
-*/
-void manage_inactivity() {
-  // check motor controllers
-  for(int j =0; j < 10; j++) {
-	  if(motorControl[j]) {
-		if( motorControl[j]->isConnected() ) {
-			motorControl[j]->checkEncoderShutdown();
-			motorControl[j]->checkUltrasonicShutdown();
-			if( motorControl[j]->queryFaultFlag() != fault ) {
-				fault = motorControl[j]->queryFaultFlag();
-				publishMotorFaultCode(fault);
-				tud_cdc_write_flush();
-			}
-		}
-	  }
-  }
-  
-  if( realtime_output ) {		
-	// Check the ultrasonic ranging for all devices defined by successive M301 directives
-	for(int i = 0 ; i < 10; i++) {
-		if( psonics[i] ) {
-			printUltrasonic(psonics[i], i);
-			tud_cdc_write_flush();
-		}
-	}  
-  }// realtime output
-}
-
-void kill() {
-#if defined(PS_ON_PIN) && PS_ON_PIN > -1
-  Digital psoPin = new Digital(PS_ON_PIN);
-  psoPin.pinMode(INPUT);
-#endif
-  for(int j = 0; j < 10; j++) {
-	motorControl[j]->commandEmergencyStop(-2);
-  }
-  //SERIAL_ERROR_START;
-  //SERIAL_ERRORLNPGM(MSG_ERR_KILLED);
-  suicide();
-  while(1) { /* Intentionally left empty */ } // Wait for reset
-}
-
-void Stop() {
-  if(!Stopped) {
-    Stopped = true;
-    Stopped_gcode_LastN = gcode_LastN; // Save last g_code for restart
-	for(int i = 0; i < 10; i++)
-		if(motorControl[i])
-			motorControl[i]->commandEmergencyStop(-3);
-    //SERIAL_ERROR_START;
-    //SERIAL_ERRORLNPGM(MSG_ERR_STOPPED);
-  }
-}
-/*
-* The fault code is bit-ordered for 8 cases
-*/
-void publishMotorFaultCode(int fault) {
-	uint8_t bfault = 0;
-	uint8_t j = 1;
-	tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
-	tud_cdc_write(motorFaultCntrlHdr, strlen(motorFaultCntrlHdr));
-	tud_cdc_write(MSG_DELIMIT, strlen(MSG_DELIMIT));
-	for(int i = 0; i < 8 ; i++) {
-		bfault = fault & (1<<i);
-		switch(bfault) {
-			default:
-			case 0: // bit not set
-				break;
-			case 1:
-				tud_cdc_write(itoa(j++), strlen(itoa(j)));
-				tud_cdc_write(" ", 1);
-				tud_cdc_write(MSG_MOTORCONTROL_1, strlen(MSG_MOTORCONTROL_1));
-				break;
-			case 2:
-				tud_cdc_write(itoa(j++), strlen(itoa(j)));
-				tud_cdc_write(" ", 1);
-				tud_cdc_write(MSG_MOTORCONTROL_2, strlen(MSG_MOTORCONTROL_2));
-				break;
-			case 4:
-				tud_cdc_write(itoa(j++), strlen(itoa(j)));
-				tud_cdc_write(" ", 1);
-				tud_cdc_write(MSG_MOTORCONTROL_3, strlen(MSG_MOTORCONTROL_3));
-				break;
-			case 8:
-				tud_cdc_write(itoa(j++), strlen(itoa(j)));
-				tud_cdc_write(" ", 1);
-				tud_cdc_write(MSG_MOTORCONTROL_4, strlen(MSG_MOTORCONTROL_4));
-				break;
-			case 16:
-				tud_cdc_write(itoa(j++), strlen(itoa(j)));
-				tud_cdc_write(" ", 1);
-				tud_cdc_write(MSG_MOTORCONTROL_5, strlen(MSG_MOTORCONTROL_5));
-				break;
-			case 32:
-				tud_cdc_write(itoa(j++), strlen(itoa(j)));
-				tud_cdc_write(" ", 1);
-				tud_cdc_write(MSG_MOTORCONTROL_6, strlen(MSG_MOTORCONTROL_6));
-				break;
-			case 64:
-				tud_cdc_write(itoa(j++), strlen(itoa(j)));
-				tud_cdc_write(" ", 1);
-				tud_cdc_write(MSG_MOTORCONTROL_7, strlen(MSG_MOTORCONTROL_7));
-				break;
-			case 128:
-				tud_cdc_write(itoa(j++), strlen(itoa(j)));
-				tud_cdc_write(" ", 1);
-				tud_cdc_write(MSG_MOTORCONTROL_8, strlen(MSG_MOTORCONTROL_8));
-				break;
-		}
-	}
-	tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
-	tud_cdc_write(motorFaultCntrlHdr, strlen(motorFaultCntrlHdr));
-	tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
-}
-/*
-* Deliver the battery voltage from smart controller
-*/
-void publishBatteryVolts(int volts) {
-	tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
-	tud_cdc_write(batteryCntrlHdr, strlen(batteryCntrlHdr));
-	tud_cdc_write(MSG_DELIMIT, strlen(MSG_DELIMIT));
-	tud_cdc_write("1 ", 2);
-	tud_cdc_write(itoa(volts*10), strlen(itoa(volts*10)));
-	tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
-	tud_cdc_write(batteryCntrlHdr, strlen(batteryCntrlHdr));
-	tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
-}
-/************************************************************************/
-/* only call this if we know code is stall                              */
-/************************************************************************/
-void publishMotorStatCode(int stat) {
-	tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-	tud_cdc_write(motorFaultCntrlHdr,strlen(motorFaultCntrlHdr));
-	tud_cdc_write(MSG_DELIMIT, strlen(MSG_DELIMIT));
-	tud_cdc_write("1 ", 2);
-	tud_cdc_write(MSG_MOTORCONTROL_9, strlen(MSG_MOTORCONTROL_9));
-	tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
-	tud_cdc_write(motorFaultCntrlHdr, strlen(motorFaultCntrlHdr));
-	tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
-}
-
-/*
-* Print the ultrasonic range
-*/
-void printUltrasonic(Ultrasonic* us, int index) {
-		float range = us->getRange();
-		uint8_t ultpin = us->getPin();
-		if( range != sonicDist[index] ) {
-			sonicDist[index] = range;
-			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-			tud_cdc_write(sonicCntrlHdr, strlen(sonicCntrlHdr));
-			tud_cdc_write(MSG_DELIMIT, strlen(MSG_DELIMIT));
-			tud_cdc_write("1 ", 2); // pin
-			tud_cdc_write(itoa(ultpin), strlen(itoa(ultpin)));
-			tud_cdc_write("2 ", 2); // sequence
-			tud_cdc_write(itoa(range*10), strlen(itoa(range*10))); // range
-			tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
-			tud_cdc_write(sonicCntrlHdr, strlen(sonicCntrlHdr));
-			tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
-		}
-}
-void checkSmartController(void)
-{
-}
-/*
- * If we have values in analogRanges for this pin, check the reading and if it is between these ranges
- * reject the reading. This allows us to define a center or rest point for a joystick etc.
- * If no values were specified on the M code invocation, ignore and process regardless of value.
- */
-void printAnalog(Analog* apin, int index) {
-	//pin = new Analog(upin);
-	int nread = apin->analogRead();
-	// jitter comp.
-	nread = apin->analogRead();
-	if( analogRanges[0][index] != 0 && nread >= analogRanges[0][index] && nread <= analogRanges[1][index])
-		return;
-	tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
-	tud_cdc_write(analogPinHdr, strlen(analogPinHdr));
-	tud_cdc_write(MSG_DELIMIT, strlen(MSG_DELIMIT));
-	tud_cdc_write("1", 1); // sequence
-	tud_cdc_write(" ", 1);
-	// 0 element is pin number
-	tud_cdc_write(itoa(apin->pin), strlen(itoa(apin->pin)));
-	tud_cdc_write("2", 1); // sequence
-	tud_cdc_write(" ", 1);
-	tud_cdc_write(itoa(nread*10), strlen(itoa(nread*10))); // value
-	tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
-	tud_cdc_write(analogPinHdr, strlen(analogPinHdr));
-	tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
-	//delete pin;
-}
-/*
-* 'target' represents the expected value. Two elements returned in sequence. 1 - Pin, 2 - reading
-*/
-void printDigital(Digital* dpin, int target) {
-	//dpin = new Digital(upin);
-	//dpin->pinMode(INPUT);
-	int nread = dpin->digitalRead();
-	//delete dpin;
-	// look for activated value
-	if( !(nread ^ target) ) {
-		tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
-		tud_cdc_write(digitalPinHdr, strlen(digitalPinHdr));
-		tud_cdc_write(MSG_DELIMIT, strlen(MSG_DELIMIT));
-		tud_cdc_write("1", 1); // sequence
-		tud_cdc_write(" ", 1);
-		tud_cdc_write(itoa(dpin->pin), strlen(itoa(dpin->pin)));
-		tud_cdc_write("2", 1); // sequence
-		tud_cdc_write(" ", 1);
-		tud_cdc_write(itoa(nread), strlen(itoa(nread)));
-		tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
-		tud_cdc_write(digitalPinHdr, strlen(digitalPinHdr));
-		tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
-	}
-}

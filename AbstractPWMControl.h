@@ -73,6 +73,8 @@ public:
 	virtual int queryFaultFlag(void)=0;
 	virtual int queryStatusFlag(void)=0;
 	virtual void setMaxPWMLevel(int p)=0;
+	virtual bool usesPWM(uint8_t pin)=0;
+	virtual bool usesDigital(uint8_t pin) { return false; }
 	uint32_t getMaxPWMDuration(uint ch) { return maxPWMDuration[ch-1]; }
 	uint32_t getMinPWMLevel(uint ch) { return minPWMLevel[ch-1] ; }
 	int getPWMLevel(uint ch) { return pwmLevel[ch-1]; }

@@ -51,6 +51,8 @@
 #include "DigitalPin.h"
 #include "AnalogPin.h"
 #include "WPWM.h"
+#include "language.h"
+#include "Propulsion/AbstractMotorControl.h"
 #include "tusb.h"
 void setup();
 void loop();

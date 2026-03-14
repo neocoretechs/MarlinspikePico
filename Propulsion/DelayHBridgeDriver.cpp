@@ -2,7 +2,7 @@
 * DelayHBridgeDriver.cpp
 * Driver for brushed DC motors using an H-bridge driver with direction set via control pin. Each channel is an axle with a motor. 
 * Can support 10 motors.
-* The DelayHBridgeDriver creates a deal between direction change to allow the 
+* The DelayHBridgeDriver creates a delay between direction change to allow the 
 * motor to stop before reversing direction. This is to protect the motor and the driver from damage due to rapid direction changes.
 * Structure:
 * 1) Top level, a master list of pins in either the PWM or digitals arrays. Slots to which physical pins are assigned.
@@ -43,7 +43,9 @@ int DelayHBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPow
 				for(int i = 0; i < 10; i++) {
 					if(pdigitals[i] && pdigitals[i]->pin == motorDrive[motorChannel-1][1]) {
 							//pdigitals[i]->setPin(motorDrive[motorChannel-1][1]);
-							pdigitals[i]->pinMode(OUTPUT);
+							ppwms[motorDrive[motorChannel-1][0]]->pwmOff(); // turn off PWM to allow motor to stop before changing direction
+							sleep_ms(200); // delay to allow motor to stop before reversing direction
+							pdigitals[i]->pinMode(PinMode::OUTPUT);
 							// default is 0 (LOW), if we changed the direction to reverse wheel rotation call the opposite dir change signal
 							defaultDirection[motorChannel-1] ? pdigitals[i]->digitalWrite(HIGH) : pdigitals[i]->digitalWrite(LOW);
 							currentDirection[motorChannel-1] = 0; // set new direction value
@@ -61,7 +63,9 @@ int DelayHBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPow
 				for(int i = 0; i < 10; i++) {
 					if(pdigitals[i] && pdigitals[i]->pin == motorDrive[motorChannel-1][1]) {
 						//pdigitals[i]->setPin(motorDrive[motorChannel-1][1]);
-						pdigitals[i]->pinMode(OUTPUT);
+						ppwms[motorDrive[motorChannel-1][0]]->pwmOff(); // turn off PWM to allow motor to stop before changing direction
+						sleep_ms(200); // delay to allow motor to stop before changing direction
+						pdigitals[i]->pinMode(PinMode::OUTPUT);
 						// default is 0 (HIGH), if we changed the direction to reverse wheel rotation call the opposite dir change signal
 						defaultDirection[motorChannel-1] ? pdigitals[i]->digitalWrite(LOW) : pdigitals[i]->digitalWrite(HIGH);
 						currentDirection[motorChannel-1] = 1;
@@ -94,15 +98,15 @@ int DelayHBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPow
 		// If we are setting power 0, we are stopping anyway
 		if( !checkUltrasonicShutdown()) {
 			// find the PWM pin and get the object we set up in M3 to write to power level
-			int timer_mode = 2;
-			int timer_pre = motorDrive[motorChannel-1][2]; // prescale from M3
-			int timer_res = motorDrive[motorChannel-1][3]; // timer resolution in bits from M3
+			//int timer_mode = 2;
+			//int timer_pre = motorDrive[motorChannel-1][2]; // prescale from M3
+			//int timer_res = motorDrive[motorChannel-1][3]; // timer resolution in bits from M3
 			// element 0 of motorDrive has index to PWM array
 			int pindex = motorDrive[motorChannel-1][0];
 			// writing power 0 sets mode 0 and timer turnoff
 			ppwms[pindex]->init(ppwms[pindex]->pin);
 			//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
-			ppwms[pindex]->pwmWrite(motorPower, timer_mode);
+			ppwms[pindex]->pwmWrite(true,motorPower);
 		}
 		fault_flag = 0;
 		return 0;

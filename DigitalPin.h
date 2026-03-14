@@ -1,12 +1,15 @@
-#pragma once
+
+#ifndef DIGITALPIN_H_
+#define DIGITALPIN_H_
 #include "pico/stdlib.h"
 #include <hardware/pwm.h>
 #include "Configuration_adv.h"
-#define INPUT           0
-#define OUTPUT          1
-#define INPUT_PULLUP    2
-#define INPUT_PULLDOWN  3
-
+enum PinMode {
+    INPUT ,
+    OUTPUT, 
+    INPUT_PULLUP ,
+    INPUT_PULLDOWN 
+};
 class Digital {
 public:
     uint pin;
@@ -80,3 +83,4 @@ private:
         pwm_set_enabled(slice, false);
     }
 };
+#endif

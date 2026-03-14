@@ -80,8 +80,6 @@ class Adafruit_L3GD20_Unified : public Adafruit_Sensor
   public:
     Adafruit_L3GD20_Unified(Wire* w, int32_t sensorID = 0xD7, uint8_t addr = 0x6B)
         : wire(w), _addr(addr) , _sensorID(sensorID) {}
-
-private:
     Wire* wire;
     uint8_t _addr;
     int32_t _sensorID;

@@ -88,7 +88,6 @@ class Adafruit_BMP085_Unified : public Adafruit_Sensor
   public:
     Adafruit_BMP085_Unified( Wire* w, int32_t sensorID = -1, uint8_t addr = BMP085_ADDRESS)
         : wire(w), _addr(addr) , _sensorID(sensorID) {}
-private:
     Wire* wire;
     uint8_t _addr;
     int32_t _sensorID;

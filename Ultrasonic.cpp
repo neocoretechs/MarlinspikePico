@@ -13,7 +13,7 @@ float Ultrasonic::getRange()
 {
 	// The PING))) is triggered by a HIGH pulse of 2 or more microseconds.
 	// Give a short LOW pulse beforehand to ensure a clean HIGH pulse:
-	pin->pinMode(OUTPUT);
+	pin->pinMode(PinMode::OUTPUT);
 	pin->digitalWrite(LOW);
 	sleep_us(2);
 	pin->digitalWrite(HIGH);
@@ -23,7 +23,7 @@ float Ultrasonic::getRange()
 	// The same pin is used to read the signal from the PING))): a HIGH
 	// pulse whose duration is the time (in microseconds) from the sending
 	// of the ping to the reception of its echo off of an object.
-	pin->pinMode(INPUT);
+	pin->pinMode(PinMode::INPUT);
 	duration = pin->pulseIn(HIGH);
 
 	// convert the time into a distance

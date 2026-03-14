@@ -66,12 +66,12 @@ class HallInterruptService: public InterruptService {
 				motor->ul->digitalWrite(HIGH);
 			_delay_ms(1); // gate ramp up, bootstrap charge
 			if( commPattern & whmask )
-				motor->wh->pwmWrite(motor->speed,0b10); // Clear compare output mode for fast pwm: OCnA/OCnB/OCnC on compare match, set OCnA/OCnB/OCnC at BOTTOM (inverting mode).
+				motor->wh->pwmWrite(true,motor->speed); // Clear compare output mode for fast pwm: OCnA/OCnB/OCnC on compare match, set OCnA/OCnB/OCnC at BOTTOM (inverting mode).
 			if( commPattern & vhmask )
-				motor->vh->pwmWrite(motor->speed,0b10); // Clear compare output mode for fast pwm: OCnA/OCnB/OCnC on compare match, set OCnA/OCnB/OCnC at BOTTOM (inverting mode).
+				motor->vh->pwmWrite(true,motor->speed); // Clear compare output mode for fast pwm: OCnA/OCnB/OCnC on compare match, set OCnA/OCnB/OCnC at BOTTOM (inverting mode).
 			if( commPattern & uhmask )
-				motor->uh->pwmWrite(motor->speed,0b10); // Clear compare output mode for fast pwm: OCnA/OCnB/OCnC on compare match, set OCnA/OCnB/OCnC at BOTTOM (inverting mode).		
-			_delay_ms(20); // discharge
+				motor->uh->pwmWrite(true,motor->speed; // Clear compare output mode for fast pwm: OCnA/OCnB/OCnC on compare match, set OCnA/OCnB/OCnC at BOTTOM (inverting mode).		
+			sleep_ms(20); // discharge
 			motor->Stop_motor();
 		}
 		sei();	

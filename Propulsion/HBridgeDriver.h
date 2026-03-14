@@ -35,7 +35,7 @@ protected:
 	PWM** ppwms;
 	Digital** pdigitals;
 	// 10 possible drive wheels, index is by channel-1. 
-	// motorDrive[channel] [[PWM array index][dir pin][timer prescale][timer resolution]
+	// motorDrive[channel] [[PWM array index][dir pin]]
 	// PWM params array by channel:
 	// 0-pin index to pwm array(default 255)
 	// 1-direction pin
@@ -60,6 +60,22 @@ public:
 	void getDriverInfo(uint8_t ch, char* outStr);
 	int queryFaultFlag(void) { return fault_flag; }
     int queryStatusFlag(void) { return status_flag; }
+	bool usesPWM(uint8_t pin) {
+		for(int i = 0; i < 10; i++) {
+			if(motorDrive[i][0] != 255 && motorDrive[i][0] && 
+				ppwms[motorDrive[i][0]] && ppwms[motorDrive[i][0]]->pin == pin)
+			 return true;
+		}
+		return false;
+	}
+	bool usesDigital(uint8_t pin) {
+		for(int i = 0; i < 10; i++) {
+			if(motorDrive[i][1] != 255 && motorDrive[i][1] && 
+				pdigitals[motorDrive[i][1]] && pdigitals[motorDrive[i][1]]->pin == pin)
+			 return true;
+		}
+		return false;
+	}
 protected:
 private:
 	HBridgeDriver( const HBridgeDriver &c );

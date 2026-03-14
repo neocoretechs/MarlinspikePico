@@ -83,6 +83,8 @@ public:
 	virtual int queryFaultFlag(void)=0;
     virtual int queryStatusFlag(void)=0;
 	virtual int queryBrushlessCounter(uint8_t ch)=0;
+	virtual bool usesPWM(uint8_t pin)=0;
+	virtual bool usesDigital(uint8_t pin) { return false; }
 	void linkDistanceSensor(Ultrasonic** us, uint8_t upin, uint32_t distance, uint8_t facing=1);
 	bool checkUltrasonicShutdown(void);
 	bool checkEncoderShutdown(void);

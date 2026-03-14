@@ -21,7 +21,7 @@
 #define LOW 0
 #define HIGH 1
 #include "HBridgeDriver.h"
-#include "..\Configuration_adv.h"
+#include "../Configuration_adv.h"
 
 
 int HBridgeDriver::commandEmergencyStop(int status)
@@ -147,15 +147,15 @@ int HBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPower) {
 		// If we are setting power 0, we are stopping anyway
 		if( !checkUltrasonicShutdown()) {
 			// find the PWM pin and get the object we set up in M3 to write to power level
-			int timer_mode = 2;
-			int timer_pre = motorDrive[motorChannel-1][2]; // prescale from M3
-			int timer_res = motorDrive[motorChannel-1][3]; // timer resolution in bits from M3
+			//int timer_mode = 2;
+			//int timer_pre = motorDrive[motorChannel-1][2]; // prescale from M3
+			//int timer_res = motorDrive[motorChannel-1][3]; // timer resolution in bits from M3
 			// element 0 of motorDrive has index to PWM array
 			int pindex = motorDrive[motorChannel-1][0];
 			// writing power 0 sets mode 0 and timer turnoff
 			ppwms[pindex]->init(ppwms[pindex]->pin);
 			//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
-			ppwms[pindex]->pwmWrite(motorPower, timer_mode);
+			ppwms[pindex]->pwmWrite(true,motorPower);
 		}
 		fault_flag = 0;
 		return 0;

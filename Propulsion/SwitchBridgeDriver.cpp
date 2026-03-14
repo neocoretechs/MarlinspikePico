@@ -52,7 +52,7 @@ void SwitchBridgeDriver::createDigital(uint8_t channel, uint8_t pin_numberA, uin
 	int foundPin = 0;
 	// Set up the digital enable pin, we want to be able to re-use these pins for multiple channels on 1 controller
 	Digital* dpin = new Digital(enable_pin);
-	dpin->pinMode(OUTPUT);
+	dpin->pinMode(PinMode::OUTPUT);
 	for(int i = 0; i < 10; i++) {
 		if(!pdigitals[i]) {
 			pdigitals[i] = dpin;
@@ -112,7 +112,7 @@ int SwitchBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPow
 	for(int i = 0; i < 10; i++) {
 		if(pdigitals[i] && pdigitals[i]->pin == motorDrive[motorChannel-1][1]) {
 			//pdigitals[i]->setPin(motorDrive[motorChannel-1][1]);
-			pdigitals[i]->pinMode(OUTPUT);
+			pdigitals[i]->pinMode(PinMode::OUTPUT);
 			pdigitals[i]->digitalWrite(HIGH);
 			foundPin = 1;
 			break;

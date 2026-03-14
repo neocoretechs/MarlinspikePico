@@ -88,7 +88,7 @@ void SplitBridgeDriver::createPWM(uint8_t channel, uint8_t pin_numberA, uint8_t 
 	foundPin = 0;
 	// Set up the digital enable pin, we want to be able to re-use these pins for multiple channels on 1 controller
 	Digital* dpin = new Digital(enable_pin);
-	dpin->pinMode(OUTPUT);
+	dpin->pinMode(PinMode::OUTPUT);
 	for(int i = 0; i < 10; i++) {
 		if(!pdigitals[i]) {
 			pdigitals[i] = dpin;
@@ -142,7 +142,7 @@ int SplitBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPowe
 	for(int i = 0; i < 10; i++) {
 			if(pdigitals[i] && pdigitals[i]->pin == motorDrive[motorChannel-1][1]) {
 				//pdigitals[i]->setPin(motorDrive[motorChannel-1][1]);
-				pdigitals[i]->pinMode(OUTPUT);
+				pdigitals[i]->pinMode(PinMode::OUTPUT);
 				pdigitals[i]->digitalWrite(HIGH);
 				foundPin = 1;
 				break;
@@ -191,9 +191,9 @@ int SplitBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPowe
 	// If we are setting power 0, we are stopping anyway
 	if( !checkUltrasonicShutdown()) {
 		// find the PWM pin and get the object we set up in M3 to write to power level
-		int timer_mode = 2;
-		int timer_pre = motorDrive[motorChannel-1][2]; // prescale from M3
-		int timer_res = motorDrive[motorChannel-1][3]; // timer resolution in bits from M3
+		//int timer_mode = 2;
+		//int timer_pre = motorDrive[motorChannel-1][2]; // prescale from M3
+		//int timer_res = motorDrive[motorChannel-1][3]; // timer resolution in bits from M3
 		// element 0 of motorDrive has index to PWM array
 		int pindex = motorDrive[motorChannel-1][0];
 		// add the offset to the input pin, which will be 0 or 1 depending on above logic
@@ -201,7 +201,7 @@ int SplitBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPowe
 		// writing power 0 sets mode 0 and timer turnoff
 		ppwms[pindex]->init(ppwms[pindex]->pin);
 		//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
-		ppwms[pindex]->pwmWrite(motorPower, timer_mode);
+		ppwms[pindex]->pwmWrite(true, motorPower);
 	}
 	fault_flag = 0;
 	return 0;

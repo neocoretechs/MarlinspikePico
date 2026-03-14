@@ -50,6 +50,22 @@ public:
 	int queryFaultFlag(void) { return fault_flag; }
 	int queryStatusFlag(void) { return status_flag; }
 	Digital** pdigitals;
+	bool usesPWM(uint8_t pin) {
+		for(int i = 0; i < 10; i++) {
+			if(pwmDrive[i][0] != 255 && pwmDrive[i][0] && 
+				ppwms[pwmDrive[i][0]] && ppwms[pwmDrive[i][0]]->pin == pin)
+			 return true;
+		}
+		return false;
+	}
+	bool usesDigital(uint8_t pin) {
+		for(int i = 0; i < 10; i++) {
+			if(pwmDrive[i][1] != 255 && pwmDrive[i][1] && 
+				pdigitals[pwmDrive[i][1]] && pdigitals[pwmDrive[i][1]]->pin == pin)
+			 return true;
+		}
+		return false;
+	}
 protected:
 private:
 	VariablePWMDriver( const VariablePWMDriver &c );
