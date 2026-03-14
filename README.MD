@@ -1,45 +1,36 @@
-<H2>  Marlinspike robotic controller platform. </H2>
+<H2>  Marlinspike Robotic Control Plane. </H2>
 ORiginally, Object oriented C++ version of Mega2560 M and G code front end processing via USB port of Arduino. Then implemented as a Java class using Linux UART and GPIO userspace drivers. Finally, this implementation on the Pico, which probably wont be the last...
  
- Processes a variation of M and G code from CNC and 3D printing to control a range of motor controllers and drivers
+ Processes a variation of M and G code from CNC and 3D printing, to control a range of motor controllers and drivers
  and GPIO pins for smart machine and robotics hardware functionality.
  
- Geared toward the a microcontroller chip, such as Mega2560 or Pico, this code unifies the microcontroller platform and allows it to be easily accessed through the standard CNC-derived 'language' and asynchronous messaging loop. 
+ Geared toward the a microcontroller chip, such as Mega2560 or Pico, this code unifies the microcontroller platform and allows it to be easily accessed through the standard CNC-derived command set and asynchronous messaging loop. 
  
- As an example, it unifies the timers to deliver consistent PWM functions across all available pins, and allows
- various motor controllers like H-bridge, half bridge, and smart controllers to be controlled through UART, PWM, and GPIO functions.
+ As an example, it unifies the PWM functions across all available pins, and allows
+ various motor controllers like H-bridge, half bridge, and smart controllers to be configured and controlled.
  
- It contains a main processing loop that receives M and G code commands through the UART via USB or TTL, like a CNC machine or 3D printer,
- then uses a pure C++, rewritten, unified version of the Wiring library for arduino, ported to Pico SDK, to handle the functions provided in the main CNC-derived M and G code processing loop.
+ It contains a main processing loop that receives M and G code commands like a CNC machine or 3D printer,
+ then uses a pure C++ library for Pico SDK to handle the functions provided in the main processing loop.
  
  Servos, ADCs, Timers, Pin change interrupts, Analog and Digital IO pins, SPI, I2C, PWM, UARTs, and motor controllers are all unified and
  accessible through the main processing loop. In the primary loop, M and G code commands are processed such that this generic, multifunction, 
- realtime, robotic smart controller can be attached to a single board computer (SBC), or used standalone and accessed through a UART, 
+ realtime, robotic smart controller can be attached to a single board computer (SBC) laptop, or desktop USB port, or used standalone and accessed through a UART, 
  or potentially be attached via SPI, I2C or TWI to function as a realtime hardware controller.
  
- Another example is the way in which ultrasonic sensors can be attached to any motor driver through main loop processing commands and used to
- set up a minimum distance to detect an object before issuing a command to shut down the motor driver.
+ Using a few line of M code, high level configuration of attached sensors such as ultrasonic distance sensors, IMU's, motor drivers, LED arrays, and SPI and I2C devices can be easily performed.
  
- To continue the examples, through the processing loop, hall effect sensors can be attached to any motor driver through pins designated in the main
- processing loop M and G code commands and used to detect wheel rotations, then set up pin change interrupts for those sensors through other
- M and G code commands, then perform actions based on the wheel rotations and the interrupts generated and processed through other M and G code commands.
+ Once configured, data can be streamed and complex control of coordinated arrays of pins and sensors can be done in a high performance fashion.
  
- A microcontroller running this code can be used to easily construct a robot, a 3D printer, a CNC machine, or any number of devices that need 
- a generic smart controller capable of low level access to GPIO pins and hardware timers and ADCs etc.
+ As an example: hall effect sensors can be attached to any motor driver through pins designated in the main
+ processing loop, the other M and G code commands can be used to detect wheel rotations from that sensor, then that sensor can be set up to generate pin change interrupts under desired conditions, and GPIO pins can be designated as directional change pins for the attached assembly of motor drivers and sensors and odometry can be acquired by designating the proper encoder.
  
-a.) A means to control low level robotics via serial communications to a Mega2560 board and provide an interface to the higher level busses.
+So in a nutshell: persistent, coordinated robotics functions can be achieved by sending a few lines of text.
+ 
+A microcontroller running this code can be used to easily construct a robot, a 3D printer, a CNC machine, or any number of devices that need a generic smart controller capable of low level access to GPIO pins and hardware timers and ADCs etc.
+ 
 
-The attached Microcontroller board provides the low level realtime data acquisition and control from the devices
-and controllers so attached to it.
+In conjunction with this project, an associated project provides Java demultiplexing of the responses from the Microcontroller via the 
+serial library to process the data acquisition and box it up for publishing on ROS topics.
 
-Much like 3D printers process M and G codes for generating movement and action, the attached board functions in the same way using a special protocol.
-Timers, controllers, and pins are all first class objects in a compact subsystem, created and manipulated by the proper M and G codes.
-
-In conjunction with this, project Marlinspike provides Java demultiplexing of the responses from the Microcontroller via the 
-serial library to process the data acquisition and box it up for publishing on the ROS topic.
-
-Values from ultrasonic sensors, digital and analog pins and other accessories can be set to stream real time data back over the USB port.
-A full range of motor driver and smart motor controller functions for brushless and brushed DC motors is supported.
-
-For debugging, open a terminal session to the USB port, typically /dev/ttyACM0 or /dev/ttyUSB0, at 115200 baud, 8 bits
-no parity, and issue commands directly to the Mega 2560. Minicom works well under ubuntu. minicom -F /dev/ttyACM0 -b 115200.
+You can even get started by attaching a flashed microcontroller to your PC, opening a terminal session to the USB port with minicom or PuTTY or any serial terminal, typically accessing ports like /dev/ttyACM0 or /dev/ttyUSB0 on Linux or COM4 or COM5 on Windows, at 115200 baud, 8 bits
+no parity, and issuing commands directly to the microcontroller. Minicom works well under ubuntu. minicom -F /dev/ttyACM0 -b 115200.
