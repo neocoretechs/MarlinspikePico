@@ -35,13 +35,15 @@ serial library to process the data acquisition and box it up for publishing on R
 You can even get started by attaching a flashed microcontroller to your PC, opening a terminal session to the USB port with minicom or PuTTY or any serial terminal, typically accessing ports like /dev/ttyACM0 or /dev/ttyUSB0 on Linux or COM4 or COM5 on Windows, at 115200 baud, 8 bits
 no parity, and issuing commands directly to the microcontroller. Minicom works well under ubuntu. minicom -F /dev/ttyACM0 -b 115200.
 
-Marlinspike Controller Command Reference
+<b>One of the main functions of the Marlinspike is to configure and control various types of motor drivers:</b>
+<h3>Marlinspike Motor Controller Command Reference</h3>
 
 Overview
 
-Marlinspike uses a structured set of M‑codes to declare, configure, and activate logical controllers inside the microcontroller subsystem.All controller configuration begins with M10, followed by one or more configuration commands.
+Marlinspike uses a structured set of M‑codes to declare, configure, and activate logical controllers inside the microcontroller subsystem.
+All controller configuration begins with M10 controller slot asignment, followed by one or more configuration commands.
 
-This document describes the supported controller‑related M‑codes and their parameters.
+This document describes the supported controller-related M-codes and their parameters.
 
 1. M10 — Declare Controller Type and Slot
 
@@ -49,69 +51,27 @@ Syntax
 
 M10 Z<slot> T<type>
 
-DescriptionCreates a logical controller in a numbered slot.Subsequent M‑codes configure that controller.
+Creates a logical controller in a numbered slot.Subsequent M‑codes configure that controller.
 
 Controller Types
 
-Type
+0 - SmartController such as Roboteq command driven BLDC
 
-Name
+1 - HBridge: PWM + direction pin
 
-Description
+2 - SplitBridge: Two PWM pins + enable
 
-0
+3 - SwitchBridge: Two GPIO pins + enable
 
-SmartController
+4 - SwitchHBridge: One GPIO pin + direction
 
-Single PWM pin + encoder
+5 - PWM: Standalone PWM driver
 
-1
+6 - InputPin Standalone GPIO input
 
-H‑Bridge
+7 - OutputPin Standalone GPIO output
 
-PWM + direction pin
-
-2
-
-SplitBridge
-
-Two PWM pins + enable
-
-3
-
-SwitchBridge
-
-Two GPIO pins + enable
-
-4
-
-SwitchHBridge
-
-One GPIO pin + direction
-
-5
-
-PWM
-
-Standalone PWM driver
-
-6
-
-InputPin
-
-Standalone GPIO input
-
-7
-
-OutputPin
-
-Standalone GPIO output
-
-8
-
-DelayH‑Bridge
-
-H‑Bridge with delayed activation
+8 - DelayHBridge: HBridge with delayed activation
 
 Examples
 
@@ -123,7 +83,7 @@ M10 Z0 T4   ; SwitchHBridge in slot 0
 M10 Z0 T5   ; PWM driver in PWM slot 0
 M10 Z1 T8   ; Delay H‑Bridge in slot 1
 
-2. Controller Configuration M‑Codes
+2. Controller Configuration MCodes
 
 These commands configure the controller declared by M10.
 
@@ -161,7 +121,7 @@ Syntax
 
 M9 [Z<slot>] P<pwm pin> C<channel> D<enable pin> [F<frequency>] [H<duty>]
 
-2.6 M16 — Delay H‑Bridge (Type 8)
+2.6 M16 — Delay HBridge (Type 8)
 
 Syntax
 
