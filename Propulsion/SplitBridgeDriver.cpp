@@ -38,15 +38,6 @@
 */
 
 #include "SplitBridgeDriver.h"
-#include "AbstractMotorControl.h"
-#include "HBridgeDriver.h"
-#include "..\Configuration_adv.h"
-
-
-// default destructor
-SplitBridgeDriver::~SplitBridgeDriver()
-{
-} //~SplitBridgeDriver
 
 int SplitBridgeDriver::commandEmergencyStop(int status)
 {
@@ -59,8 +50,6 @@ int SplitBridgeDriver::commandEmergencyStop(int status)
 		pindex = motorDriveB[j][0];
 		if(pindex != 255) {
 			ppwms[pindex]->init(ppwms[pindex]->pin);
-			ppwms[pindex]->setPWMPrescale(motorDrive[j][2]);
-			ppwms[pindex]->setPWMResolution(motorDrive[j][3]);
 			ppwms[pindex]->pwmOff();
 		}
 	}
@@ -80,68 +69,65 @@ int SplitBridgeDriver::commandEmergencyStop(int status)
 * timer_res - timer resolution in bits - default 8
 */
 void SplitBridgeDriver::createPWM(uint8_t channel, uint8_t pin_numberA, uint8_t pin_numberB, uint8_t enable_pin, uint8_t dir_default, int timer_pre, int timer_res) {
-	// Attempt to assign PWM pin, lock to 8 bits no prescale, mode 2 CTC
-	if( getChannels() < channel ) setChannels(channel);
-	if( assignPin(pin_numberA) && assignPin(pin_numberB)) {
-		// Set up the digital direction pin
-		int foundPin = 0;
-			// Set up the digital enable pin, we want to be able to re-use these pins for multiple channels on 1 controller
-			if( assignPin(enable_pin) ) {
-				Digital* dpin = new Digital(enable_pin);
-				dpin->pinMode(OUTPUT);
-				for(int i = 0; i < 10; i++) {
-					if(!pdigitals[i]) {
-						pdigitals[i] = dpin;
-						foundPin = 1;
-						break;
-					}
-				}
-				if(!foundPin) {
-					delete dpin;
-					return; // no slots?
-				}
-			} else { // cant assign, it may be already assigned
-				for(int i = 0; i < 10; i++) {
-					if(pdigitals[i]->pin == enable_pin) {
-						//dpin = pdigitals[i];
-						foundPin = 1;
-						break;
-					}
-				}
-				if(!foundPin) {
-					return; // slots full...
-				}
-			}
-		
-			int pindex;
-			for(pindex = 0; pindex < 9; pindex++) {
-				if( !ppwms[pindex] && !ppwms[pindex+1])
+	// See if pin assigned
+	int foundPin = 0;
+	for(int i = 0; i < 10; i++) {
+		if(pdigitals[i]->pin == enable_pin) {
+				//dpin = pdigitals[i];
+				foundPin = 1;
 				break;
-			}
-			if( ppwms[pindex] || ppwms[pindex+1])
-				return;
-			currentDirection[channel-1] = dir_default;
-			defaultDirection[channel-1] = dir_default;
-			
-			motorDrive[channel-1][0] = pindex;
-			motorDrive[channel-1][1] = enable_pin;
-			motorDrive[channel-1][2] = timer_pre;
-			motorDrive[channel-1][3] = timer_res;
-			//
-			motorDriveB[channel-1][0] = pindex+1;
-			// determines which input pin PWM signal goes to, motorDrive[0] or motorDriveB[0], which is at pindex, or pindex+1 in ppwms
-			motorDriveB[channel-1][1] = dir_default;
-			motorDriveB[channel-1][2] = timer_pre;
-			motorDriveB[channel-1][3] = timer_res;
-			PWM* ppinA = new PWM(pin_numberA);
-			ppwms[pindex] = ppinA;
-			ppwms[pindex]->init(pin_numberA);
-			PWM* ppinB = new PWM(pin_numberB);
-			ppwms[pindex+1] = ppinB;
-			ppwms[pindex+1]->init(pin_numberB);
+		}
 	}
-}
+	if(!foundPin) {
+			return; // slots full...
+	}
+		
+	if( getChannels() < channel ) 
+		setChannels(channel);
+	// Set up the digital direction pin
+	foundPin = 0;
+	// Set up the digital enable pin, we want to be able to re-use these pins for multiple channels on 1 controller
+	Digital* dpin = new Digital(enable_pin);
+	dpin->pinMode(OUTPUT);
+	for(int i = 0; i < 10; i++) {
+		if(!pdigitals[i]) {
+			pdigitals[i] = dpin;
+			foundPin = 1;
+			break;
+		}
+	}
+	if(!foundPin) {
+		delete dpin;
+		return; // no slots?
+	}
 
+	int pindex;
+	for(pindex = 0; pindex < 9; pindex++) {
+		if( !ppwms[pindex] && !ppwms[pindex+1])
+		break;
+	}
+	if( ppwms[pindex] || ppwms[pindex+1])
+		return;
+	currentDirection[channel-1] = dir_default;
+	defaultDirection[channel-1] = dir_default;
+			
+	motorDrive[channel-1][0] = pindex;
+	motorDrive[channel-1][1] = enable_pin;
+	motorDrive[channel-1][2] = timer_pre;
+	motorDrive[channel-1][3] = timer_res;
+	//
+	motorDriveB[channel-1][0] = pindex+1;
+	// determines which input pin PWM signal goes to, motorDrive[0] or motorDriveB[0], which is at pindex, or pindex+1 in ppwms
+	motorDriveB[channel-1][1] = dir_default;
+	motorDriveB[channel-1][2] = timer_pre;
+	motorDriveB[channel-1][3] = timer_res;
+	PWM* ppinA = new PWM(pin_numberA);
+	ppwms[pindex] = ppinA;
+	ppwms[pindex]->init(pin_numberA);
+	PWM* ppinB = new PWM(pin_numberB);
+	ppwms[pindex+1] = ppinB;
+	ppwms[pindex+1]->init(pin_numberB);
+}
 /*
 * Command the bridge driver power level. Manage enable pin. If necessary limit min and max power and
 * scale to the MOTORPOWERSCALE if > 0. After calculation and saved values in the 0-1000 range scale it to 0-255 for 8 bit PWM.
@@ -214,8 +200,6 @@ int SplitBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPowe
 		pindex += motorDriveB[motorChannel-1][1];
 		// writing power 0 sets mode 0 and timer turnoff
 		ppwms[pindex]->init(ppwms[pindex]->pin);
-		ppwms[pindex]->setPWMPrescale(timer_pre);
-		ppwms[pindex]->setPWMResolution(timer_res);
 		//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
 		ppwms[pindex]->pwmWrite(motorPower, timer_mode);
 	}
@@ -247,7 +231,6 @@ void SplitBridgeDriver::getDriverInfo(uint8_t ch, char * outStr) {
 		itoa(-1, dout3, 10);
 	} else {
 		itoa(ppwms[motorDrive[ch-1][0]]->pin, dout1, 10);
-		itoa(ppwms[motorDrive[ch-1][0]]->mode, dout3, 10);
 	}
 	if( motorDriveB[ch-1][0] == 255 ) {
 		itoa(-1, dout2, 10);

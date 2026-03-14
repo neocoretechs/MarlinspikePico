@@ -52,52 +52,46 @@ void  VariablePWMDriver::createPWM(uint channel, uint pin_number, uint enable_pi
 	// Attempt to assign PWM pin, lock to 8 bits no prescale, mode 2 CTC
 	if( getChannels() < channel ) setChannels(channel);
 	int foundPin = 0;
-	Digital* dpin;
-	if( assignPin(pin_number) ) {
-		// Set up the digital enable pin, we want to be able to re-use these pins for multiple channels on 1 controller	
-		if( assignPin(enable_pin) ) {
-			Digital* dpin = new Digital(enable_pin);
-			dpin->pinMode(OUTPUT);
-			for(int i = 0; i < 10; i++) {
-				if(!pdigitals[i]) {
-					pdigitals[i] = dpin;
-					foundPin = 1;
-					break;
-				}
-			}
-			if(!foundPin) {
-				delete dpin;
-				return; // no slots?
-			}
-		} else { // cant assign, it may be already assigned
-			for(int i = 0; i < 10; i++) {
-				if(pdigitals[i]->pin == enable_pin) {
-					//dpin = pdigitals[i];
-					foundPin = 1;
-					break;
-				}
-			}
-			if(!foundPin) {
-					return; // slots full...
-			}
-		}
-		// find slot for new PWM pin and init
-		int pindex;
-		for(pindex = 0; pindex < 10; pindex++) {
-			if( !ppwms[pindex] )
+	Digital* dpin = new Digital(enable_pin);
+	dpin->pinMode(OUTPUT);
+	for(int i = 0; i < 10; i++) {
+		if(!pdigitals[i]) {
+			pdigitals[i] = dpin;
+			foundPin = 1;
 			break;
 		}
-		if( ppwms[pindex] ) // already assigned, slots full
+	}
+	if(!foundPin) {
+		delete dpin;
+		return; // no slots?
+	}
+	for(int i = 0; i < 10; i++) {
+		if(pdigitals[i]->pin == enable_pin) {
+			//dpin = pdigitals[i];
+			foundPin = 1;
+			break;
+		}
+	}
+	if(!foundPin) {
+		return; // slots full...
+	}
+		
+	// find slot for new PWM pin and init
+	int pindex;
+	for(pindex = 0; pindex < 10; pindex++) {
+		if( !ppwms[pindex] )
+			break;
+	}
+	if( ppwms[pindex] ) // already assigned, slots full
 			return;
 				
-		pwmDrive[channel-1][0] = pindex;
-		pwmDrive[channel-1][1] = enable_pin;
-		pwmDrive[channel-1][2] = timer_pre;
-		pwmDrive[channel-1][3] = timer_res;
-		PWM* ppin = new PWM(pin_number);
-		ppwms[pindex] = ppin;
-		ppwms[pindex]->init(pin_number);
-	}
+	pwmDrive[channel-1][0] = pindex;
+	pwmDrive[channel-1][1] = enable_pin;
+	pwmDrive[channel-1][2] = timer_pre;
+	pwmDrive[channel-1][3] = timer_res;
+	PWM* ppin = new PWM(pin_number);
+	ppwms[pindex] = ppin;
+	ppwms[pindex]->init(pin_number);
 }
 /*
 * Command the driver power level. Manage enable pin. If necessary limit min and max power and
@@ -146,8 +140,6 @@ int VariablePWMDriver::commandPWMLevel(uint8_t pwmChannel, int16_t pwmPower) {
 	int pindex = pwmDrive[pwmChannel-1][0];
 	// writing power 0 sets mode 0 and timer turnoff
 	ppwms[pindex]->init(ppwms[pindex]->pin);
-	ppwms[pindex]->setPWMPrescale(timer_pre);
-	ppwms[pindex]->setPWMResolution(timer_res);
 	//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
 	ppwms[pindex]->pwmWrite(pwmPower, timer_mode);
 	fault_flag = 0;
@@ -176,7 +168,6 @@ void VariablePWMDriver::getDriverInfo(uint8_t ch, char* outStr) {
 		itoa(-1, dout2, 10);
 	} else {
 		itoa(ppwms[pwmDrive[ch-1][0]]->pin, dout1, 10);
-		itoa(ppwms[pwmDrive[ch-1][0]]->mode, dout2, 10);
 	}	
 	itoa(pwmDrive[ch-1][1], dout3, 10);
 	itoa(pwmDrive[ch-1][2], dout4, 10);
@@ -239,8 +230,3 @@ void VariablePWMDriver::getDriverInfo(uint8_t ch, char* outStr) {
 VariablePWMDriver::VariablePWMDriver()
 {
 } //VariablePWMDriver
-
-// default destructor
-VariablePWMDriver::~VariablePWMDriver()
-{
-} //~VariablePWMDriver

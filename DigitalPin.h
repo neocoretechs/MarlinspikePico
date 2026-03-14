@@ -1,6 +1,7 @@
 #pragma once
 #include "pico/stdlib.h"
 #include <hardware/pwm.h>
+#include "Configuration_adv.h"
 #define INPUT           0
 #define OUTPUT          1
 #define INPUT_PULLUP    2
@@ -9,6 +10,7 @@
 class Digital {
 public:
     uint pin;
+    uint mode;
     bool is_output = false;
 
     Digital(uint pin) : pin(pin) {
@@ -22,6 +24,7 @@ public:
     }
 
     void pinMode(uint mode) {
+        this->mode = mode;
         is_output = (mode == GPIO_OUT);
         gpio_set_dir(pin, is_output ? GPIO_OUT : GPIO_IN);
 

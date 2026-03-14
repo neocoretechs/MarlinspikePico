@@ -37,7 +37,7 @@ private:
 public:
 	VariablePWMDriver();
 	~VariablePWMDriver() override = default;
-	int commandPWMLevel(uint ch, int p);
+	int commandPWMLevel(uint8_t ch, int16_t p);
 	int commandEmergencyStop(int status);
 	int isConnected(void) { return true; }
 	void setPWMs(PWM** pwm) { ppwms = pwm; }
@@ -46,9 +46,10 @@ public:
 	uint getPWMLevelPin(uint channel) { return pwmDrive[channel-1][0]; }
 	uint getPWMEnablePin(uint channel) {return pwmDrive[channel-1][1]; }
 	void createPWM(uint channel, uint pin_number, uint enable_pin, int timer_pre, int timer_res);
-	void getDriverInfo(uint ch, char* outStr);
+	void getDriverInfo(uint8_t ch, char* outStr);
 	int queryFaultFlag(void) { return fault_flag; }
 	int queryStatusFlag(void) { return status_flag; }
+	Digital** pdigitals;
 protected:
 private:
 	VariablePWMDriver( const VariablePWMDriver &c );

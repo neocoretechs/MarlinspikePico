@@ -18,16 +18,6 @@
 * Author: groff
 */
 #include "SwitchBridgeDriver.h"
-#include "..\Configuration_adv.h"
-// default constructor
-SwitchBridgeDriver::SwitchBridgeDriver()
-{
-} //SwitchBridgeDriver
-
-// default destructor
-SwitchBridgeDriver::~SwitchBridgeDriver()
-{
-} //~SwitchBridgeDriver
 
 int SwitchBridgeDriver::commandEmergencyStop(int status)
 {
@@ -56,61 +46,56 @@ int SwitchBridgeDriver::commandEmergencyStop(int status)
 * dir_default - the default direction the motor starts in
 */
 void SwitchBridgeDriver::createDigital(uint8_t channel, uint8_t pin_numberA, uint8_t pin_numberB, uint8_t enable_pin, uint8_t dir_default) {
-	if( getChannels() < channel ) setChannels(channel);
-	if( assignPin(pin_numberA) && assignPin(pin_numberB)) {
-		// Set up the digital direction pin
-			int foundPin = 0;
-			// Set up the digital enable pin, we want to be able to re-use these pins for multiple channels on 1 controller
-			if( assignPin(enable_pin) ) {
-				Digital* dpin = new Digital(enable_pin);
-				dpin->pinMode(OUTPUT);
-				for(int i = 0; i < 10; i++) {
-					if(!pdigitals[i]) {
-						pdigitals[i] = dpin;
-						foundPin = 1;
-						break;
-					}
-				}
-				if(!foundPin) {
-					delete dpin;
-					return; // no slots?
-				}
-			} else { // cant assign, it may be already assigned
-				for(int i = 0; i < 10; i++) {
-					if(pdigitals[i]->pin == enable_pin) {
-						//dpin = pdigitals[i];
-						foundPin = 1;
-						break;
-					}
-				}
-				if(!foundPin) {
-					return; // slots full...
-				}
-			}
-		
-			int pindex;
-			for(pindex = 0; pindex < 9; pindex++) {
-				if( !pdigitals[pindex] && !pdigitals[pindex+1])
-				break;
-			}
-			if( pdigitals[pindex] || pdigitals[pindex+1])
-				return;
-			currentDirection[channel-1] = dir_default;
-			defaultDirection[channel-1] = dir_default;
-			
-			motorDrive[channel-1][0] = pindex;
-			motorDrive[channel-1][1] = enable_pin;
-			//
-			motorDriveB[channel-1][0] = pindex+1;
-			// determines which input pin PWM signal goes to, motorDrive[0] or motorDriveB[0], which is at pindex, or pindex+1 in ppwms
-			motorDriveB[channel-1][1] = dir_default;
-			Digital* ppinA = new Digital(pin_numberA);
-			pdigitals[pindex] = ppinA;
-			pdigitals[pindex]->pinMode(OUTPUT);
-			Digital* ppinB = new Digital(pin_numberB);
-			pdigitals[pindex+1] = ppinB;
-			pdigitals[pindex+1]->pinMode(OUTPUT);
+	if( getChannels() < channel )
+	 setChannels(channel);
+	// Set up the digital direction pin
+	int foundPin = 0;
+	// Set up the digital enable pin, we want to be able to re-use these pins for multiple channels on 1 controller
+	Digital* dpin = new Digital(enable_pin);
+	dpin->pinMode(OUTPUT);
+	for(int i = 0; i < 10; i++) {
+		if(!pdigitals[i]) {
+			pdigitals[i] = dpin;
+			foundPin = 1;
+			break;
 		}
+	}
+	if(!foundPin) {
+		delete dpin;
+		return; // no slots?
+	}
+		
+	for(int i = 0; i < 10; i++) {
+		if(pdigitals[i]->pin == enable_pin) {
+			//dpin = pdigitals[i];
+			foundPin = 1;
+			break;
+		}
+	}
+	if(!foundPin) {
+		return; // slots full...
+	}		
+	int pindex;
+	for(pindex = 0; pindex < 9; pindex++) {
+		if( !pdigitals[pindex] && !pdigitals[pindex+1])
+		break;
+	}
+	if( pdigitals[pindex] || pdigitals[pindex+1])
+			return;
+	currentDirection[channel-1] = dir_default;
+	defaultDirection[channel-1] = dir_default;
+	motorDrive[channel-1][0] = pindex;
+	motorDrive[channel-1][1] = enable_pin;
+	//
+	motorDriveB[channel-1][0] = pindex+1;
+	// determines which input pin PWM signal goes to, motorDrive[0] or motorDriveB[0], which is at pindex, or pindex+1 in ppwms
+	motorDriveB[channel-1][1] = dir_default;
+	Digital* ppinA = new Digital(pin_numberA);
+	pdigitals[pindex] = ppinA;
+	pdigitals[pindex]->pinMode(OUTPUT);
+	Digital* ppinB = new Digital(pin_numberB);
+	pdigitals[pindex+1] = ppinB;
+	pdigitals[pindex+1]->pinMode(OUTPUT);
 }
 
 /*
@@ -197,7 +182,6 @@ void SwitchBridgeDriver::getDriverInfo(uint8_t ch, char* outStr) {
 		itoa(-1, dout3, 10);
 	} else {
 		itoa(pdigitals[motorDrive[ch-1][0]]->pin, dout1, 10);
-		itoa(pdigitals[motorDrive[ch-1][0]]->mode, dout3, 10);
 	}
 	if( motorDriveB[ch-1][0] == 255 ) {
 		itoa(-1, dout2, 10);

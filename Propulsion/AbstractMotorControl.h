@@ -49,6 +49,7 @@
 
 #include "../Ultrasonic.h"
 #include "../CounterInterruptService.h"
+#include "../Configuration_adv.h"
 class AbstractMotorControl
 {
 private:

@@ -101,8 +101,6 @@ int DelayHBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPow
 			int pindex = motorDrive[motorChannel-1][0];
 			// writing power 0 sets mode 0 and timer turnoff
 			ppwms[pindex]->init(ppwms[pindex]->pin);
-			ppwms[pindex]->setPWMPrescale(timer_pre);
-			ppwms[pindex]->setPWMResolution(timer_res);
 			//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
 			ppwms[pindex]->pwmWrite(motorPower, timer_mode);
 		}
@@ -133,7 +131,6 @@ void DelayHBridgeDriver::getDriverInfo(uint8_t ch, char* outStr) {
 		itoa(-1, dout2, 10);
 	} else {
 		itoa(ppwms[motorDrive[ch-1][0]]->pin, dout1, 10);
-		itoa(ppwms[motorDrive[ch-1][0]]->mode, dout2, 10);
 	}
 	itoa(motorDrive[ch-1][1], dout3, 10);
 	itoa(motorDrive[ch-1][2], dout4, 10);
@@ -193,10 +190,5 @@ void DelayHBridgeDriver::getDriverInfo(uint8_t ch, char* outStr) {
 	}
 
 }
-
-// default destructor
-DelayHBridgeDriver::~DelayHBridgeDriver() 
-{
-} //~HBridgeDriver
 
 //DelayHBridgeDriver delayhBridgeDriver;

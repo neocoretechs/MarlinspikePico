@@ -57,9 +57,11 @@ add_executable(Marlinspike
     Propulsion/RoboteqDevice.cpp
     Propulsion/SplitBridgeDriver.cpp
     Propulsion/SwitchBridgeDriver.cpp
-    Propulsion/DiffDrive.cpp
+    Propulsion/DiffDrive.h
     new.cpp
     Print.cpp
+    pid_params.h
+    Odom.h
     Stream.cpp
     VariablePWMDriver.cpp
     WPWM.cpp

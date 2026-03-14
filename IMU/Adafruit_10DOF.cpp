@@ -18,8 +18,7 @@
 #include <Math.h>
 
 #include "Adafruit_10DOF.h"
-#define PI 3.14159265F
-
+#include "Configuration_adv.h"
 
 /**************************************************************************/
 /*!
