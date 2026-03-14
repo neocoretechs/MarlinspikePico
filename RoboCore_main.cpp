@@ -1519,27 +1519,42 @@ void processGCode(int cval) {
         pin_number = -1;
         if (code_seen('P')) {
           pin_number = code_value();
-		}
-    	if( assignPin(pin_number) ) {
-			dpin = new Digital(pin_number);
-			if(code_seen('U')) {
-				dpin->pinMode(INPUT_PULLUP);
-			}
-			int res = dpin->digitalRead();
-			unassignPin(pin_number); // reset it since this is a one-shot
+		} else {
 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-			tud_cdc_write(digitalPinHdr, strlen(digitalPinHdr));
-			tud_cdc_write(MSG_DELIMIT,strlen(MSG_DELIMIT));
-			tud_cdc_write("1 ", strlen("1 "));
-			tud_cdc_write(pin_number, strlen(pin_number));
-			tud_cdc_write("2 ", strlen("2 "));
-			tud_cdc_write(itoa(res), strlen(itoa(res)));
-			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-			tud_cdc_write(digitalPinHdr, strlen(digitalPinHdr));
+			tud_cdc_write("M44 PIN ERROR", strlen("M44 PIN ERROR"));
 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 			tud_cdc_write_flush();
-			delete dpin;
+			break;
 		}
+		dpin = 0;
+		for(int i = 0; i < 32; i++) {
+			if(pdigitals[i] && pdigitals[i]->pin == pin_number) {
+				dpin = pdigitals[i];
+				break;
+			}
+		}
+		if(!dpin) {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M44 PIN UNASSIGNED ERROR", strlen("M44 PIN UNASSIGNED ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+			break;
+		}
+		if(code_seen('U')) {
+			dpin->pinMode(INPUT_PULLUP);
+		}
+		int res = dpin->digitalRead();
+		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+		tud_cdc_write(digitalPinHdr, strlen(digitalPinHdr));
+		tud_cdc_write(MSG_DELIMIT,strlen(MSG_DELIMIT));
+		tud_cdc_write("1 ", strlen("1 "));
+		tud_cdc_write(itoa(pin_number), strlen(itoa(pin_number)));
+		tud_cdc_write("2 ", strlen("2 "));
+		tud_cdc_write(itoa(res), strlen(itoa(res)));
+		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+		tud_cdc_write(digitalPinHdr, strlen(digitalPinHdr));
+		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+		tud_cdc_write_flush();
 		break;
 		
 	 // PWM value between 0 and 1000
@@ -1729,11 +1744,10 @@ void processGCode(int cval) {
 	  tud_cdc_write(MSG_DELIMIT,strlen(MSG_DELIMIT));
 	  tud_cdc_write(MSG_115_REPORT2,strlen(MSG_115_REPORT2));
 	  tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-	  tud_cdc_write(MSG_M115_REPORT);
-	  tud_cdc_write(MSG_TERMINATE);
+	  tud_cdc_write(MSG_M115_REPORT, strlen(MSG_115_REPORT));
+	  tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
 	  tud_cdc_write_flush();
       break;
-	  
 	
     case 300: // M300 - emit ultrasonic pulse on given pin and return duration P<pin number>
       uspin = code_seen('P') ? code_value() : 0;
@@ -1744,7 +1758,7 @@ void processGCode(int cval) {
 		tud_cdc_write(sonicCntrlHdr,strlen(sonicCntrlHdr));
 		tud_cdc_write(MSG_DELIMIT,strlen(MSG_DELIMIT));
 		tud_cdc_write("1 ", 2); // pin
-		tud_cdc_write(pin_number, strlen(pin_number));
+		tud_cdc_write(itoa(pin_number), strlen(itoa(pin_number)));
 		tud_cdc_write("2 ", 2); // sequence
 		tud_cdc_write(itoa(upin->getRange()), strlen(itoa(upin->getRange()))); // range
 		tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
@@ -1935,7 +1949,7 @@ void processGCode(int cval) {
 		tud_cdc_write(MSG_DELIMIT, strlen(MSG_DELIMIT));
 		for(int i = 0; i < 32; i++) {
 			if( pdigitals[i] ) {
-				tud_cdc_write(itoa(pdigitals[i]->pin)) strlen(itoa(pdigitals[i]->pin)));
+				tud_cdc_write(itoa(pdigitals[i]->pin), strlen(itoa(pdigitals[i]->pin)));
 				switch(pdigitals[i]->mode) {
 					case INPUT:
 						tud_cdc_write(" INPUT", strlen(" INPUT"));
