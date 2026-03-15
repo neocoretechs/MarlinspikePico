@@ -34,3 +34,4 @@ void AbstractPWMControl::resetLevels(void) {
 AbstractPWMControl::~AbstractPWMControl()
 {
 } //~AbstractPWMControl
+

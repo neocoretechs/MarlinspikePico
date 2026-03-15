@@ -8,7 +8,6 @@
 #ifndef PITCHROLLHEADING_H_
 #define PITCHROLLHEADING_H_
 
-#include "../new.h"
 #include "../WInterruptService.h"
 #include "../DigitalPin.h"
 #include "Adafruit_10DOF.h"

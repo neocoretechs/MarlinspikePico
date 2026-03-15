@@ -61,15 +61,20 @@ protected:
 	int PWMPOWERSCALE = 0; // scale, divisor for PWM level to reduce 0-1000 scale if non zero
 	uint PWMSHUTDOWN = 0; // Override of PWM controls, puts it in irons
 	int fault_flag = 0;
-//functions
-public:
-	virtual ~AbstractPWMControl();
+	//functions
+	public:	AbstractPWMControl() {
+		ppwms = new PWM*[10];
+		for(int i = 0; i < 10; i++) {
+			ppwms[i] = NULL;
+		}
+	}
+	virtual ~AbstractPWMControl() = default;
 	void setDuration(uint ch, uint32_t durx) { maxPWMDuration[ch-1] = durx; }
 	void setMinPWMLevel(uint ch, uint32_t mpow) { minPWMLevel[ch-1] = mpow;}
-	virtual int commandPWMLevel(uint ch, int p)=0;
+	virtual int commandPWMLevel(uint8_t ch, int16_t p)=0;
 	virtual int commandEmergencyStop(int status)=0;
 	virtual int isConnected(void)=0;
-	virtual void getDriverInfo(uint ch, char* outStr)=0;
+	virtual void getDriverInfo(uint ch, char* outStr);
 	virtual int queryFaultFlag(void)=0;
 	virtual int queryStatusFlag(void)=0;
 	virtual void setMaxPWMLevel(int p)=0;

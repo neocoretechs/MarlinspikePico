@@ -26,6 +26,16 @@
 
 #include "AbstractMotorControl.h"
 #define CHANGE 1
+
+#include "AbstractMotorControl.h"
+
+void AbstractMotorControl::getDriverInfo(unsigned int, char*) {
+    // stub or real implementation
+}
+
+int AbstractMotorControl::queryBrushlessCounter(unsigned char) {
+    return 0; // or real value
+}
 /*
  * Link ultrasonic sensor to controller. Modify element in ultrasonicIndex array to point to Ultrasonic object.
  * us - the Ultrasonic sensor array
@@ -150,6 +160,4 @@ void AbstractMotorControl::resetSpeeds(void)
 	for (int i = 0; i < 10; i++)
 		motorSpeed[i] = 0; // all channels down
 }
-
-// virtual destructor
-AbstractMotorControl::~AbstractMotorControl() {} //~AbstractMotorControl
+//AbstractMotorControl::~AbstractMotorControl() {}

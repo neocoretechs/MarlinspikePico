@@ -10,13 +10,6 @@ char* chomp(char* s) {
 	return s;
 }
 
-RoboteqDevice::RoboteqDevice(HardwareSerial *serial) :AbstractSmartMotorControl(1000) {
-	m_Timeout = ROBOTEQ_DEFAULT_TIMEOUT;
-	setChannels(2);
-	m_Serial = serial;
-	m_Serial->begin(115200);
-}
-
 
 void RoboteqDevice::setTimeout(uint16_t timeout) {
 	m_Timeout = timeout;

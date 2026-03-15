@@ -5,7 +5,7 @@
 	 * param pin_number the index in the GPIO pin array defined in 'setMotors' for M1
 	 * param dir_pin the enable pin for this channel
 	 */
-	SwitchHBridgeDriver::createDigital(uint8_t channel, uint8_t pin_number, uint8_t dir_pin, uint8_t dir_default) {
+	void SwitchHBridgeDriver::createDigital(uint8_t channel, uint8_t pin_number, uint8_t dir_pin, uint8_t dir_default) {
 	    if( getChannels() < channel )
 	        setChannels(channel);
 	    // Set up the digital direction pin, we want to be able to re-use these pins for multiple channels on 1 controller
@@ -102,7 +102,7 @@ int SwitchHBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPo
 	return 0;
 }
 
-void SwitchBridgeDriver::getDriverInfo(uint8_t ch, char* outStr) {
+void SwitchHBridgeDriver::getDriverInfo(uint8_t ch, char* outStr) {
 	char cout[OUT_BUFFER_SIZE];
 	char dout1[5];
 	char dout2[5];

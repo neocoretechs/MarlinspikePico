@@ -46,8 +46,7 @@ protected:
 //functions
 private:
 public:
-	HBridgeDriver(void) : AbstractPWMMotorControl(255){};
-	~HBridgeDriver() override = default;
+	HBridgeDriver(int maxPower) : AbstractPWMMotorControl(maxPower){};
 	void resetMaxMotorPower() { MAXMOTORPOWER = 255; }
 	int commandMotorPower(uint8_t ch, int16_t p);
 	int commandEmergencyStop(int status);

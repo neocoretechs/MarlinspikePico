@@ -33,10 +33,9 @@ private:
 	uint8_t motorDriveB[10][4]={{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8}};
 //functions
 public:
-	SplitBridgeDriver() : HBridgeDriver(){};
-	~SplitBridgeDriver() override = default;
+	SplitBridgeDriver(int maxPower) : HBridgeDriver(maxPower){};
 	int commandEmergencyStop(int status);
-	void createPWM(uint8_t channel, uint8_t pin_numberA, uint8_t pin_numberB, uint8_t enb_pin, uint8_t dir_default, int timer_pre, int timer_res);
+	void createPWM(uint8_t channel, uint8_t pin_numberA, uint8_t pin_numberB, uint8_t enb_pin, uint8_t dir_default);
 	int commandMotorPower(uint8_t motorChannel, int16_t motorPower);
 	uint8_t getMotorPWMPinB(uint8_t channel) { return motorDriveB[channel-1][0]; }
 	void getDriverInfo(uint8_t ch, char* outStr);

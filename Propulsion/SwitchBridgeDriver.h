@@ -42,7 +42,6 @@ private:
 //functions
 public:
 	SwitchBridgeDriver(int maxPower) : AbstractMotorControl(maxPower){};
-	~SwitchBridgeDriver() override = default;
 	uint8_t getMotorDigitalPin(uint8_t channel) { return motorDrive[channel-1][0]; }
 	uint8_t getMotorDigitalPinB(uint8_t channel) { return motorDriveB[channel-1][0]; }
 	int commandMotorPower(uint8_t ch, int16_t p);

@@ -41,6 +41,4 @@ private:
     void _rx_irq();
 };
 
-extern HardwareSerial Serial1;
-
 #endif

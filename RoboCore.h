@@ -52,7 +52,17 @@
 #include "AnalogPin.h"
 #include "WPWM.h"
 #include "language.h"
+#include "math.h"
 #include "Propulsion/AbstractMotorControl.h"
+#include "Propulsion/RoboteqDevice.h"
+#include "Propulsion/HBridgeDriver.h"
+#include "Propulsion/SplitBridgeDriver.h"
+#include "Propulsion/SwitchBridgeDriver.h"
+#include "Propulsion/SwitchHBridgeDriver.h"
+#include "Propulsion/DelayHBridgeDriver.h"
+#include "CounterInterruptService.h"
+#include "AbstractPWMControl.h"
+#include "VariablePWMDriver.h"
 #include "tusb.h"
 void setup();
 void loop();

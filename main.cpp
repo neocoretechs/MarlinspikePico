@@ -1,6 +1,5 @@
 #include "pico/stdlib.h"
 #include "RoboCore.h"
-#include "new.h"
 
 /*
 * Main entry point for the Marlinspike RoboCore real time robotics control platform.

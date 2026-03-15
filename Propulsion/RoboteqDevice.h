@@ -45,14 +45,12 @@ class RoboteqDevice : public AbstractSmartMotorControl {
 		uint8_t buffer[ROBOTEQ_BUFFER_SIZE];
     // Constructors
     public:
-	    RoboteqDevice() : AbstractSmartMotorControl(1000) {
+	    RoboteqDevice(int maxPower) : AbstractSmartMotorControl(maxPower) {
 				m_Timeout = ROBOTEQ_DEFAULT_TIMEOUT;
 				setChannels(2);
-				m_Serial = &Serial1;
-				//m_Serial->begin(115200); must do this later in setup as this is default ctor and static initializer too early
+				m_Serial = new HardwareSerial(uart1, 4, 5); // Example pin numbers, replace with actual pins
+	            m_Serial->begin(115200);
 		}
-        RoboteqDevice(HardwareSerial *serial);
-		~RoboteqDevice() override = default;
 		void resetMaxMotorPower() { MAXMOTORPOWER = 1000; }
         /*
          * check if controller is connected

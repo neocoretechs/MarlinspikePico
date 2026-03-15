@@ -57,13 +57,14 @@ add_executable(Marlinspike
     Propulsion/RoboteqDevice.cpp
     Propulsion/SplitBridgeDriver.cpp
     Propulsion/SwitchBridgeDriver.cpp
+    Propulsion/SwitchHBridgeDriver.cpp
     Propulsion/DiffDrive.h
-    new.cpp
     Print.cpp
     pid_params.h
     Odom.h
     Stream.cpp
     VariablePWMDriver.cpp
+    HardwareSerial.cpp
     WPWM.cpp
     WShift.cpp
     WString.cpp
@@ -78,8 +79,8 @@ message(STATUS "Project source dir: ${CMAKE_CURRENT_SOURCE_DIR}")
 message(STATUS "Looking for tusb_config.h in: ${CMAKE_CURRENT_SOURCE_DIR}")
 # pull in common dependencies
 target_link_libraries(Marlinspike pico_stdlib 
-hardware_uart hardware_timer hardware_pwm hardware_gpio hardware_and_adc hardware_adc hardware_i2c hardware_spi
-hardware_watchdog hardware_clocks hardware_sync harware_irq hardware_dma hardware_flash hardware_rtc
+hardware_uart hardware_timer hardware_pwm hardware_gpio hardware_adc hardware_i2c hardware_spi
+hardware_watchdog hardware_clocks hardware_sync hardware_dma hardware_flash hardware_rtc
 hardware_resets hardware_vreg hardware_xosc hardware_structs hardware_exception hardware_divider
 tinyusb_device tinyusb_board
 )

@@ -68,7 +68,7 @@ int SplitBridgeDriver::commandEmergencyStop(int status)
 * timer_pre - timer prescale default 1 = no prescale
 * timer_res - timer resolution in bits - default 8
 */
-void SplitBridgeDriver::createPWM(uint8_t channel, uint8_t pin_numberA, uint8_t pin_numberB, uint8_t enable_pin, uint8_t dir_default, int timer_pre, int timer_res) {
+void SplitBridgeDriver::createPWM(uint8_t channel, uint8_t pin_numberA, uint8_t pin_numberB, uint8_t enable_pin, uint8_t dir_default) {
 	// See if pin assigned
 	int foundPin = 0;
 	for(int i = 0; i < 10; i++) {
@@ -113,14 +113,14 @@ void SplitBridgeDriver::createPWM(uint8_t channel, uint8_t pin_numberA, uint8_t 
 			
 	motorDrive[channel-1][0] = pindex;
 	motorDrive[channel-1][1] = enable_pin;
-	motorDrive[channel-1][2] = timer_pre;
-	motorDrive[channel-1][3] = timer_res;
+	//motorDrive[channel-1][2] = timer_pre;
+	//motorDrive[channel-1][3] = timer_res;
 	//
 	motorDriveB[channel-1][0] = pindex+1;
 	// determines which input pin PWM signal goes to, motorDrive[0] or motorDriveB[0], which is at pindex, or pindex+1 in ppwms
 	motorDriveB[channel-1][1] = dir_default;
-	motorDriveB[channel-1][2] = timer_pre;
-	motorDriveB[channel-1][3] = timer_res;
+	//motorDriveB[channel-1][2] = timer_pre;
+	//motorDriveB[channel-1][3] = timer_res;
 	PWM* ppinA = new PWM(pin_numberA);
 	ppwms[pindex] = ppinA;
 	ppwms[pindex]->init(pin_numberA);
@@ -238,8 +238,8 @@ void SplitBridgeDriver::getDriverInfo(uint8_t ch, char * outStr) {
 		itoa(ppwms[motorDriveB[ch-1][0]]->pin, dout2, 10);
 	}
 	itoa(motorDrive[ch-1][1], dout4, 10);
-	itoa(motorDrive[ch-1][2], dout5, 10);
-	itoa(motorDrive[ch-1][3], dout6, 10);
+	//itoa(motorDrive[ch-1][2], dout5, 10);
+	//itoa(motorDrive[ch-1][3], dout6, 10);
 	if(pdigitals[0])
 		itoa(pdigitals[0]->pin, dpin0, 10);
 	else
@@ -281,11 +281,11 @@ void SplitBridgeDriver::getDriverInfo(uint8_t ch, char * outStr) {
 	else
 		itoa(0, dpin9, 10);
 	if( motorDrive[ch-1][0] == 255 ) {
-		sprintf(cout,"SB-PWM CHANNEL UNITIALIZED PinA:%s, PWM PinB:%s, Mode:%s, Enable Pin:%s, Timer Prescale:%s, Timer Res.:%s\r\nDir Pins:0=%s,1=%s,2=%s,3=%s,4=%s,5=%s,6=%s,7=%s,8=%s,9=%s\0",
-			dout1, dout2, dout3, dout4, dout5, dout6, dpin0, dpin1, dpin2, dpin3, dpin4, dpin5, dpin6, dpin7, dpin8, dpin9);
+		sprintf(cout,"SB-PWM CHANNEL UNITIALIZED PinA:%s, PWM PinB:%s, Mode:%s, Enable Pin:%s\r\nDir Pins:0=%s,1=%s,2=%s,3=%s,4=%s,5=%s,6=%s,7=%s,8=%s,9=%s\0",
+			dout1, dout2, dout3, dout4, dpin0, dpin1, dpin2, dpin3, dpin4, dpin5, dpin6, dpin7, dpin8, dpin9);
 	} else {
-		sprintf(cout,"SB-PWM PinA:%s, PWM PinB:%s, Mode:%s, Enable Pin:%s, Timer Prescale:%s, Timer Res.:%s\r\nDir Pins:0=%s,1=%s,2=%s,3=%s,4=%s,5=%s,6=%s,7=%s,8=%s,9=%s\0",
-			dout1, dout2, dout3, dout4, dout5, dout6, dpin0, dpin1, dpin2, dpin3, dpin4, dpin5, dpin6, dpin7, dpin8, dpin9);
+		sprintf(cout,"SB-PWM PinA:%s, PWM PinB:%s, Mode:%s, Enable Pin:%s\r\nDir Pins:0=%s,1=%s,2=%s,3=%s,4=%s,5=%s,6=%s,7=%s,8=%s,9=%s\0",
+			dout1, dout2, dout3, dout4, dpin0, dpin1, dpin2, dpin3, dpin4, dpin5, dpin6, dpin7, dpin8, dpin9);
 	}
 	for(int i=0; i < OUT_BUFFER_SIZE; ++i){
 		 outStr[i] = cout[i];

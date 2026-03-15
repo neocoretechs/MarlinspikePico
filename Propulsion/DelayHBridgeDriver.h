@@ -33,8 +33,7 @@ protected:
 //functions
 private:
 public:
-	DelayHBridgeDriver(void) : HBridgeDriver(){};
-	~DelayHBridgeDriver() override = default;
+	DelayHBridgeDriver(int maxPower) : HBridgeDriver(maxPower){};
 	int commandMotorPower(uint8_t ch, int16_t p);
 	void getDriverInfo(uint8_t ch, char* outStr);
 protected:

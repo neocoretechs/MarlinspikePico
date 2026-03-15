@@ -50,6 +50,7 @@
 #include "../Ultrasonic.h"
 #include "../CounterInterruptService.h"
 #include "../Configuration_adv.h"
+#define MAXPOWER 1000
 class AbstractMotorControl
 {
 private:
@@ -74,16 +75,16 @@ protected:
 	int MAXMOTORPOWER = 255; // Max motor power in PWM final timer units
 	int fault_flag = 0;
 public:
-  AbstractMotorControl(int maxPower) : MAXMOTORPOWER(maxPower) {}
-	virtual ~AbstractMotorControl();
-	virtual int commandMotorPower(uint ch, int p)=0;//make AbstractMotorControl not instantiable
+  	AbstractMotorControl(int maxPower) : MAXMOTORPOWER(maxPower) {}
+	virtual ~AbstractMotorControl() = default;
+	virtual int commandMotorPower(uint8_t ch, int16_t p)=0;//make AbstractMotorControl not instantiable
 	virtual int commandEmergencyStop(int status)=0;
 	virtual int isConnected(void)=0;
-	virtual void getDriverInfo(uint ch, char* outStr)=0;
+	virtual void getDriverInfo(uint ch, char* outStr);
 	virtual int queryFaultFlag(void)=0;
     virtual int queryStatusFlag(void)=0;
-	virtual int queryBrushlessCounter(uint8_t ch)=0;
-	virtual bool usesPWM(uint8_t pin)=0;
+	virtual int queryBrushlessCounter(uint8_t ch);
+	virtual bool usesPWM(uint8_t pin) { return false; }
 	virtual bool usesDigital(uint8_t pin) { return false; }
 	void linkDistanceSensor(Ultrasonic** us, uint8_t upin, uint32_t distance, uint8_t facing=1);
 	bool checkUltrasonicShutdown(void);

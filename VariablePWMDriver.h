@@ -36,12 +36,11 @@ private:
 //functions
 public:
 	VariablePWMDriver();
-	~VariablePWMDriver() override = default;
 	int commandPWMLevel(uint8_t ch, int16_t p);
 	int commandEmergencyStop(int status);
 	int isConnected(void) { return true; }
 	void setPWMs(PWM** pwm) { ppwms = pwm; }
-	//void setEnablePins(Digital** dpin) { pdigitals = dpin; }
+	void setEnablePins(Digital** dpin) { pdigitals = dpin; }
 	void setMaxPWMLevel(int p) { MAXPWMLEVEL = p; }
 	uint getPWMLevelPin(uint channel) { return pwmDrive[channel-1][0]; }
 	uint getPWMEnablePin(uint channel) {return pwmDrive[channel-1][1]; }

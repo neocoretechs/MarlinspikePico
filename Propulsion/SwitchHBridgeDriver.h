@@ -14,8 +14,8 @@
 * Jonathan Groff Copyright (C) NeoCoreTechs 2022
 *
 */
-#ifndef __SWITCHBRIDGEDRIVER_H__
-#define __SWITCHBRIDGEDRIVER_H__
+#ifndef __SWITCHHBRIDGEDRIVER_H__
+#define __SWITCHHBRIDGEDRIVER_H__
 #include "SwitchBridgeDriver.h"
 #include <stdio.h>
 
@@ -29,13 +29,14 @@ class SwitchHBridgeDriver : public SwitchBridgeDriver {
 	 * dir_pin the enable pin for this channel 
 	 */
 	public:
+	SwitchHBridgeDriver(int maxPower) : SwitchBridgeDriver(maxPower){};
     void createDigital(uint8_t channel, uint8_t pin_number, uint8_t dir_pin, uint8_t dir_default);
 	int commandMotorPower(uint8_t channel, int16_t motorPower);
 	int commandEmergencyStop(int status);
 	void getDriverInfo(uint8_t ch, char* outStr);
     private:
-	SwitchHBridgeDriver( const SwitchBridgeDriver &c );
-	SwitchHBridgeDriver& operator=( const SwitchBridgeDriver &c );
+	SwitchHBridgeDriver( const SwitchHBridgeDriver &c );
+	SwitchHBridgeDriver& operator=( const SwitchHBridgeDriver &c );
 
-}
+};
 #endif

@@ -35,18 +35,7 @@
  * Author: Jonathan Neville Groff
  */
 
-#include "language.h"
 #include "RoboCore.h"
-#include "new.h"
-#include "math.h"
-#include "Propulsion/AbstractMotorControl.h"
-#include "Propulsion/RoboteqDevice.h"
-#include "Propulsion/HBridgeDriver.h"
-#include "Propulsion/SplitBridgeDriver.h"
-#include "Propulsion/SwitchBridgeDriver.h"
-#include "CounterInterruptService.h"
-#include "AbstractPWMControl.h"
-#include "VariablePWMDriver.h"
 
 // look here for descriptions of gcodes: http://linuxcnc.org/handbook/gcode/g-code.html, protocol here is different but similar
 // When 'stopped' is true the Gcodes G0-G5 are ignored as a safety interlock.
@@ -1229,7 +1218,7 @@ void processMCode(int cval) {
 							delete motorControl[motorController];
 							motorControl[motorController] = 0; // in case assignment below fails
 						}
-						motorControl[motorController] = new RoboteqDevice();
+						motorControl[motorController] = new RoboteqDevice(MAXPOWER);
 						tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 						tud_cdc_write("M10", strlen("M10"));
 						tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
@@ -1255,7 +1244,7 @@ void processMCode(int cval) {
 								delete motorControl[motorController];
 								motorControl[motorController] = 0; // in case assignment below fails
 						}
-						motorControl[motorController] = new HBridgeDriver();
+						motorControl[motorController] = new HBridgeDriver(MAXPOWER);
 						tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 						tud_cdc_write("M10", strlen("M10"));
 						tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
@@ -1286,7 +1275,7 @@ void processMCode(int cval) {
 								delete motorControl[motorController];
 								motorControl[motorController] = 0; // in case assignment below fails
 						}
-						motorControl[motorController] = new SplitBridgeDriver();
+						motorControl[motorController] = new SplitBridgeDriver(MAXPOWER);
 						tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 						tud_cdc_write("M10", strlen("M10"));
 						tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
@@ -1316,7 +1305,7 @@ void processMCode(int cval) {
 							delete motorControl[motorController];
 							motorControl[motorController] = 0; // in case assignment below fails
 						}
-						motorControl[motorController] = new SwitchBridgeDriver();
+						motorControl[motorController] = new SwitchBridgeDriver(MAXPOWER);
 						tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 						tud_cdc_write("M10", strlen("M10"));
 						tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
@@ -1327,7 +1316,7 @@ void processMCode(int cval) {
 							delete motorControl[motorController];
 							motorControl[motorController] = 0; // in case assignment below fails
 						}
-						motorControl[motorController] = new SwitchHBridgeDriver();
+						motorControl[motorController] = new SwitchHBridgeDriver(MAXPOWER);
 						tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 						tud_cdc_write("M10", strlen("M10"));
 						tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
@@ -1378,7 +1367,7 @@ void processMCode(int cval) {
 							delete motorControl[motorController];
 							motorControl[motorController] = 0; // in case assignment below fails
 						}
-						motorControl[motorController] = new DelayedHBridgeDriver(MAX_MOTOR_POWER);
+						motorControl[motorController] = new DelayHBridgeDriver(MAXPOWER);
 						tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 						tud_cdc_write("M10", strlen("M10"));
 						tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
