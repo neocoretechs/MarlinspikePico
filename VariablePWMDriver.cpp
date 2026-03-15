@@ -45,10 +45,8 @@ int VariablePWMDriver::commandEmergencyStop(int status) {
 * Hbridge split into separate outputs, or a motor driver attached to an LED array, etc.
 * pin_number - the index in the PWM array defined in 'setPWM', this is the next blank slot available
 * enable_pin - the enable pin for this channel. Assumed that low is disabled, high is enable.
-* timer_pre - timer prescale default 1 = no prescale
-* timer_res - timer resolution in bits - default 8
 */
-void  VariablePWMDriver::createPWM(uint channel, uint pin_number, uint enable_pin, int timer_pre, int timer_res) {
+void  VariablePWMDriver::createPWM(uint channel, uint pin_number, uint enable_pin) {
 	// Attempt to assign PWM pin, lock to 8 bits no prescale, mode 2 CTC
 	if( getChannels() < channel ) setChannels(channel);
 	int foundPin = 0;
@@ -87,8 +85,8 @@ void  VariablePWMDriver::createPWM(uint channel, uint pin_number, uint enable_pi
 				
 	pwmDrive[channel-1][0] = pindex;
 	pwmDrive[channel-1][1] = enable_pin;
-	pwmDrive[channel-1][2] = timer_pre;
-	pwmDrive[channel-1][3] = timer_res;
+	//pwmDrive[channel-1][2] = timer_pre;
+	//pwmDrive[channel-1][3] = timer_res;
 	PWM* ppin = new PWM(pin_number);
 	ppwms[pindex] = ppin;
 	ppwms[pindex]->init(pin_number);
@@ -170,8 +168,6 @@ void VariablePWMDriver::getDriverInfo(uint8_t ch, char* outStr) {
 		itoa(ppwms[pwmDrive[ch-1][0]]->pin, dout1, 10);
 	}	
 	itoa(pwmDrive[ch-1][1], dout3, 10);
-	itoa(pwmDrive[ch-1][2], dout4, 10);
-	itoa(pwmDrive[ch-1][3], dout5, 10);
 	if(pdigitals[0])
 		itoa(pdigitals[0]->pin, dpin0, 10);
 	else
@@ -213,11 +209,11 @@ void VariablePWMDriver::getDriverInfo(uint8_t ch, char* outStr) {
 	else
 		itoa(0, dpin9, 10);
 	if( pwmDrive[ch-1][0] == 255 ) {
-		sprintf(cout,"VP-PWM UNITIALIZED Pin:%s, Mode:%s, Enable Pin:%s, Timer Prescale:%s, Timer Res.:%s\r\nDir Pins:0=%s,1=%s,2=%s,3=%s,4=%s,5=%s,6=%s,7=%s,8=%s,9=%s\0",
-			dout1, dout2 , dout3 , dout4 , dout5, dpin0, dpin1, dpin2, dpin3, dpin4, dpin5, dpin6, dpin7, dpin8, dpin9);
+		sprintf(cout,"VP-PWM UNITIALIZED Pin:%s, Mode:%s, Enable Pin:%s\r\nDir Pins:0=%s,1=%s,2=%s,3=%s,4=%s,5=%s,6=%s,7=%s,8=%s,9=%s\0",
+			dout1, dout2 , dout3, dpin0, dpin1, dpin2, dpin3, dpin4, dpin5, dpin6, dpin7, dpin8, dpin9);
 	} else {
-		sprintf(cout,"VP-PWM Pin:%s, Mode:%s, Enable Pin:%s, Timer Prescale:%s, Timer Res.:%s\r\nDir Pins:0=%s,1=%s,2=%s,3=%s,4=%s,5=%s,6=%s,7=%s,8=%s,9=%s\0",
-			dout1, dout2 , dout3 , dout4 , dout5, dpin0, dpin1, dpin2, dpin3, dpin4, dpin5, dpin6, dpin7, dpin8, dpin9);
+		sprintf(cout,"VP-PWM Pin:%s, Mode:%s, Enable Pin:%s\r\nDir Pins:0=%s,1=%s,2=%s,3=%s,4=%s,5=%s,6=%s,7=%s,8=%s,9=%s\0",
+			dout1, dout2 , dout3 , dpin0, dpin1, dpin2, dpin3, dpin4, dpin5, dpin6, dpin7, dpin8, dpin9);
 	}
 	 for(int i=0; i < OUT_BUFFER_SIZE; ++i){
 		 outStr[i] = cout[i];

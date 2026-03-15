@@ -47,7 +47,7 @@ int HBridgeDriver::commandEmergencyStop(int status)
 * timer_pre - timer prescale default 1 = no prescale
 * timer_res - timer resolution in bits - default 8
 */ 
-void HBridgeDriver::createPWM(uint8_t channel, uint8_t pin_number, uint8_t dir_pin, uint8_t dir_default, int timer_pre, int timer_res) {
+void HBridgeDriver::createPWM(uint8_t channel, uint8_t pin_number, uint8_t dir_pin, uint8_t dir_default) {
 	// Attempt to assign PWM pin, lock to 8 bits no prescale, mode 2 CTC
 	if( getChannels() < channel ) setChannels(channel);
 		// Set up the digital direction pin
@@ -71,8 +71,8 @@ void HBridgeDriver::createPWM(uint8_t channel, uint8_t pin_number, uint8_t dir_p
 			
 			motorDrive[channel-1][0] = pindex;
 			motorDrive[channel-1][1] = dir_pin;
-			motorDrive[channel-1][2] = timer_pre;
-			motorDrive[channel-1][3] = timer_res;
+			//motorDrive[channel-1][2] = timer_pre;
+			//motorDrive[channel-1][3] = timer_res;
 			PWM* ppin = new PWM(pin_number);
 			ppwms[pindex] = ppin;
 			ppwms[pindex]->init(pin_number);

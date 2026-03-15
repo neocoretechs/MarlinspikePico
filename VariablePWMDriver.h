@@ -45,7 +45,7 @@ public:
 	void setMaxPWMLevel(int p) { MAXPWMLEVEL = p; }
 	uint getPWMLevelPin(uint channel) { return pwmDrive[channel-1][0]; }
 	uint getPWMEnablePin(uint channel) {return pwmDrive[channel-1][1]; }
-	void createPWM(uint channel, uint pin_number, uint enable_pin, int timer_pre, int timer_res);
+	void createPWM(uint channel, uint pin_number, uint enable_pin);
 	void getDriverInfo(uint8_t ch, char* outStr);
 	int queryFaultFlag(void) { return fault_flag; }
 	int queryStatusFlag(void) { return status_flag; }

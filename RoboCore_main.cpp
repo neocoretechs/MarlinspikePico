@@ -85,8 +85,10 @@ int nread = 0;
 uint32_t micros = 0;
 int* values;
 String motorCntrlResp;
-int scode,status;
+int scode,status,state;
+int interrupt_pin = 0;
 int fault = 0;
+bool found=false;
 // Dynamically defined ultrasonic rangers
 Ultrasonic* psonics[10]={0,0,0,0,0,0,0,0,0,0};
 // Last distance published per sensor
@@ -486,7 +488,7 @@ void get_command() {
           if(gcode_N != gcode_LastN+1 && (strstr(cmdbuffer, "M110") == NULL) ) {
 			tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
             tud_cdc_write(MSG_ERR_LINE_NO, strlen(MSG_ERR_LINE_NO));
-            tud_cdc_write(gcode_LastN,strlen(gcode_LastN));
+            tud_cdc_write(itoa(gcode_LastN),strlen(itoa(gcode_LastN)));
 			tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
             //Serial.println(gcode_N);
             FlushSerialRequestResend();
@@ -496,14 +498,13 @@ void get_command() {
           }
           if(strchr(cmdbuffer, '*') != NULL) {
             unsigned short checksum = 0;
-            byte count = 0;
             //while(cmdbuffer[bufindw][count] != '*') checksum = checksum^cmdbuffer[bufindw][count++];
             strchr_pointer = strchr(cmdbuffer, '*');
 			checksum = crc16(&cmdbuffer[strchr_pointer - cmdbuffer + 1],(strchr_pointer - cmdbuffer + 1) );
             if( (int)(strtod(&cmdbuffer[strchr_pointer - cmdbuffer + 1], NULL)) != checksum) {
 			  tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
               tud_cdc_write(MSG_ERR_CHECKSUM_MISMATCH,strlen(MSG_ERR_CHECKSUM_MISMATCH));
-              tud_cdc_write(gcode_LastN,strlen(gcode_LastN));
+              tud_cdc_write(itoa(gcode_LastN),strlen(itoa(gcode_LastN)));
 			  tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
               FlushSerialRequestResend();
               serial_count = 0;
@@ -527,7 +528,7 @@ void get_command() {
           if((strchr(cmdbuffer, '*') != NULL)) {
 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
             tud_cdc_write(MSG_ERR_NO_LINENUMBER_WITH_CHECKSUM,strlen(MSG_ERR_NO_LINENUMBER_WITH_CHECKSUM));
-            tud_cdc_write(gcode_LastN,strlen(gcode_LastN));
+            tud_cdc_write(itoa(gcode_LastN),strlen(itoa(gcode_LastN)));
 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 			tud_cdc_write_flush();
             serial_count = 0;
@@ -606,7 +607,7 @@ void process_commands() {
 		   int ibuf = 0;
 		   tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 		   tud_cdc_write(MSG_UNKNOWN_COMMAND,strlen(MSG_UNKNOWN_COMMAND));
-		   while(cmdbuffer[ibuf]) tud_cdc_write(cmdbuffer[ibuf++], 1);
+		   tud_cdc_write(cmdbuffer, strlen(cmdbuffer));
 		   tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 		   tud_cdc_write_flush();
 	  }
@@ -634,7 +635,7 @@ void processGCode(int cval) {
       previous_millis_cmd = 0;//millis();
       while(++previous_millis_cmd  < codenum ){
         manage_inactivity();
-		_delay_ms(1);
+		sleep_ms(1);
       }
 	  tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 	  tud_cdc_write("G4", strlen("G4"));
@@ -643,11 +644,17 @@ void processGCode(int cval) {
       break;
 	  
 	case 5: // G5 - Absolute command motor [Z<controller>] C<Channel> [P<motor power -1000 to 1000>] [X<PWM power -1000 to 1000>(scaled 0-2000)]
-	     if(!Stopped) {
-			 if(code_seen('Z')) {
+	    if(!Stopped) {
+			if(code_seen('Z')) {
 				 motorController = code_value();
-			 }
-		     if(code_seen('C')) {
+			} else {
+				 tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				 tud_cdc_write("G5 SLOT ERROR",strlen("G5 SLOT ERROR"));
+				 tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				 tud_cdc_write_flush();
+				 break;
+			}
+		    if(code_seen('C')) {
 				motorChannel = code_value(); // channel 1,2
 				if(code_seen('P')) {
 					motorPower = code_value(); // motor power -1000,1000
@@ -655,11 +662,11 @@ void processGCode(int cval) {
 					if( (status=motorControl[motorController]->commandMotorPower(motorChannel, motorPower)) ) {
 							tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 							tud_cdc_write(MSG_BAD_MOTOR,strlen(MSG_BAD_MOTOR));
-							tud_cdc_write(status,strlen(status));
+							tud_cdc_write(itoa(status),strlen(itoa(status)));
 							tud_cdc_write(" ", 1);
-							tud_cdc_write(motorChannel, strlen(motorChannel));
+							tud_cdc_write(itoa(motorChannel), strlen(itoa(motorChannel)));
 							tud_cdc_write(" ", 1);
-							tud_cdc_write(motorPower, strlen(motorPower));
+							tud_cdc_write(itoa(motorPower), strlen(itoa(motorPower)));
 							tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 							tud_cdc_write_flush();
 					} else {
@@ -676,11 +683,11 @@ void processGCode(int cval) {
 						if( (status=pwmControl[motorController]->commandPWMLevel(motorChannel, PWMLevel)) ) {
 							tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 							tud_cdc_write(MSG_BAD_PWM,strlen(MSG_BAD_PWM));
-							tud_cdc_write(status,strlen(status));
+							tud_cdc_write(itoa(status),strlen(itoa(status)));
 							tud_cdc_write(" ", 1);
-							tud_cdc_write(motorChannel, strlen(motorChannel));
+							tud_cdc_write(itoa(motorChannel), strlen(itoa(motorChannel)));
 							tud_cdc_write(" ", 1);
-							tud_cdc_write(PWMLevel, strlen(PWMLevel));
+							tud_cdc_write(itoa(PWMLevel), strlen(itoa(PWMLevel)));
 							tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 							tud_cdc_write_flush();
 						} else {
@@ -689,11 +696,21 @@ void processGCode(int cval) {
 							tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 							tud_cdc_write_flush();
 						}
-					} // code X
-				}
-			 } // code C
-	     } // stopped
-	     break;
+					} else {
+						tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+						tud_cdc_write("G5 NO P OR X ERROR",strlen("G5 NO P OR X ERROR"));
+						tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+						tud_cdc_write_flush();
+					}// P or X
+			 	} 
+			} else {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));	
+				tud_cdc_write("G5 CHANNEL ERROR",strlen("G5 CHANNEL ERROR"));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));	
+				tud_cdc_write_flush();
+			}
+	    } // stopped
+	    break;
 	  
 	case 99: // G99 start watchdog timer. G99 T<time_in_millis> values are 15,30,60,120,250,500,1000,4000,8000 default 4000
 		if( code_seen('T') ) {
@@ -761,14 +778,13 @@ void processGCode(int cval) {
 		int ibuf = 0;
 		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 		tud_cdc_write(MSG_UNKNOWN_GCODE, strlen(MSG_UNKNOWN_GCODE));
-		while(cmdbuffer[ibuf]) tud_cdc_write(cmdbuffer[ibuf++], strlen(cmdbuffer[ibuf++]));
+		tud_cdc_write(cmdbuffer, strlen(cmdbuffer));
 		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 		tud_cdc_write_flush();
 		break;
 		
     } // switch
-  } // if code
-} // G code processing
+  } // if code 
 
 /*-------------------------------------
 * M Code processing
@@ -803,10 +819,19 @@ void processMCode(int cval) {
 	case 2: // M2 [Z<slot>] [C<channel> W<encoder pin> E<default dir>] - set smart controller (default) with optional encoder pin per channel, can be issued multiple times
 		 if(code_seen('Z')) {
 			 motorController = code_value();
-		 }
+		 } else {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M2 SLOT ERROR", strlen("M2 SLOT ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+			}
 		if(code_seen('C')) {
 			channel = code_value();
 			if(channel <= 0) {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("M2 CHANNEL ERROR", strlen("M2 CHANNEL ERROR"));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
 				break;
 			}
 			if(code_seen('W')) {
@@ -818,6 +843,11 @@ void processMCode(int cval) {
 			}
 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 			tud_cdc_write("M2", strlen("M2"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+		} else {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M2 CHANNEL ERROR", strlen("M2 CHANNEL ERROR"));
 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 			tud_cdc_write_flush();
 		}
@@ -841,12 +871,18 @@ void processMCode(int cval) {
 	// 3 - Set on match
 	// For motor operation and general purpose PWM, mode 2 the most universally applicable.
 	case 3: // M3 [Z<slot>] P<pin> C<channel> D<direction pin> E<default dir> W<encoder pin> [R<resolution 8,9,10 bits>] [X<prescale 0-7>]
-		timer_res = 8; // resolution in bits
-		timer_pre = 1; // 1 is no prescale
+		//timer_res = 8; // resolution in bits
+		//timer_pre = 1; // 1 is no prescale
 		pin_number = -1;
 		encode_pin = 0;
 		if(code_seen('Z')) {
 			motorController = code_value();
+		} else {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M3 SLOT ERROR", strlen("M3 SLOT ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+			break;
 		}
 	 // motorControl = (AbstractMotorControl*)&hBridgeDriver;
 	 if(motorControl[motorController]) {
@@ -855,33 +891,44 @@ void processMCode(int cval) {
 	  if(code_seen('P')) {
           pin_number = code_value();
 	  } else {
-		 break;
+		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+		tud_cdc_write("M3 PIN ERROR", strlen("M3 PIN ERROR"));
+		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+		tud_cdc_write_flush();
+		break;
 	  }
       if(code_seen('C')) {
         channel = code_value();
 		if(channel <= 0) {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M3 CHANNEL ERROR", strlen("M3 CHANNEL ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
 			break;
 		}
 		if( code_seen('D')) {
 			dir_pin = code_value();
 		} else {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M3 DIRECTION PIN ERROR", strlen("M3 DIRECTION PIN ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
 			break;
 		}
 		if( code_seen('E')) {
 			dir_default = code_value();
 		} else {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M3 DEFAULT DIRECTION ERROR", strlen("M3 DEFAULT DIRECTION ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
 			break;
 		}
 		if( code_seen('W')) {
 			encode_pin = code_value();
 		}
-		if(code_seen('X')) {
-			timer_pre = code_value();
-		}
-		if( code_seen('R')) {
-			timer_res = code_value();
-		}
-		((HBridgeDriver*)motorControl[motorController])->createPWM(channel, pin_number, dir_pin, dir_default, timer_pre, timer_res);
+
+		((HBridgeDriver*)motorControl[motorController])->createPWM(channel, pin_number, dir_pin, dir_default);
 		if(encode_pin) {
 			motorControl[motorController]->createEncoder(channel, encode_pin);
 		}
@@ -898,63 +945,83 @@ void processMCode(int cval) {
 	// optionally PWM timer setup [R<resolution 8,9,10 bits>] [X<prescale 0-7>].
 	// Everything derived from HBridgeDriver can be done here.
 	case 4:// M4 [Z<slot>] P<pin> Q<pin> C<channel> D<enable pin> E<default dir> [W<encoder pin>] [R<resolution 8,9,10 bits>] [X<prescale 0-7>]
-	  timer_res = 8; // resolution in bits
-	  timer_pre = 1; // 1 is no prescale
-	  pin_number = -1;
-	  pin_numberB = -1;
-	  encode_pin = 0;
-	  if(code_seen('Z')) {
-		motorController = code_value();
-	  }
-	  if(motorControl[motorController]) {
-	  //motorControl = (AbstractMotorControl*)&splitBridgeDriver;
-	  ((SplitBridgeDriver*)motorControl[motorController])->setMotors((PWM**)&ppwms);
-	  ((SplitBridgeDriver*)motorControl[motorController])->setDirectionPins((Digital**)&pdigitals);
-	  if(code_seen('P')) {
-		pin_number = code_value();
-	  } else {
-		 break;
-	  }
-	  if(code_seen('Q')) {
-		pin_numberB = code_value();
-	 } else {
-		break;
-	 }
-	  if(code_seen('C')) {
-		  channel = code_value();
-		  if(channel <= 0) {
+		//timer_res = 8; // resolution in bits
+		//timer_pre = 1; // 1 is no prescale
+		pin_number = -1;
+		pin_numberB = -1;
+		encode_pin = 0;
+		if(code_seen('Z')) {
+			motorController = code_value();
+	  	} else {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M4 SLOT ERROR", strlen("M4 SLOT ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
 			break;
-		  }
-		  if( code_seen('D')) {
-			dir_pin = code_value();
-		  } else {
-			break;
-		  }
-		  if( code_seen('E')) {
-			dir_default = code_value();
-		  } else {
-			break;
-		  }
-		  if( code_seen('W')) {
-			encode_pin = code_value();
-		  }
-		  if(code_seen('X')) {
-				timer_pre = code_value();
-		  }
-		  if( code_seen('R')) {
-				timer_res = code_value();
-		  }
-		  ((SplitBridgeDriver*)motorControl[motorController])->createPWM(channel, pin_number, pin_numberB, dir_pin, dir_default, timer_pre, timer_res);
-		  if(encode_pin) {
-			motorControl[motorController]->createEncoder(channel, encode_pin);
-		  }
-		  tud_cdc_write(MSG_BEGIN,strlen);
-		  tud_cdc_write("M4", strlen("M4"));
-		  tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-		  tud_cdc_write_flush();
-		} // code C
+	  	}
+	  	if(motorControl[motorController]) {
+	  	//motorControl = (AbstractMotorControl*)&splitBridgeDriver;
+	  		((SplitBridgeDriver*)motorControl[motorController])->setMotors((PWM**)&ppwms);
+	  		((SplitBridgeDriver*)motorControl[motorController])->setDirectionPins((Digital**)&pdigitals);
+	  		if(code_seen('P')) {
+				pin_number = code_value();
+	  		} else {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("M4 PIN ERROR", strlen("M4 PIN ERROR"));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
+				break;
+	  		}
+	  		if(code_seen('Q')) {
+				pin_numberB = code_value();
+			} else {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("M4 PIN ERROR", strlen("M4 PIN ERROR"));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
+				break;
+			}
+			if(code_seen('C')) {
+		  		channel = code_value();
+		  		if(channel <= 0) {
+					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+					tud_cdc_write("M4 CHANNEL ERROR", strlen("M4 CHANNEL ERROR"));
+					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+					tud_cdc_write_flush();
+					break;
+				}
+		  		if( code_seen('D')) {
+					dir_pin = code_value();
+		  		} else {
+					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+					tud_cdc_write("M4 ENABLE PIN ERROR", strlen("M4 ENABLE PIN ERROR"));
+					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+					tud_cdc_write_flush();
+					break;
+		  		}
+		  		if( code_seen('E')) {
+					dir_default = code_value();
+		  		} else {
+					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+					tud_cdc_write("M4 DEFAULT DIRECTION ERROR", strlen("M4 DEFAULT DIRECTION ERROR"));
+					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+					tud_cdc_write_flush();
+					break;
+		  		}
+		  		if( code_seen('W')) {
+					encode_pin = code_value();
+		  		}
+		  		((SplitBridgeDriver*)motorControl[motorController])->createPWM(channel, pin_number, pin_numberB, dir_pin, dir_default);
+		  		if(encode_pin) {
+					motorControl[motorController]->createEncoder(channel, encode_pin);
+		  		}
+		  		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+		  		tud_cdc_write("M4", strlen("M4"));
+		  		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+		  		tud_cdc_write_flush();
+			} // code C
 		} //motorcontrol[motorcontroller]
-		break;
+	break;
 		
 	// Switch bridge or 2 digital motor controller. Takes 2 inputs: one digital pin for forward,called P, one for backward,called Q, then motor channel,
 	// and then D, an enable pin, and E default dir, with optional encoder
@@ -964,32 +1031,58 @@ void processMCode(int cval) {
 		encode_pin = 0;
 		  if(code_seen('Z')) {
 			  motorController = code_value();
+		  } else {
+			  tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			  tud_cdc_write("M5 SLOT ERROR", strlen("M5 SLOT ERROR"));
+			  tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			  tud_cdc_write_flush();
+			  break;
 		  }
 		  if(motorControl[motorController]) {
 			  ((SwitchBridgeDriver*)motorControl[motorController])->setPins((Digital**)&pdigitals);
 			  if(code_seen('P')) {
 				  pin_number = code_value();
 			  } else {
+				  tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				  tud_cdc_write("M5 PIN ERROR", strlen("M5 PIN ERROR"));
+				  tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				  tud_cdc_write_flush();
 				  break;
 			  }
 			  if(code_seen('Q')) {
 				  pin_numberB = code_value();
 			  } else {
+				  tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				  tud_cdc_write("M5 PIN ERROR", strlen("M5 PIN ERROR"));
+				  tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				  tud_cdc_write_flush();
 				  break;
 			  }
 			  if(code_seen('C')) {
 				  channel = code_value();
 				  if(channel <= 0) {
+					  tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+					  tud_cdc_write("M5 CHANNEL ERROR", strlen("M5 CHANNEL ERROR"));
+					  tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+					  tud_cdc_write_flush();
 					  break;
 				  }
 				  if( code_seen('D')) {
 					  dir_pin = code_value();
 				  } else {
+					   tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+					   tud_cdc_write("M5 DIRECTION PIN ERROR", strlen("M5 DIRECTION PIN ERROR"));
+					   tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+					   tud_cdc_write_flush();
 					  break;
 				  }
 				  if( code_seen('E')) {
 					  dir_default = code_value();
 				  } else {
+					  tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+					  tud_cdc_write("M5 DEFAULT DIRECTION ERROR", strlen("M5 DEFAULT DIRECTION ERROR"));
+					  tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+					  tud_cdc_write_flush();
 					  break;
 				  }
 				  if( code_seen('W')) {
@@ -1010,6 +1103,12 @@ void processMCode(int cval) {
 	case 6: //M6 [Z<slot>] [S<scale>] [X<scale>] - Set motor or PWM scaling, divisor for final power to limit speed or level, set to 0 to cancel. If X, slot is PWM
 		if(code_seen('Z')) {
 			motorController = code_value();
+		} else {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M6 SLOT ERROR", strlen("M6 SLOT ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+			break;
 		}
 		if( code_seen('S') ) {
 			if(motorControl[motorController]) {
@@ -1105,8 +1204,8 @@ void processMCode(int cval) {
 			} else {
 				break;
 			}
-			((VariablePWMDriver*)pwmControl[PWMDriver])->createPWM(channel, pin_number, enable_pin, timer_pre, timer_res);
-			tud_cdc_write(MSG_BEGIN);
+			((VariablePWMDriver*)pwmControl[PWMDriver])->createPWM(channel, pin_number, enable_pin);
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 			tud_cdc_write("M9",strlen("M9"));
 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 			tud_cdc_write_flush();
@@ -1133,7 +1232,7 @@ void processMCode(int cval) {
 						motorControl[motorController] = new RoboteqDevice();
 						tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 						tud_cdc_write("M10", strlen("M10"));
-						tud_cdc_write(MSG_TERMINATE);
+						tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 						tud_cdc_write_flush();
 						break;
 					case 1: // type 1 Hbridge
@@ -1224,8 +1323,9 @@ void processMCode(int cval) {
 						tud_cdc_write_flush();
 						break;
 					case 4: // Type 4 switch H-bridge
-						if(motorControl[motorController] != null) {
-							motorControl[motorController] = null; // in case assignment below fails
+						if(motorControl[motorController]) {
+							delete motorControl[motorController];
+							motorControl[motorController] = 0; // in case assignment below fails
 						}
 						motorControl[motorController] = new SwitchHBridgeDriver();
 						tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
@@ -1264,15 +1364,15 @@ void processMCode(int cval) {
 							// for each channel, delete the direction pin and PWM created in main pin array to prepare new assignment
 							// each controller can have up to 10 channels, each with its own PWM and direction pin
 							for(int i = 1; i <= motorControl[motorController]->getChannels(); i++) {
-								int pMotor1 = ((HBridgeDriver*)motorControl[motorController])->getMotorPWMIndex(i);
+								int pMotor1 = ((HBridgeDriver*)motorControl[motorController])->getMotorPWMPin(i);
 								int pMotor2 = ((HBridgeDriver*)motorControl[motorController])->getMotorEnablePin(i);
 								if(pMotor2 != 255 && pdigitals[pMotor2]) {
 									delete pdigitals[pMotor2];
-									pdigitals[pMotor2] = null;
+									pdigitals[pMotor2] = 0;
 								}
 								if(pMotor1 != 255 && ppwms[pMotor1]) {
 									delete ppwms[pMotor1];
-									ppwms[pMotor1] = null;
+									ppwms[pMotor1] = 0;
 								}
 							}
 							delete motorControl[motorController];
@@ -1404,7 +1504,6 @@ void processMCode(int cval) {
 	case 14:
 			double analogRangeL, analogRangeH;
 			int counts;
-			interrupt_pin = 0;
 			if(code_seen('Z')) {
 				motorController = (int) code_value();
 			} else {
@@ -1427,7 +1526,7 @@ void processMCode(int cval) {
 					if( code_seen('I')) {
 						interrupt_pin = (int) code_value();
 					}
-					motorControl[motorController]->createEncoder(channel, pin, analogRangeL, analogRangeH, counts, interrupt_pin);
+					motorControl[motorController]->createEncoder(channel, pin);
 					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 			 		tud_cdc_write("M14", strlen("M14"));
 			 		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
@@ -1441,12 +1540,12 @@ void processMCode(int cval) {
 				break;
 			}
 			break;
-			//  
-			// M15 [Z<slot>] C<channel> P<pin> S<pin state 0 low, 1 high> N<number of counts before interrupt generated>
-			// Create digital encoder for controller at slot and channel.
-			// Activate interrupt at S pin state.
-			// Detect range N times before interrupt
-			//
+		//  
+		// M15 [Z<slot>] C<channel> P<pin> S<pin state 0 low, 1 high> N<number of counts before interrupt generated>
+		// Create digital encoder for controller at slot and channel.
+		// Activate interrupt at S pin state.
+		// Detect range N times before interrupt
+		//
 		case 15:
 			int digitalState;
 			if(code_seen('Z')) {
@@ -1468,7 +1567,8 @@ void processMCode(int cval) {
 					if( code_seen('I')) {
 						interrupt_pin = (int) code_value();
 					}
-					motorControl[motorController]->createDigitalEncoder(channel, pin, 1, counts, interrupt_pin);
+					motorControl[motorController]->createEncoder(channel, pin);
+					// ((Encoder*)motorControl[motorController]->getEncoder(channel))->setDigital(digitalState, counts, interrupt_pin);
 			 		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 			 		tud_cdc_write("M15", strlen("M15"));
 			 		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
@@ -1481,18 +1581,18 @@ void processMCode(int cval) {
 				tud_cdc_write_flush();
 			}
 			break;
-			//
-			// M16 [Z<slot>] P<pin> C<channel> D<direction pin> E<default dir> [W<encoder pin>] 
-			// Set Delayed HBridge PWM motor driver, map pin to channel.
-			// For a motor control subsequent G5 commands are affected here.
-			// and then D a direction pin that determines forward/backward , then E, the default value of the direction pin.
-			// The D pin and E direction determine whether a HIGH or LOW determines FORWARD/BACK on the given controller channel. This is
-			// to compensate for 'backward' motors mounted left/right, or differences in controller design. Using a combination of
-			// these 2 parameters you can tune any controller/motor setup properly for forward/back.
-			// Finally, W<encoder pin> to receive hall wheel sensor signals. 
-			// Leave out W option and use M14 later to create a more robust encoder. If W is used, an analog input
-			// that fires at the maximum input level is created.
-			//
+		//
+		// M16 [Z<slot>] P<pin> C<channel> D<direction pin> E<default dir> [W<encoder pin>] 
+		// Set Delayed HBridge PWM motor driver, map pin to channel.
+		// For a motor control subsequent G5 commands are affected here.
+		// and then D a direction pin that determines forward/backward , then E, the default value of the direction pin.
+		// The D pin and E direction determine whether a HIGH or LOW determines FORWARD/BACK on the given controller channel. This is
+		// to compensate for 'backward' motors mounted left/right, or differences in controller design. Using a combination of
+		// these 2 parameters you can tune any controller/motor setup properly for forward/back.
+		// Finally, W<encoder pin> to receive hall wheel sensor signals. 
+		// Leave out W option and use M14 later to create a more robust encoder. If W is used, an analog input
+		// that fires at the maximum input level is created.
+		//
 		case 16: 
 			pin_number = -1;
 			encode_pin = 0;
@@ -1506,7 +1606,7 @@ void processMCode(int cval) {
 				tud_cdc_write_flush();
 				break;
 			}
-			if(motorControl[motorController] != null) {
+			if(motorControl[motorController]) {
 				if(code_seen('P')) {
 					pin_number = (int) code_value();
 				} else {
@@ -1547,9 +1647,9 @@ void processMCode(int cval) {
 					if( code_seen('W')) {
 						encode_pin = (int) code_value();
 					}
-					((HBridgeDriver)motorControl[motorController])->createPWM(channel, pin_number, dir_pin, dir_default, pwm_freq, pwm_duty);
+					((HBridgeDriver*)motorControl[motorController])->createPWM(channel, pin_number, dir_pin, dir_default);
 					if(encode_pin != 0) {
-						motorControl[motorController]->createEncoder(channel, encode_pin, interrupt_pin);
+						motorControl[motorController]->createEncoder(channel, encode_pin);
 					}
 				} else {
 					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
@@ -1569,6 +1669,7 @@ void processMCode(int cval) {
 				tud_cdc_write_flush();
 			}
 			break;
+
 	case 33: // M33 [Z<slot>] P<ultrasonic pin> D<min. distance in cm> [E<direction 1- forward facing, 0 - reverse facing sensor>] 
 	// link Motor controller to ultrasonic sensor, the sensor must exist via M301
 		if(code_seen('Z')) {
@@ -1786,13 +1887,13 @@ void processMCode(int cval) {
 	  break;
 		
 	  case 41: //M41 - Create persistent digital OUTPUT pin if not existing, P<pin> S0(this gives you a grounded pin) S1 (or +VCC)
-	     pin_number = -1;
-		 slot = -1;
-		 found = false;
-	     if(code_seen('P')) {
+	    pin_number = -1;
+		slot = -1;
+		found = false;
+	    if(code_seen('P')) {
 			pin_number = code_value();
 			if( code_seen('S')) {
-				 int state = code_value();
+				 state = code_value();
 				 if(state != 0 && state != 1) {
 					 tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 					 tud_cdc_write("M41 STATE ERROR", strlen("M41 STATE ERROR"));
