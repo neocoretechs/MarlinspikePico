@@ -1,7 +1,5 @@
 #include <hardware/flash.h>
-#include <tusb.h>
-#include <tusb_types.h>
-#include <tusb_desc.h>
+#include "tusb.h"
 #include <device/usbd.h>
 #include <device/usbd_pvt.h>
 #include <common/tusb_common.h>

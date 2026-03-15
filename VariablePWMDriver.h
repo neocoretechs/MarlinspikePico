@@ -35,7 +35,7 @@ protected:
 private:
 //functions
 public:
-	VariablePWMDriver();
+	VariablePWMDriver(): AbstractPWMControl(){};
 	int commandPWMLevel(uint8_t ch, int16_t p);
 	int commandEmergencyStop(int status);
 	int isConnected(void) { return true; }

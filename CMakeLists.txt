@@ -68,12 +68,15 @@ add_executable(Marlinspike
     WPWM.cpp
     WShift.cpp
     WString.cpp
+    usb-descriptors.c
     )
      
 # Make sure tusb_config.h is visible to TinyUSB
 target_include_directories(Marlinspike PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
+
+# target_sources(marlinspike PRIVATE usb_descriptors.c)
 
 message(STATUS "Project source dir: ${CMAKE_CURRENT_SOURCE_DIR}")
 message(STATUS "Looking for tusb_config.h in: ${CMAKE_CURRENT_SOURCE_DIR}")
@@ -82,7 +85,7 @@ target_link_libraries(Marlinspike pico_stdlib
 hardware_uart hardware_timer hardware_pwm hardware_gpio hardware_adc hardware_i2c hardware_spi
 hardware_watchdog hardware_clocks hardware_sync hardware_dma hardware_flash hardware_rtc
 hardware_resets hardware_vreg hardware_xosc hardware_structs hardware_exception hardware_divider
-tinyusb_device tinyusb_board
+tinyusb_device tinyusb_board 
 )
 
 if (PICO_CYW43_SUPPORTED)

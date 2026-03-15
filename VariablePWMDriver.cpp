@@ -23,6 +23,9 @@
 #include "VariablePWMDriver.h"
 #include "Configuration_adv.h"
 
+#include "VariablePWMDriver.h"
+
+
 int VariablePWMDriver::commandEmergencyStop(int status) {
 	for(int j=0; j < 10; j++) {
 		int pindex = pwmDrive[j][0];
@@ -36,7 +39,6 @@ int VariablePWMDriver::commandEmergencyStop(int status) {
 		}
 	}
 	fault_flag = 16;
-	resetLevels();
 	return status;
 }
 /*
@@ -221,8 +223,3 @@ void VariablePWMDriver::getDriverInfo(uint8_t ch, char* outStr) {
 			 break;
 	 }
 }
-
-// default constructor
-VariablePWMDriver::VariablePWMDriver()
-{
-} //VariablePWMDriver

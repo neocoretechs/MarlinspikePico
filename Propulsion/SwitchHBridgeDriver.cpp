@@ -41,6 +41,19 @@
     motorDrive[channel-1][0] = pindex;
 	}
 	
+	int SwitchHBridgeDriver::commandEmergencyStop(int status) {
+		for(int j=1; j <= getChannels(); j++) {
+			int pindex = getMotorDigitalPin(j);
+			if(pindex != 255) {
+				pdigitals[pindex]->pinMode(PinMode::OUTPUT);// enable off
+				pdigitals[pindex]->digitalWrite(LOW);
+			}
+		}
+		fault_flag = status;
+		resetSpeeds();
+		resetEncoders();
+		return status;
+	}
 /*
 * Command the power level. Manage enable pin. This inherits from AbstractMotorControl, but the motorPower is merely a +/- 
 * forward/back value since we have a switched on/off control. It always max on forward, max on back

@@ -1,0 +1,1 @@
+"C:\Users\groff\.pico-sdk\openocd\0.12.0+dev\bin\openocd.exe" -f "C:\Users\groff\.pico-sdk\openocd\0.12.0+dev\scripts\openocd.cfg" -f "C:\Users\groff\.pico-sdk\openocd\0.12.0+dev\scripts\interface\cmsis-dap.cfg" -f "C:\Users\groff\.pico-sdk\openocd\0.12.0+dev\scripts\target\rp2040.cfg"
