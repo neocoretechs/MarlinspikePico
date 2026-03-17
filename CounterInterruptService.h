@@ -11,6 +11,7 @@
 #ifndef COUNTERINTERRUPTSERVICE_H_
 #define COUNTERINTERRUPTSERVICE_H_
 #include "WPWM.h"
+#include <stdlib.h>
 class CounterInterruptService: public InterruptService {
 	private:
 	volatile int counter;
@@ -35,14 +36,11 @@ class CounterInterruptService: public InterruptService {
 		counter = cntx;
 	}
 
-	uint8_t attachInterrupt(int mode) override {
-    	return 0;
+
+	void detachInterrupt() {
 	}
 
-	void detachInterrupt(uint8_t interruptNum) override {
-	}
-
-	void attachInterrupt(uint8_t mode, int change) override {
+	void attachInterrupt(uint8_t mode, int change) {
 	}
 };
 

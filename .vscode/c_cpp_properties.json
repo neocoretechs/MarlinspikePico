@@ -7,17 +7,17 @@
                 "${userHome}/.pico-sdk/sdk/2.2.0/**",
                 "${userHome}/.pico-sdk/sdk/2.2.0/src/common/pico_stdlib_headers/include",
                 "${userHome}/.pico-sdk/sdk/2.2.0/src/common/pico_base_headers/include/pico/",
-                "C:/Users/groff/.pico-sdk/sdk/2.2.0/src/rp2040/pico_platform/include/pico",
-                "C:/Users/groff/.pico-sdk/sdk/2.2.0/tools/pioasm",
-                "C:/Users/groff/.pico-sdk/sdk/2.2.0/src/host/pico_stdio/include",
-                "C:/Users/groff/.pico-sdk/sdk/2.2.0/src/common/pico_time/include"
+                "/home/jg/.pico-sdk/sdk/2.2.0/src/rp2040/pico_platform/include/pico",
+                "/home/jg/.pico-sdk/sdk/2.2.0/tools/pioasm",
+                "/home/jg/.pico-sdk/sdk/2.2.0/src/host/pico_stdio/include",
+                "/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/include"
             ],
             "forcedInclude": [
                 "${workspaceFolder}/build/generated/pico_base/pico/config_autogen.h",
                 "${userHome}/.pico-sdk/sdk/2.2.0/src/common/pico_base_headers/include/pico.h"
             ],
             "defines": [],
-            "compilerPath": "${userHome}/.pico-sdk/toolchain/14_2_Rel1/bin/arm-none-eabi-gcc.exe",
+            "compilerPath": "/home/jg/.pico-sdk/toolchain/14_2_Rel1/bin/arm-none-eabi-g++",
             "compileCommands": [
                 "${workspaceFolder}/build/compile_commands.json"
             ],

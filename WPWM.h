@@ -16,6 +16,8 @@ class PWM {
 	public:
 	uint pin;
 	uint channel = 0;
+	volatile int watchdog = 0;
+	bool safeShutdown = false;
 	InterruptService* interruptService=NULL;
 	static PWM* instances[8];
 	PWM(uint spin);
@@ -24,7 +26,7 @@ class PWM {
 	inline void pwmOff() { pwmWrite(0, 0); };
 	static void pwm_irq_handler();
 	void attachInterrupt(InterruptService* cins, bool overflow = false);
-	void detachInterrupt(bool overflow = false);
+	void detachInterrupt();
 };
 
 

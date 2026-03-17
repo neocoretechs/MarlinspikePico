@@ -8,20 +8,21 @@
 
 #define DESC_STR_MAX 20
 
-#define USBD_VID 0x2E8A /* Raspberry Pi */
-#define USBD_PID 0x000A /* Raspberry Pi Pico SDK CDC */
+#define USBD_VID 0x2E8A
+#define USBD_PID 0x000A
 
 #define USBD_DESC_LEN (TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN * CFG_TUD_CDC)
 #define USBD_MAX_POWER_MA 500
 
 #define USBD_ITF_CDC_0 0
-#define USBD_ITF_CDC_1 2
+
 #define USBD_ITF_MAX 4
 
 #define USBD_CDC_0_EP_CMD 0x81
 #define USBD_CDC_1_EP_CMD 0x83
 
 #define USBD_CDC_0_EP_OUT 0x01
+
 #define USBD_CDC_1_EP_OUT 0x03
 
 #define USBD_CDC_0_EP_IN 0x82
@@ -35,7 +36,7 @@
 #define USBD_STR_PRODUCT 0x02
 #define USBD_STR_SERIAL 0x03
 #define USBD_STR_SERIAL_LEN 17
-#define USBD_STR_CDC 0x04
+
 
 static const tusb_desc_device_t usbd_desc_device = {
 	.bLength = sizeof(tusb_desc_device_t),
@@ -58,11 +59,11 @@ static const uint8_t usbd_desc_cfg[USBD_DESC_LEN] = {
 	TUD_CONFIG_DESCRIPTOR(1, USBD_ITF_MAX, USBD_STR_0, USBD_DESC_LEN,
 		TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, USBD_MAX_POWER_MA),
 
-	TUD_CDC_DESCRIPTOR(USBD_ITF_CDC_0, USBD_STR_CDC, USBD_CDC_0_EP_CMD,
+	TUD_CDC_DESCRIPTOR(USBD_ITF_CDC_0, 4, USBD_CDC_0_EP_CMD,
 		USBD_CDC_CMD_MAX_SIZE, USBD_CDC_0_EP_OUT, USBD_CDC_0_EP_IN,
 		USBD_CDC_IN_OUT_MAX_SIZE),
 
-	TUD_CDC_DESCRIPTOR(USBD_ITF_CDC_1, USBD_STR_CDC, USBD_CDC_1_EP_CMD,
+	TUD_CDC_DESCRIPTOR(2, 4, USBD_CDC_1_EP_CMD,
 		USBD_CDC_CMD_MAX_SIZE, USBD_CDC_1_EP_OUT, USBD_CDC_1_EP_IN,
 		USBD_CDC_IN_OUT_MAX_SIZE),
 };
@@ -70,10 +71,10 @@ static const uint8_t usbd_desc_cfg[USBD_DESC_LEN] = {
 static char usbd_serial[USBD_STR_SERIAL_LEN] = "000000000000";
 
 static const char *const usbd_desc_str[] = {
-	[USBD_STR_MANUF] = "Raspberry Pi",
-	[USBD_STR_PRODUCT] = "Pico",
+	[USBD_STR_MANUF] = "NeoCoreTechs",
+	[USBD_STR_PRODUCT] = "Marlinspike",
 	[USBD_STR_SERIAL] = usbd_serial,
-	[USBD_STR_CDC] = "Board CDC",
+	[4] = "Board CDC",
 };
 
 const uint8_t *tud_descriptor_device_cb(void)

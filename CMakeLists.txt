@@ -58,7 +58,8 @@ add_executable(Marlinspike
     Propulsion/SplitBridgeDriver.cpp
     Propulsion/SwitchBridgeDriver.cpp
     Propulsion/SwitchHBridgeDriver.cpp
-    Propulsion/DiffDrive.h
+    Propulsion/DIffDrive.h
+    AbstractPWMControl.cpp
     Print.cpp
     pid_params.h
     Odom.h
