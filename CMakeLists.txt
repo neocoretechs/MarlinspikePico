@@ -42,6 +42,7 @@ pico_sdk_init()
 add_executable(Marlinspike
     main.cpp
     RoboCore_main.cpp
+    AbstractPWMControl.cpp
     Ultrasonic.cpp
     DigitalPin.h
     AnalogPin.h
@@ -50,6 +51,7 @@ add_executable(Marlinspike
     IMU/Adafruit_L3GD20U.cpp
     IMU/Adafruit_LSM303U.cpp
     IMU/PitchRollHeading.cpp
+    IMU/IMUInterruptService.h
     Propulsion/AbstractMotorControl.cpp
     Propulsion/AbstractSmartMotorControl.h
     Propulsion/DelayHBridgeDriver.cpp
@@ -68,6 +70,7 @@ add_executable(Marlinspike
     WPWM.cpp
     WShift.cpp
     WString.cpp
+    Wire.cpp
     usb-descriptors.c
     )
      

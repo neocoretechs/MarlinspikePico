@@ -456,21 +456,39 @@ void loop() {
 }
   
 void get_command() {
+	serial_count = 0;
+	uint8_t temp[64];
+	memcpy(cmdbuffer,0,MAX_CMD_SIZE);
+	bool eol = false;
+	do {
+        tud_task();
+        if (!tud_cdc_available())
+            continue;
+        uint32_t n = tud_cdc_read(temp, sizeof(temp));
+		for(int i = 0; i < n; i++) {
+        	char c = temp[i];
+        	if (c == '\n' || c == '\r' ) {
+            	cmdbuffer[serial_count++] = 0;   // null terminate
+				eol = true;
+				break;
+		 	} else {
+            	if (serial_count < MAX_CMD_SIZE - 1)
+                	cmdbuffer[serial_count++] = c;
+				else {
+					eol = true;
+					break;
+				}
+        	}
+		}
+
+    } while(!eol);
 	comment_mode = true;
-    while (true) {
-        tud_task();     // USB housekeeping
-        if (tud_cdc_available())
-            serial_count = tud_cdc_read(cmdbuffer, sizeof(cmdbuffer));
-		else
-			continue;
 	if(serial_count <= 0) {
 		comment_mode = true; //for new command
-		continue;
+		return;
 	}
 	serial_char = cmdbuffer[serial_count-1];
-    if(serial_char == '\n' || serial_char == '\r' || serial_count >= (MAX_CMD_SIZE - 1) ) {
 	  comment_mode = false;
-      cmdbuffer[serial_count] = 0; //terminate string
       if(strchr(cmdbuffer, 'N') != NULL) {
           strchr_pointer = strchr(cmdbuffer, 'N');
           gcode_N = (strtol(&cmdbuffer[strchr_pointer - cmdbuffer + 1], NULL, 10));
@@ -481,7 +499,6 @@ void get_command() {
 			tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
             //Serial.println(gcode_N);
             FlushSerialRequestResend();
-            serial_count = 0;
 			comment_mode = true;
             return;
           }
@@ -496,7 +513,6 @@ void get_command() {
               tud_cdc_write(itoa(gcode_LastN),strlen(itoa(gcode_LastN)));
 			  tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
               FlushSerialRequestResend();
-              serial_count = 0;
 			  comment_mode = true;
               return;
             }
@@ -507,7 +523,6 @@ void get_command() {
             tud_cdc_write(itoa(gcode_LastN),strlen(itoa(gcode_LastN)));
 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
             FlushSerialRequestResend();
-            serial_count = 0;
 			comment_mode = true;
             return;
           }
@@ -520,14 +535,12 @@ void get_command() {
             tud_cdc_write(itoa(gcode_LastN),strlen(itoa(gcode_LastN)));
 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 			tud_cdc_write_flush();
-            serial_count = 0;
 			comment_mode = true;
             return;
           }
       }
       if(strchr(cmdbuffer, ';') != NULL) {
 		  comment_mode = true;
-          serial_count = 0; //clear buffer
 		  return;
 	  }
 	  // Determine if an outstanding error caused safety shutdown. If so respond with header
@@ -546,7 +559,6 @@ void get_command() {
 					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 					tud_cdc_write_flush();
 					comment_mode = true;
-					serial_count = 0;
 					return;
 				}
 				break;
@@ -555,12 +567,6 @@ void get_command() {
           }
         }
 		// finished processing c/r terminated cmdl
-		serial_count = 0;
-		return;
-      } // if c/r l/f
-      cmdbuffer[serial_count++] = serial_char;
-  } // while avail
-
 }
 
 float code_value()

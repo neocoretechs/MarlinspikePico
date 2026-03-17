@@ -1,4 +1,7 @@
-#include <hardware/i2c.h>
+#include <stdio.h>
+#include "pico/stdlib.h"
+#include "hardware/i2c.h"
+#include "hardware/uart.h"
 class Wire {
 public:
     Wire(i2c_inst_t* bus, uint sda, uint scl, uint speed = 400000);
