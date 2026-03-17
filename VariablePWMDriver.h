@@ -26,6 +26,7 @@
 #ifndef __VARIABLEPWMDRIVER_H__
 #define __VARIABLEPWMDRIVER_H__
 #include "AbstractPWMControl.h"
+#include <stdlib.h>
 class VariablePWMDriver : public AbstractPWMControl
 {
 //variables
@@ -65,10 +66,6 @@ public:
 		}
 		return false;
 	}
-protected:
-private:
-	VariablePWMDriver( const VariablePWMDriver &c );
-	VariablePWMDriver& operator=( const VariablePWMDriver &c );
 
 }; //VariablePWMDriver
 

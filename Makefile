@@ -1,485 +1,2969 @@
-# Sprinter Arduino Project Makefile
-#
-# Makefile Based on:
-# Arduino 0011 Makefile
-# Arduino adaptation by mellis, eighthave, oli.keller
-# Marlin adaption by Daid
-#
-# This has been tested with Arduino 0022.
-#
-# This makefile allows you to build sketches from the command line
-# without the Arduino environment (or Java).
-#
-# Detailed instructions for using the makefile:
-#
-#  1. Modify the line containg "ARDUINO_INSTALL_DIR" to point to the directory that
-#     contains the Arduino installation (for example, under Mac OS X, this
-#     might be /Applications/Arduino.app/Contents/Resources/Java).
-#
-#  2. Modify the line containing "UPLOAD_PORT" to refer to the filename
-#     representing the USB or serial connection to your Arduino board
-#     (e.g. UPLOAD_PORT = /dev/tty.USB0).  If the exact name of this file
-#     changes, you can use * as a wildcard (e.g. UPLOAD_PORT = /dev/tty.usb*).
-#
-#  3. Set the line containing "MCU" to match your board's processor.
-#     Older one's are atmega8 based, newer ones like Arduino Mini, Bluetooth
-#     or Diecimila have the atmega168.  If you're using a LilyPad Arduino,
-#     change F_CPU to 8000000. If you are using Gen7 electronics, you
-#     probably need to use 20000000. Either way, you must regenerate
-#     the speed lookup table with create_speed_lookuptable.py.
-#
-#  4. Type "make" and press enter to compile/verify your program.
-#
-#  5. Type "make upload", reset your Arduino board, and press enter to
-#     upload your program to the Arduino board.
-#
-# Note that all settings are set with ?=, this means you can override them
-# from the commandline with "make HARDWARE_MOTHERBOARD=71" for example
-
-# This defined the board you are compiling for (see Configuration.h for the options)
-HARDWARE_MOTHERBOARD ?= 11
-
-# Arduino source install directory, and version number
-ARDUINO_INSTALL_DIR  ?= /Applications/Arduino.app/Contents/Resources/Java
-ARDUINO_VERSION      ?= 105
-
-# You can optionally set a path to the avr-gcc tools. Requires a trailing slash. (ex: /usr/local/avr-gcc/bin)
-AVR_TOOLS_PATH ?=
-
-#Programmer configuration
-UPLOAD_RATE        ?= 115200
-AVRDUDE_PROGRAMMER ?= arduino
-UPLOAD_PORT        ?= /dev/arduino
-
-#Directory used to build files in, contains all the build files, from object files to the final hex file.
-BUILD_DIR          ?= applet
-
-# This defines whether Liquid_TWI2 support will be built
-LIQUID_TWI2        ?= 0
-
-# this defines if Wire is needed
-WIRE               ?= 0
-
-############################################################################
-# Below here nothing should be changed...
-
-# Here the Arduino variant is selected by the board type
-# HARDWARE_VARIANT = "arduino", "Sanguino", "Gen7", ...
-# MCU = "atmega1280", "Mega2560", "atmega2560", "atmega644p", ...
-
-#Gen7
-ifeq ($(HARDWARE_MOTHERBOARD),10)
-HARDWARE_VARIANT ?= Gen7
-MCU              ?= atmega644
-F_CPU            ?= 20000000
-else ifeq  ($(HARDWARE_MOTHERBOARD),11)
-HARDWARE_VARIANT ?= Gen7
-MCU              ?= atmega644p
-F_CPU            ?= 20000000
-else ifeq  ($(HARDWARE_MOTHERBOARD),12)
-HARDWARE_VARIANT ?= Gen7
-MCU              ?= atmega644p
-F_CPU            ?= 20000000
-else ifeq  ($(HARDWARE_MOTHERBOARD),13)
-HARDWARE_VARIANT ?= Gen7
-MCU              ?= atmega1284p
-F_CPU            ?= 20000000
-
-#RAMPS
-else ifeq  ($(HARDWARE_MOTHERBOARD),3)
-HARDWARE_VARIANT ?= arduino
-MCU              ?= atmega2560
-else ifeq  ($(HARDWARE_MOTHERBOARD),33)
-HARDWARE_VARIANT ?= arduino
-MCU              ?= atmega2560
-else ifeq  ($(HARDWARE_MOTHERBOARD),34)
-HARDWARE_VARIANT ?= arduino
-MCU              ?= atmega2560
-
-#Duemilanove w/ ATMega328P pin assignment
-else ifeq  ($(HARDWARE_MOTHERBOARD),4)
-HARDWARE_VARIANT ?= arduino
-HARDWARE_SUB_VARIANT ?= standard
-MCU              ?= atmega328p
-
-#Gen6
-else ifeq  ($(HARDWARE_MOTHERBOARD),5)
-HARDWARE_VARIANT ?= Gen6
-MCU              ?= atmega644p
-else ifeq  ($(HARDWARE_MOTHERBOARD),51)
-HARDWARE_VARIANT ?= Gen6
-MCU              ?= atmega644p
-
-#Sanguinololu
-else ifeq  ($(HARDWARE_MOTHERBOARD),6)
-HARDWARE_VARIANT ?= Sanguino
-MCU              ?= atmega644p
-else ifeq  ($(HARDWARE_MOTHERBOARD),62)
-HARDWARE_VARIANT ?= Sanguino
-MCU              ?= atmega644p
-else ifeq  ($(HARDWARE_MOTHERBOARD),63)
-HARDWARE_VARIANT ?= Sanguino
-MCU              ?= atmega644p
-else ifeq  ($(HARDWARE_MOTHERBOARD),65)
-HARDWARE_VARIANT ?= Sanguino
-MCU              ?= atmega1284p
-else ifeq  ($(HARDWARE_MOTHERBOARD),66)
-HARDWARE_VARIANT ?= Sanguino
-MCU              ?= atmega1284p
-
-#Ultimaker
-else ifeq  ($(HARDWARE_MOTHERBOARD),7)
-HARDWARE_VARIANT ?= arduino
-MCU              ?= atmega2560
-else ifeq  ($(HARDWARE_MOTHERBOARD),71)
-HARDWARE_VARIANT ?= arduino
-MCU              ?= atmega1280
-
-#Teensylu
-else ifeq  ($(HARDWARE_MOTHERBOARD),8)
-HARDWARE_VARIANT ?= Teensy
-MCU              ?= at90usb1286
-else ifeq  ($(HARDWARE_MOTHERBOARD),81)
-HARDWARE_VARIANT ?= Teensy
-MCU              ?= at90usb1286
-else ifeq  ($(HARDWARE_MOTHERBOARD),82)
-HARDWARE_VARIANT ?= Teensy
-MCU              ?= at90usb646
-else ifeq  ($(HARDWARE_MOTHERBOARD),83)
-HARDWARE_VARIANT ?= Teensy
-MCU              ?= at90usb1286
-else ifeq  ($(HARDWARE_MOTHERBOARD),84)
-HARDWARE_VARIANT ?= Teensy
-MCU              ?= at90usb1286
-
-#Gen3+
-else ifeq  ($(HARDWARE_MOTHERBOARD),9)
-HARDWARE_VARIANT ?= Sanguino
-MCU              ?= atmega644p
-
-#Megatronics
-else ifeq  ($(HARDWARE_MOTHERBOARD),70)
-HARDWARE_VARIANT ?= arduino
-MCU              ?= atmega2560
-
-#Alpha OMCA board
-else ifeq  ($(HARDWARE_MOTHERBOARD),90)
-HARDWARE_VARIANT ?= SanguinoA
-MCU              ?= atmega644
-
-#Final OMCA board
-else ifeq  ($(HARDWARE_MOTHERBOARD),91)
-HARDWARE_VARIANT ?= Sanguino
-MCU              ?= atmega644p
-
-#Rambo
-else ifeq  ($(HARDWARE_MOTHERBOARD),301)
-HARDWARE_VARIANT ?= arduino
-MCU              ?= atmega2560
-
-# Azteeg
-else ifeq  ($(HARDWARE_MOTHERBOARD),67)
-HARDWARE_VARIANT ?= arduino
-MCU              ?= atmega2560
-else ifeq  ($(HARDWARE_MOTHERBOARD),68)
-HARDWARE_VARIANT ?= arduino
-MCU              ?= atmega2560
-
-endif
-
-# Be sure to regenerate speed_lookuptable.h with create_speed_lookuptable.py
-# if you are setting this to something other than 16MHz
-# Set to 16Mhz if not yet set.
-F_CPU ?= 16000000
-
-# Arduino containd the main source code for the Arduino
-# Libraries, the "hardware variant" are for boards
-# that derives from that, and their source are present in
-# the main Marlin source directory
-ifeq ($(HARDWARE_VARIANT), arduino)
-HARDWARE_DIR = $(ARDUINO_INSTALL_DIR)/hardware
-else
-ifeq ($(shell [ $(ARDUINO_VERSION) -ge 100 ] && echo true), true)
-HARDWARE_DIR = ../ArduinoAddons/Arduino_1.x.x
-else
-HARDWARE_DIR = ../ArduinoAddons/Arduino_0.xx
-endif
-endif
-HARDWARE_SRC = $(HARDWARE_DIR)/$(HARDWARE_VARIANT)/cores/arduino
-
-TARGET = $(notdir $(CURDIR))
-
-# VPATH tells make to look into these directory for source files,
-# there is no need to specify explicit pathnames as long as the
-# directory is added here
-
-VPATH = .
-VPATH += $(BUILD_DIR)
-VPATH += $(HARDWARE_SRC)
-ifeq ($(HARDWARE_VARIANT), arduino)
-VPATH += $(ARDUINO_INSTALL_DIR)/libraries/LiquidCrystal
-VPATH += $(ARDUINO_INSTALL_DIR)/libraries/SPI
-ifeq ($(LIQUID_TWI2), 1)
-VPATH += $(ARDUINO_INSTALL_DIR)/libraries/Wire
-VPATH += $(ARDUINO_INSTALL_DIR)/libraries/Wire/utility
-VPATH += $(ARDUINO_INSTALL_DIR)/libraries/LiquidTWI2
-endif
-ifeq ($(WIRE), 1)
-VPATH += $(ARDUINO_INSTALL_DIR)/libraries/Wire
-VPATH += $(ARDUINO_INSTALL_DIR)/libraries/Wire/utility
-endif
-else
-VPATH += $(HARDWARE_DIR)/libraries/LiquidCrystal
-VPATH += $(HARDWARE_DIR)/libraries/SPI
-ifeq ($(LIQUID_TWI2), 1)
-VPATH += $(HARDWARE_DIR)/libraries/Wire
-VPATH += $(HARDWARE_DIR)/libraries/Wire/utility
-VPATH += $(HARDWARE_DIR)/libraries/LiquidTWI2
-endif
-ifeq ($(WIRE), 1)
-VPATH += $(HARDWARE_DIR)/libraries/Wire
-VPATH += $(HARDWARE_DIR)/libraries/Wire/utility
-endif
-endif
-ifeq ($(HARDWARE_VARIANT), arduino)
-HARDWARE_SUB_VARIANT ?= mega
-VPATH += $(ARDUINO_INSTALL_DIR)/hardware/arduino/variants/$(HARDWARE_SUB_VARIANT)
-else
-HARDWARE_SUB_VARIANT ?= standard
-VPATH += $(HARDWARE_DIR)/$(HARDWARE_VARIANT)/variants/$(HARDWARE_SUB_VARIANT)
-endif
-SRC = wiring.c \
-	wiring_analog.c wiring_digital.c \
-	wiring_pulse.c \
-	wiring_shift.c WInterrupts.c
-ifeq ($(HARDWARE_VARIANT), Teensy)
-SRC = wiring.c
-VPATH += $(ARDUINO_INSTALL_DIR)/hardware/teensy/cores/teensy
-endif
-CXXSRC = WMath.cpp WString.cpp Print.cpp Marlin_main.cpp	\
-	MarlinSerial.cpp Sd2Card.cpp SdBaseFile.cpp SdFatUtil.cpp	\
-	SdFile.cpp SdVolume.cpp motion_control.cpp planner.cpp		\
-	stepper.cpp temperature.cpp cardreader.cpp ConfigurationStore.cpp \
-	watchdog.cpp SPI.cpp Servo.cpp Tone.cpp ultralcd.cpp digipot_mcp4451.cpp \
-	vector_3.cpp qr_solve.cpp
-ifeq ($(LIQUID_TWI2), 0)
-CXXSRC += LiquidCrystal.cpp
-else
-SRC += twi.c
-CXXSRC += Wire.cpp LiquidTWI2.cpp
-endif
-
-ifeq ($(WIRE), 1)
-SRC += twi.c
-CXXSRC += Wire.cpp
-endif
-
-#Check for Arduino 1.0.0 or higher and use the correct sourcefiles for that version
-ifeq ($(shell [ $(ARDUINO_VERSION) -ge 100 ] && echo true), true)
-CXXSRC += main.cpp
-else
-SRC += pins_arduino.c main.c
-endif
-
-FORMAT = ihex
-
-# Name of this Makefile (used for "make depend").
-MAKEFILE = Makefile
-
-# Debugging format.
-# Native formats for AVR-GCC's -g are stabs [default], or dwarf-2.
-# AVR (extended) COFF requires stabs, plus an avr-objcopy run.
-DEBUG = stabs
-
-OPT = s
-
-DEFINES ?=
-
-# Program settings
-CC = $(AVR_TOOLS_PATH)avr-gcc
-CXX = $(AVR_TOOLS_PATH)avr-g++
-OBJCOPY = $(AVR_TOOLS_PATH)avr-objcopy
-OBJDUMP = $(AVR_TOOLS_PATH)avr-objdump
-AR  = $(AVR_TOOLS_PATH)avr-ar
-SIZE = $(AVR_TOOLS_PATH)avr-size
-NM = $(AVR_TOOLS_PATH)avr-nm
-AVRDUDE = avrdude
-REMOVE = rm -f
-MV = mv -f
-
-# Place -D or -U options here
-CDEFS    = -DF_CPU=$(F_CPU) ${addprefix -D , $(DEFINES)}
-CXXDEFS  = $(CDEFS)
-
-ifeq ($(HARDWARE_VARIANT), Teensy)
-CDEFS  += -DUSB_SERIAL
-SRC    += usb.c pins_teensy.c
-CXXSRC += usb_api.cpp
-endif
-
-# Add all the source directories as include directories too
-CINCS = ${addprefix -I ,${VPATH}}
-CXXINCS = ${addprefix -I ,${VPATH}}
-
-# Compiler flag to set the C Standard level.
-# c89   - "ANSI" C
-# gnu89 - c89 plus GCC extensions
-# c99   - ISO C99 standard (not yet fully implemented)
-# gnu99 - c99 plus GCC extensions
-#CSTANDARD = -std=gnu99
-CDEBUG = -g$(DEBUG)
-CWARN = -Wall -Wstrict-prototypes
-CTUNING = -funsigned-char -funsigned-bitfields -fpack-struct \
-	-fshort-enums -w -ffunction-sections -fdata-sections \
-	-DARDUINO=$(ARDUINO_VERSION)
-ifneq ($(HARDWARE_MOTHERBOARD),)
-CTUNING += -DMOTHERBOARD=${HARDWARE_MOTHERBOARD}
-endif
-#CEXTRA = -Wa,-adhlns=$(<:.c=.lst)
-CEXTRA = -fno-use-cxa-atexit
-
-CFLAGS := $(CDEBUG) $(CDEFS) $(CINCS) -O$(OPT) $(CWARN) $(CEXTRA) $(CTUNING)
-CXXFLAGS :=         $(CDEFS) $(CINCS) -O$(OPT) -Wall    $(CEXTRA) $(CTUNING)
-#ASFLAGS = -Wa,-adhlns=$(<:.S=.lst),-gstabs
-LDFLAGS = -lm
-
-
-# Programming support using avrdude. Settings and variables.
-AVRDUDE_PORT = $(UPLOAD_PORT)
-AVRDUDE_WRITE_FLASH = -U flash:w:$(BUILD_DIR)/$(TARGET).hex:i
-ifeq ($(shell uname -s), Linux)
-AVRDUDE_CONF = $(ARDUINO_INSTALL_DIR)/hardware/tools/avrdude.conf
-else
-AVRDUDE_CONF = $(ARDUINO_INSTALL_DIR)/hardware/tools/avr/etc/avrdude.conf
-endif
-AVRDUDE_FLAGS = -D -C $(AVRDUDE_CONF) \
-	-p $(MCU) -P $(AVRDUDE_PORT) -c $(AVRDUDE_PROGRAMMER) \
-	-b $(UPLOAD_RATE)
-
-# Define all object files.
-OBJ = ${patsubst %.c, $(BUILD_DIR)/%.o, ${SRC}}
-OBJ += ${patsubst %.cpp, $(BUILD_DIR)/%.o, ${CXXSRC}}
-OBJ += ${patsubst %.S, $(BUILD_DIR)/%.o, ${ASRC}}
-
-# Define all listing files.
-LST = $(ASRC:.S=.lst) $(CXXSRC:.cpp=.lst) $(SRC:.c=.lst)
-
-# Combine all necessary flags and optional flags.
-# Add target processor to flags.
-ALL_CFLAGS = -mmcu=$(MCU) -I. $(CFLAGS)
-ALL_CXXFLAGS = -mmcu=$(MCU) $(CXXFLAGS)
-ALL_ASFLAGS = -mmcu=$(MCU) -x assembler-with-cpp $(ASFLAGS)
-
-# set V=1 (eg, "make V=1") to print the full commands etc.
-ifneq ($V,1)
- Pecho=@echo
- P=@
-else
- Pecho=@:
- P=
-endif
-
-# Default target.
-all: sizeafter
-
-build: $(BUILD_DIR) elf hex
-
-# Creates the object directory
-$(BUILD_DIR):
-	$P mkdir -p $(BUILD_DIR)
-
-elf: $(BUILD_DIR)/$(TARGET).elf
-hex: $(BUILD_DIR)/$(TARGET).hex
-eep: $(BUILD_DIR)/$(TARGET).eep
-lss: $(BUILD_DIR)/$(TARGET).lss
-sym: $(BUILD_DIR)/$(TARGET).sym
-
-# Program the device.
-# Do not try to reset an arduino if it's not one
-upload: $(BUILD_DIR)/$(TARGET).hex
-ifeq (${AVRDUDE_PROGRAMMER}, arduino)
-	stty hup < $(UPLOAD_PORT); true
-endif
-	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH)
-ifeq (${AVRDUDE_PROGRAMMER}, arduino)
-	stty -hup < $(UPLOAD_PORT); true
-endif
-
-	# Display size of file.
-HEXSIZE = $(SIZE) --target=$(FORMAT) $(BUILD_DIR)/$(TARGET).hex
-ELFSIZE = $(SIZE) --mcu=$(MCU) -C $(BUILD_DIR)/$(TARGET).elf; \
-          $(SIZE)  $(BUILD_DIR)/$(TARGET).elf
-sizebefore:
-	$P if [ -f $(BUILD_DIR)/$(TARGET).elf ]; then echo; echo $(MSG_SIZE_BEFORE); $(HEXSIZE); echo; fi
-
-sizeafter: build
-	$P if [ -f $(BUILD_DIR)/$(TARGET).elf ]; then echo; echo $(MSG_SIZE_AFTER); $(ELFSIZE); echo; fi
-
-
-# Convert ELF to COFF for use in debugging / simulating in AVR Studio or VMLAB.
-COFFCONVERT=$(OBJCOPY) --debugging \
-	--change-section-address .data-0x800000 \
-	--change-section-address .bss-0x800000 \
-	--change-section-address .noinit-0x800000 \
-	--change-section-address .eeprom-0x810000
-
-
-coff: $(BUILD_DIR)/$(TARGET).elf
-	$(COFFCONVERT) -O coff-avr $(BUILD_DIR)/$(TARGET).elf $(TARGET).cof
-
-
-extcoff: $(TARGET).elf
-	$(COFFCONVERT) -O coff-ext-avr $(BUILD_DIR)/$(TARGET).elf $(TARGET).cof
-
-
-.SUFFIXES: .elf .hex .eep .lss .sym
-.PRECIOUS: .o
-
-.elf.hex:
-	$(Pecho) "  COPY  $@"
-	$P $(OBJCOPY) -O $(FORMAT) -R .eeprom $< $@
-
-.elf.eep:
-	-$(OBJCOPY) -j .eeprom --set-section-flags=.eeprom="alloc,load" \
-		--change-section-lma .eeprom=0 -O $(FORMAT) $< $@
-
-# Create extended listing file from ELF output file.
-.elf.lss:
-	$(OBJDUMP) -h -S $< > $@
-
-# Create a symbol table from ELF output file.
-.elf.sym:
-	$(NM) -n $< > $@
-
-	# Link: create ELF output file from library.
-$(BUILD_DIR)/$(TARGET).elf: $(OBJ) Configuration.h
-	$(Pecho) "  CXX   $@"
-	$P $(CC) $(ALL_CXXFLAGS) -Wl,--gc-sections -o $@ -L. $(OBJ) $(LDFLAGS)
-
-$(BUILD_DIR)/%.o: %.c Configuration.h Configuration_adv.h $(MAKEFILE)
-	$(Pecho) "  CC    $<"
-	$P $(CC) -MMD -c $(ALL_CFLAGS) $< -o $@
-
-$(BUILD_DIR)/%.o: $(BUILD_DIR)/%.cpp Configuration.h Configuration_adv.h $(MAKEFILE)
-	$(Pecho) "  CXX   $<"
-	$P $(CXX) -MMD -c $(ALL_CXXFLAGS) $< -o $@
-
-$(BUILD_DIR)/%.o: %.cpp Configuration.h Configuration_adv.h $(MAKEFILE)
-	$(Pecho) "  CXX   $<"
-	$P $(CXX) -MMD -c $(ALL_CXXFLAGS) $< -o $@
-
-
-# Target: clean project.
+# CMAKE generated file: DO NOT EDIT!
+# Generated by "Unix Makefiles" Generator, CMake Version 3.28
+
+# Default target executed when no arguments are given to make.
+default_target: all
+.PHONY : default_target
+
+# Allow only one "make -f Makefile2" at a time, but pass parallelism.
+.NOTPARALLEL:
+
+#=============================================================================
+# Special targets provided by cmake.
+
+# Disable implicit rules so canonical targets will work.
+.SUFFIXES:
+
+# Disable VCS-based implicit rules.
+% : %,v
+
+# Disable VCS-based implicit rules.
+% : RCS/%
+
+# Disable VCS-based implicit rules.
+% : RCS/%,v
+
+# Disable VCS-based implicit rules.
+% : SCCS/s.%
+
+# Disable VCS-based implicit rules.
+% : s.%
+
+.SUFFIXES: .hpux_make_needs_suffix_list
+
+# Command-line flag to silence nested $(MAKE).
+$(VERBOSE)MAKESILENT = -s
+
+#Suppress display of executed commands.
+$(VERBOSE).SILENT:
+
+# A target that is always out of date.
+cmake_force:
+.PHONY : cmake_force
+
+#=============================================================================
+# Set environment variables for the build.
+
+# The shell in which to execute make rules.
+SHELL = /bin/sh
+
+# The CMake executable.
+CMAKE_COMMAND = /usr/bin/cmake
+
+# The command to remove a file.
+RM = /usr/bin/cmake -E rm -f
+
+# Escaping for special characters.
+EQUALS = =
+
+# The top-level source directory on which CMake was run.
+CMAKE_SOURCE_DIR = /home/jg/MarlinspikePico
+
+# The top-level build directory on which CMake was run.
+CMAKE_BINARY_DIR = /home/jg/MarlinspikePico
+
+#=============================================================================
+# Targets provided globally by CMake.
+
+# Special rule for the target edit_cache
+edit_cache:
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "No interactive CMake dialog available..."
+	/usr/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
+.PHONY : edit_cache
+
+# Special rule for the target edit_cache
+edit_cache/fast: edit_cache
+.PHONY : edit_cache/fast
+
+# Special rule for the target rebuild_cache
+rebuild_cache:
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Running CMake to regenerate build system..."
+	/usr/bin/cmake --regenerate-during-build -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+.PHONY : rebuild_cache
+
+# Special rule for the target rebuild_cache
+rebuild_cache/fast: rebuild_cache
+.PHONY : rebuild_cache/fast
+
+# The main all target
+all: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/jg/MarlinspikePico/CMakeFiles /home/jg/MarlinspikePico//CMakeFiles/progress.marks
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/jg/MarlinspikePico/CMakeFiles 0
+.PHONY : all
+
+# The main clean target
 clean:
-	$(Pecho) "  RM    $(BUILD_DIR)/*"
-	$P $(REMOVE) $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET).eep $(BUILD_DIR)/$(TARGET).cof $(BUILD_DIR)/$(TARGET).elf \
-		$(BUILD_DIR)/$(TARGET).map $(BUILD_DIR)/$(TARGET).sym $(BUILD_DIR)/$(TARGET).lss $(BUILD_DIR)/$(TARGET).cpp \
-		$(OBJ) $(LST) $(SRC:.c=.s) $(SRC:.c=.d) $(CXXSRC:.cpp=.s) $(CXXSRC:.cpp=.d)
-	$(Pecho) "  RMDIR $(BUILD_DIR)/"
-	$P rm -rf $(BUILD_DIR)
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 clean
+.PHONY : clean
+
+# The main clean target
+clean/fast: clean
+.PHONY : clean/fast
+
+# Prepare targets for installation.
+preinstall: all
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 preinstall
+.PHONY : preinstall
+
+# Prepare targets for installation.
+preinstall/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 preinstall
+.PHONY : preinstall/fast
+
+# clear depends
+depend:
+	$(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
+.PHONY : depend
+
+#=============================================================================
+# Target rules for targets named Marlinspike
+
+# Build rule for target.
+Marlinspike: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 Marlinspike
+.PHONY : Marlinspike
+
+# fast build rule for target.
+Marlinspike/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/build
+.PHONY : Marlinspike/fast
+
+#=============================================================================
+# Target rules for targets named bs2_default
+
+# Build rule for target.
+bs2_default: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 bs2_default
+.PHONY : bs2_default
+
+# fast build rule for target.
+bs2_default/fast:
+	$(MAKE) $(MAKESILENT) -f pico-sdk/src/rp2040/boot_stage2/CMakeFiles/bs2_default.dir/build.make pico-sdk/src/rp2040/boot_stage2/CMakeFiles/bs2_default.dir/build
+.PHONY : bs2_default/fast
+
+#=============================================================================
+# Target rules for targets named bs2_default_bin
+
+# Build rule for target.
+bs2_default_bin: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 bs2_default_bin
+.PHONY : bs2_default_bin
+
+# fast build rule for target.
+bs2_default_bin/fast:
+	$(MAKE) $(MAKESILENT) -f pico-sdk/src/rp2040/boot_stage2/CMakeFiles/bs2_default_bin.dir/build.make pico-sdk/src/rp2040/boot_stage2/CMakeFiles/bs2_default_bin.dir/build
+.PHONY : bs2_default_bin/fast
+
+#=============================================================================
+# Target rules for targets named bs2_default_library
+
+# Build rule for target.
+bs2_default_library: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 bs2_default_library
+.PHONY : bs2_default_library
+
+# fast build rule for target.
+bs2_default_library/fast:
+	$(MAKE) $(MAKESILENT) -f pico-sdk/src/rp2040/boot_stage2/CMakeFiles/bs2_default_library.dir/build.make pico-sdk/src/rp2040/boot_stage2/CMakeFiles/bs2_default_library.dir/build
+.PHONY : bs2_default_library/fast
+
+#=============================================================================
+# Target rules for targets named cyw43_driver_picow_cyw43_bus_pio_spi_pio_h
+
+# Build rule for target.
+cyw43_driver_picow_cyw43_bus_pio_spi_pio_h: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 cyw43_driver_picow_cyw43_bus_pio_spi_pio_h
+.PHONY : cyw43_driver_picow_cyw43_bus_pio_spi_pio_h
+
+# fast build rule for target.
+cyw43_driver_picow_cyw43_bus_pio_spi_pio_h/fast:
+	$(MAKE) $(MAKESILENT) -f pico-sdk/src/rp2_common/pico_cyw43_driver/CMakeFiles/cyw43_driver_picow_cyw43_bus_pio_spi_pio_h.dir/build.make pico-sdk/src/rp2_common/pico_cyw43_driver/CMakeFiles/cyw43_driver_picow_cyw43_bus_pio_spi_pio_h.dir/build
+.PHONY : cyw43_driver_picow_cyw43_bus_pio_spi_pio_h/fast
+
+#=============================================================================
+# Target rules for targets named pico_status_led_ws2812_pio_h
+
+# Build rule for target.
+pico_status_led_ws2812_pio_h: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 pico_status_led_ws2812_pio_h
+.PHONY : pico_status_led_ws2812_pio_h
+
+# fast build rule for target.
+pico_status_led_ws2812_pio_h/fast:
+	$(MAKE) $(MAKESILENT) -f pico-sdk/src/rp2_common/pico_status_led/CMakeFiles/pico_status_led_ws2812_pio_h.dir/build.make pico-sdk/src/rp2_common/pico_status_led/CMakeFiles/pico_status_led_ws2812_pio_h.dir/build
+.PHONY : pico_status_led_ws2812_pio_h/fast
+
+HardwareSerial.o: HardwareSerial.cpp.o
+.PHONY : HardwareSerial.o
+
+# target to build an object file
+HardwareSerial.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/HardwareSerial.cpp.o
+.PHONY : HardwareSerial.cpp.o
+
+HardwareSerial.i: HardwareSerial.cpp.i
+.PHONY : HardwareSerial.i
+
+# target to preprocess a source file
+HardwareSerial.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/HardwareSerial.cpp.i
+.PHONY : HardwareSerial.cpp.i
+
+HardwareSerial.s: HardwareSerial.cpp.s
+.PHONY : HardwareSerial.s
+
+# target to generate assembly for a file
+HardwareSerial.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/HardwareSerial.cpp.s
+.PHONY : HardwareSerial.cpp.s
+
+IMU/Adafruit_10DOF.o: IMU/Adafruit_10DOF.cpp.o
+.PHONY : IMU/Adafruit_10DOF.o
+
+# target to build an object file
+IMU/Adafruit_10DOF.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/IMU/Adafruit_10DOF.cpp.o
+.PHONY : IMU/Adafruit_10DOF.cpp.o
+
+IMU/Adafruit_10DOF.i: IMU/Adafruit_10DOF.cpp.i
+.PHONY : IMU/Adafruit_10DOF.i
+
+# target to preprocess a source file
+IMU/Adafruit_10DOF.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/IMU/Adafruit_10DOF.cpp.i
+.PHONY : IMU/Adafruit_10DOF.cpp.i
+
+IMU/Adafruit_10DOF.s: IMU/Adafruit_10DOF.cpp.s
+.PHONY : IMU/Adafruit_10DOF.s
+
+# target to generate assembly for a file
+IMU/Adafruit_10DOF.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/IMU/Adafruit_10DOF.cpp.s
+.PHONY : IMU/Adafruit_10DOF.cpp.s
+
+IMU/Adafruit_BMP085U.o: IMU/Adafruit_BMP085U.cpp.o
+.PHONY : IMU/Adafruit_BMP085U.o
+
+# target to build an object file
+IMU/Adafruit_BMP085U.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/IMU/Adafruit_BMP085U.cpp.o
+.PHONY : IMU/Adafruit_BMP085U.cpp.o
+
+IMU/Adafruit_BMP085U.i: IMU/Adafruit_BMP085U.cpp.i
+.PHONY : IMU/Adafruit_BMP085U.i
+
+# target to preprocess a source file
+IMU/Adafruit_BMP085U.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/IMU/Adafruit_BMP085U.cpp.i
+.PHONY : IMU/Adafruit_BMP085U.cpp.i
+
+IMU/Adafruit_BMP085U.s: IMU/Adafruit_BMP085U.cpp.s
+.PHONY : IMU/Adafruit_BMP085U.s
+
+# target to generate assembly for a file
+IMU/Adafruit_BMP085U.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/IMU/Adafruit_BMP085U.cpp.s
+.PHONY : IMU/Adafruit_BMP085U.cpp.s
+
+IMU/Adafruit_L3GD20U.o: IMU/Adafruit_L3GD20U.cpp.o
+.PHONY : IMU/Adafruit_L3GD20U.o
+
+# target to build an object file
+IMU/Adafruit_L3GD20U.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/IMU/Adafruit_L3GD20U.cpp.o
+.PHONY : IMU/Adafruit_L3GD20U.cpp.o
+
+IMU/Adafruit_L3GD20U.i: IMU/Adafruit_L3GD20U.cpp.i
+.PHONY : IMU/Adafruit_L3GD20U.i
+
+# target to preprocess a source file
+IMU/Adafruit_L3GD20U.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/IMU/Adafruit_L3GD20U.cpp.i
+.PHONY : IMU/Adafruit_L3GD20U.cpp.i
+
+IMU/Adafruit_L3GD20U.s: IMU/Adafruit_L3GD20U.cpp.s
+.PHONY : IMU/Adafruit_L3GD20U.s
+
+# target to generate assembly for a file
+IMU/Adafruit_L3GD20U.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/IMU/Adafruit_L3GD20U.cpp.s
+.PHONY : IMU/Adafruit_L3GD20U.cpp.s
+
+IMU/Adafruit_LSM303U.o: IMU/Adafruit_LSM303U.cpp.o
+.PHONY : IMU/Adafruit_LSM303U.o
+
+# target to build an object file
+IMU/Adafruit_LSM303U.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/IMU/Adafruit_LSM303U.cpp.o
+.PHONY : IMU/Adafruit_LSM303U.cpp.o
+
+IMU/Adafruit_LSM303U.i: IMU/Adafruit_LSM303U.cpp.i
+.PHONY : IMU/Adafruit_LSM303U.i
+
+# target to preprocess a source file
+IMU/Adafruit_LSM303U.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/IMU/Adafruit_LSM303U.cpp.i
+.PHONY : IMU/Adafruit_LSM303U.cpp.i
+
+IMU/Adafruit_LSM303U.s: IMU/Adafruit_LSM303U.cpp.s
+.PHONY : IMU/Adafruit_LSM303U.s
+
+# target to generate assembly for a file
+IMU/Adafruit_LSM303U.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/IMU/Adafruit_LSM303U.cpp.s
+.PHONY : IMU/Adafruit_LSM303U.cpp.s
+
+IMU/PitchRollHeading.o: IMU/PitchRollHeading.cpp.o
+.PHONY : IMU/PitchRollHeading.o
+
+# target to build an object file
+IMU/PitchRollHeading.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/IMU/PitchRollHeading.cpp.o
+.PHONY : IMU/PitchRollHeading.cpp.o
+
+IMU/PitchRollHeading.i: IMU/PitchRollHeading.cpp.i
+.PHONY : IMU/PitchRollHeading.i
+
+# target to preprocess a source file
+IMU/PitchRollHeading.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/IMU/PitchRollHeading.cpp.i
+.PHONY : IMU/PitchRollHeading.cpp.i
+
+IMU/PitchRollHeading.s: IMU/PitchRollHeading.cpp.s
+.PHONY : IMU/PitchRollHeading.s
+
+# target to generate assembly for a file
+IMU/PitchRollHeading.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/IMU/PitchRollHeading.cpp.s
+.PHONY : IMU/PitchRollHeading.cpp.s
+
+Print.o: Print.cpp.o
+.PHONY : Print.o
+
+# target to build an object file
+Print.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Print.cpp.o
+.PHONY : Print.cpp.o
+
+Print.i: Print.cpp.i
+.PHONY : Print.i
+
+# target to preprocess a source file
+Print.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Print.cpp.i
+.PHONY : Print.cpp.i
+
+Print.s: Print.cpp.s
+.PHONY : Print.s
+
+# target to generate assembly for a file
+Print.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Print.cpp.s
+.PHONY : Print.cpp.s
+
+Propulsion/AbstractMotorControl.o: Propulsion/AbstractMotorControl.cpp.o
+.PHONY : Propulsion/AbstractMotorControl.o
+
+# target to build an object file
+Propulsion/AbstractMotorControl.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Propulsion/AbstractMotorControl.cpp.o
+.PHONY : Propulsion/AbstractMotorControl.cpp.o
+
+Propulsion/AbstractMotorControl.i: Propulsion/AbstractMotorControl.cpp.i
+.PHONY : Propulsion/AbstractMotorControl.i
+
+# target to preprocess a source file
+Propulsion/AbstractMotorControl.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Propulsion/AbstractMotorControl.cpp.i
+.PHONY : Propulsion/AbstractMotorControl.cpp.i
+
+Propulsion/AbstractMotorControl.s: Propulsion/AbstractMotorControl.cpp.s
+.PHONY : Propulsion/AbstractMotorControl.s
+
+# target to generate assembly for a file
+Propulsion/AbstractMotorControl.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Propulsion/AbstractMotorControl.cpp.s
+.PHONY : Propulsion/AbstractMotorControl.cpp.s
+
+Propulsion/DelayHBridgeDriver.o: Propulsion/DelayHBridgeDriver.cpp.o
+.PHONY : Propulsion/DelayHBridgeDriver.o
+
+# target to build an object file
+Propulsion/DelayHBridgeDriver.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Propulsion/DelayHBridgeDriver.cpp.o
+.PHONY : Propulsion/DelayHBridgeDriver.cpp.o
+
+Propulsion/DelayHBridgeDriver.i: Propulsion/DelayHBridgeDriver.cpp.i
+.PHONY : Propulsion/DelayHBridgeDriver.i
+
+# target to preprocess a source file
+Propulsion/DelayHBridgeDriver.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Propulsion/DelayHBridgeDriver.cpp.i
+.PHONY : Propulsion/DelayHBridgeDriver.cpp.i
+
+Propulsion/DelayHBridgeDriver.s: Propulsion/DelayHBridgeDriver.cpp.s
+.PHONY : Propulsion/DelayHBridgeDriver.s
+
+# target to generate assembly for a file
+Propulsion/DelayHBridgeDriver.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Propulsion/DelayHBridgeDriver.cpp.s
+.PHONY : Propulsion/DelayHBridgeDriver.cpp.s
+
+Propulsion/HBridgeDriver.o: Propulsion/HBridgeDriver.cpp.o
+.PHONY : Propulsion/HBridgeDriver.o
+
+# target to build an object file
+Propulsion/HBridgeDriver.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Propulsion/HBridgeDriver.cpp.o
+.PHONY : Propulsion/HBridgeDriver.cpp.o
+
+Propulsion/HBridgeDriver.i: Propulsion/HBridgeDriver.cpp.i
+.PHONY : Propulsion/HBridgeDriver.i
+
+# target to preprocess a source file
+Propulsion/HBridgeDriver.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Propulsion/HBridgeDriver.cpp.i
+.PHONY : Propulsion/HBridgeDriver.cpp.i
+
+Propulsion/HBridgeDriver.s: Propulsion/HBridgeDriver.cpp.s
+.PHONY : Propulsion/HBridgeDriver.s
+
+# target to generate assembly for a file
+Propulsion/HBridgeDriver.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Propulsion/HBridgeDriver.cpp.s
+.PHONY : Propulsion/HBridgeDriver.cpp.s
+
+Propulsion/RoboteqDevice.o: Propulsion/RoboteqDevice.cpp.o
+.PHONY : Propulsion/RoboteqDevice.o
+
+# target to build an object file
+Propulsion/RoboteqDevice.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Propulsion/RoboteqDevice.cpp.o
+.PHONY : Propulsion/RoboteqDevice.cpp.o
+
+Propulsion/RoboteqDevice.i: Propulsion/RoboteqDevice.cpp.i
+.PHONY : Propulsion/RoboteqDevice.i
+
+# target to preprocess a source file
+Propulsion/RoboteqDevice.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Propulsion/RoboteqDevice.cpp.i
+.PHONY : Propulsion/RoboteqDevice.cpp.i
+
+Propulsion/RoboteqDevice.s: Propulsion/RoboteqDevice.cpp.s
+.PHONY : Propulsion/RoboteqDevice.s
+
+# target to generate assembly for a file
+Propulsion/RoboteqDevice.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Propulsion/RoboteqDevice.cpp.s
+.PHONY : Propulsion/RoboteqDevice.cpp.s
+
+Propulsion/SplitBridgeDriver.o: Propulsion/SplitBridgeDriver.cpp.o
+.PHONY : Propulsion/SplitBridgeDriver.o
+
+# target to build an object file
+Propulsion/SplitBridgeDriver.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Propulsion/SplitBridgeDriver.cpp.o
+.PHONY : Propulsion/SplitBridgeDriver.cpp.o
+
+Propulsion/SplitBridgeDriver.i: Propulsion/SplitBridgeDriver.cpp.i
+.PHONY : Propulsion/SplitBridgeDriver.i
+
+# target to preprocess a source file
+Propulsion/SplitBridgeDriver.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Propulsion/SplitBridgeDriver.cpp.i
+.PHONY : Propulsion/SplitBridgeDriver.cpp.i
+
+Propulsion/SplitBridgeDriver.s: Propulsion/SplitBridgeDriver.cpp.s
+.PHONY : Propulsion/SplitBridgeDriver.s
+
+# target to generate assembly for a file
+Propulsion/SplitBridgeDriver.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Propulsion/SplitBridgeDriver.cpp.s
+.PHONY : Propulsion/SplitBridgeDriver.cpp.s
+
+Propulsion/SwitchBridgeDriver.o: Propulsion/SwitchBridgeDriver.cpp.o
+.PHONY : Propulsion/SwitchBridgeDriver.o
+
+# target to build an object file
+Propulsion/SwitchBridgeDriver.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Propulsion/SwitchBridgeDriver.cpp.o
+.PHONY : Propulsion/SwitchBridgeDriver.cpp.o
+
+Propulsion/SwitchBridgeDriver.i: Propulsion/SwitchBridgeDriver.cpp.i
+.PHONY : Propulsion/SwitchBridgeDriver.i
+
+# target to preprocess a source file
+Propulsion/SwitchBridgeDriver.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Propulsion/SwitchBridgeDriver.cpp.i
+.PHONY : Propulsion/SwitchBridgeDriver.cpp.i
+
+Propulsion/SwitchBridgeDriver.s: Propulsion/SwitchBridgeDriver.cpp.s
+.PHONY : Propulsion/SwitchBridgeDriver.s
+
+# target to generate assembly for a file
+Propulsion/SwitchBridgeDriver.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Propulsion/SwitchBridgeDriver.cpp.s
+.PHONY : Propulsion/SwitchBridgeDriver.cpp.s
+
+Propulsion/SwitchHBridgeDriver.o: Propulsion/SwitchHBridgeDriver.cpp.o
+.PHONY : Propulsion/SwitchHBridgeDriver.o
+
+# target to build an object file
+Propulsion/SwitchHBridgeDriver.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Propulsion/SwitchHBridgeDriver.cpp.o
+.PHONY : Propulsion/SwitchHBridgeDriver.cpp.o
+
+Propulsion/SwitchHBridgeDriver.i: Propulsion/SwitchHBridgeDriver.cpp.i
+.PHONY : Propulsion/SwitchHBridgeDriver.i
+
+# target to preprocess a source file
+Propulsion/SwitchHBridgeDriver.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Propulsion/SwitchHBridgeDriver.cpp.i
+.PHONY : Propulsion/SwitchHBridgeDriver.cpp.i
+
+Propulsion/SwitchHBridgeDriver.s: Propulsion/SwitchHBridgeDriver.cpp.s
+.PHONY : Propulsion/SwitchHBridgeDriver.s
+
+# target to generate assembly for a file
+Propulsion/SwitchHBridgeDriver.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Propulsion/SwitchHBridgeDriver.cpp.s
+.PHONY : Propulsion/SwitchHBridgeDriver.cpp.s
+
+RoboCore_main.o: RoboCore_main.cpp.o
+.PHONY : RoboCore_main.o
+
+# target to build an object file
+RoboCore_main.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/RoboCore_main.cpp.o
+.PHONY : RoboCore_main.cpp.o
+
+RoboCore_main.i: RoboCore_main.cpp.i
+.PHONY : RoboCore_main.i
+
+# target to preprocess a source file
+RoboCore_main.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/RoboCore_main.cpp.i
+.PHONY : RoboCore_main.cpp.i
+
+RoboCore_main.s: RoboCore_main.cpp.s
+.PHONY : RoboCore_main.s
+
+# target to generate assembly for a file
+RoboCore_main.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/RoboCore_main.cpp.s
+.PHONY : RoboCore_main.cpp.s
+
+Stream.o: Stream.cpp.o
+.PHONY : Stream.o
+
+# target to build an object file
+Stream.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Stream.cpp.o
+.PHONY : Stream.cpp.o
+
+Stream.i: Stream.cpp.i
+.PHONY : Stream.i
+
+# target to preprocess a source file
+Stream.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Stream.cpp.i
+.PHONY : Stream.cpp.i
+
+Stream.s: Stream.cpp.s
+.PHONY : Stream.s
+
+# target to generate assembly for a file
+Stream.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Stream.cpp.s
+.PHONY : Stream.cpp.s
+
+Ultrasonic.o: Ultrasonic.cpp.o
+.PHONY : Ultrasonic.o
+
+# target to build an object file
+Ultrasonic.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Ultrasonic.cpp.o
+.PHONY : Ultrasonic.cpp.o
+
+Ultrasonic.i: Ultrasonic.cpp.i
+.PHONY : Ultrasonic.i
+
+# target to preprocess a source file
+Ultrasonic.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Ultrasonic.cpp.i
+.PHONY : Ultrasonic.cpp.i
+
+Ultrasonic.s: Ultrasonic.cpp.s
+.PHONY : Ultrasonic.s
+
+# target to generate assembly for a file
+Ultrasonic.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/Ultrasonic.cpp.s
+.PHONY : Ultrasonic.cpp.s
+
+VariablePWMDriver.o: VariablePWMDriver.cpp.o
+.PHONY : VariablePWMDriver.o
+
+# target to build an object file
+VariablePWMDriver.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/VariablePWMDriver.cpp.o
+.PHONY : VariablePWMDriver.cpp.o
+
+VariablePWMDriver.i: VariablePWMDriver.cpp.i
+.PHONY : VariablePWMDriver.i
+
+# target to preprocess a source file
+VariablePWMDriver.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/VariablePWMDriver.cpp.i
+.PHONY : VariablePWMDriver.cpp.i
+
+VariablePWMDriver.s: VariablePWMDriver.cpp.s
+.PHONY : VariablePWMDriver.s
+
+# target to generate assembly for a file
+VariablePWMDriver.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/VariablePWMDriver.cpp.s
+.PHONY : VariablePWMDriver.cpp.s
+
+WPWM.o: WPWM.cpp.o
+.PHONY : WPWM.o
+
+# target to build an object file
+WPWM.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/WPWM.cpp.o
+.PHONY : WPWM.cpp.o
+
+WPWM.i: WPWM.cpp.i
+.PHONY : WPWM.i
+
+# target to preprocess a source file
+WPWM.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/WPWM.cpp.i
+.PHONY : WPWM.cpp.i
+
+WPWM.s: WPWM.cpp.s
+.PHONY : WPWM.s
+
+# target to generate assembly for a file
+WPWM.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/WPWM.cpp.s
+.PHONY : WPWM.cpp.s
+
+WShift.o: WShift.cpp.o
+.PHONY : WShift.o
+
+# target to build an object file
+WShift.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/WShift.cpp.o
+.PHONY : WShift.cpp.o
+
+WShift.i: WShift.cpp.i
+.PHONY : WShift.i
+
+# target to preprocess a source file
+WShift.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/WShift.cpp.i
+.PHONY : WShift.cpp.i
+
+WShift.s: WShift.cpp.s
+.PHONY : WShift.s
+
+# target to generate assembly for a file
+WShift.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/WShift.cpp.s
+.PHONY : WShift.cpp.s
+
+WString.o: WString.cpp.o
+.PHONY : WString.o
+
+# target to build an object file
+WString.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/WString.cpp.o
+.PHONY : WString.cpp.o
+
+WString.i: WString.cpp.i
+.PHONY : WString.i
+
+# target to preprocess a source file
+WString.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/WString.cpp.i
+.PHONY : WString.cpp.i
+
+WString.s: WString.cpp.s
+.PHONY : WString.s
+
+# target to generate assembly for a file
+WString.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/WString.cpp.s
+.PHONY : WString.cpp.s
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/hw/bsp/rp2040/family.o: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/hw/bsp/rp2040/family.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/hw/bsp/rp2040/family.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/hw/bsp/rp2040/family.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/hw/bsp/rp2040/family.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/hw/bsp/rp2040/family.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/hw/bsp/rp2040/family.i: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/hw/bsp/rp2040/family.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/hw/bsp/rp2040/family.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/hw/bsp/rp2040/family.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/hw/bsp/rp2040/family.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/hw/bsp/rp2040/family.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/hw/bsp/rp2040/family.s: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/hw/bsp/rp2040/family.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/hw/bsp/rp2040/family.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/hw/bsp/rp2040/family.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/hw/bsp/rp2040/family.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/hw/bsp/rp2040/family.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/audio/audio_device.o: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/audio/audio_device.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/audio/audio_device.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/audio/audio_device.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/audio/audio_device.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/audio/audio_device.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/audio/audio_device.i: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/audio/audio_device.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/audio/audio_device.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/audio/audio_device.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/audio/audio_device.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/audio/audio_device.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/audio/audio_device.s: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/audio/audio_device.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/audio/audio_device.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/audio/audio_device.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/audio/audio_device.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/audio/audio_device.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/cdc/cdc_device.o: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/cdc/cdc_device.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/cdc/cdc_device.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/cdc/cdc_device.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/cdc/cdc_device.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/cdc/cdc_device.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/cdc/cdc_device.i: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/cdc/cdc_device.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/cdc/cdc_device.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/cdc/cdc_device.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/cdc/cdc_device.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/cdc/cdc_device.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/cdc/cdc_device.s: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/cdc/cdc_device.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/cdc/cdc_device.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/cdc/cdc_device.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/cdc/cdc_device.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/cdc/cdc_device.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_device.o: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_device.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_device.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_device.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_device.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_device.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_device.i: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_device.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_device.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_device.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_device.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_device.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_device.s: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_device.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_device.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_device.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_device.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_device.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_rt_device.o: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_rt_device.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_rt_device.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_rt_device.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_rt_device.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_rt_device.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_rt_device.i: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_rt_device.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_rt_device.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_rt_device.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_rt_device.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_rt_device.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_rt_device.s: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_rt_device.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_rt_device.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_rt_device.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_rt_device.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_rt_device.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/hid/hid_device.o: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/hid/hid_device.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/hid/hid_device.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/hid/hid_device.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/hid/hid_device.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/hid/hid_device.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/hid/hid_device.i: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/hid/hid_device.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/hid/hid_device.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/hid/hid_device.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/hid/hid_device.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/hid/hid_device.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/hid/hid_device.s: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/hid/hid_device.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/hid/hid_device.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/hid/hid_device.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/hid/hid_device.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/hid/hid_device.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/midi/midi_device.o: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/midi/midi_device.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/midi/midi_device.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/midi/midi_device.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/midi/midi_device.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/midi/midi_device.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/midi/midi_device.i: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/midi/midi_device.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/midi/midi_device.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/midi/midi_device.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/midi/midi_device.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/midi/midi_device.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/midi/midi_device.s: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/midi/midi_device.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/midi/midi_device.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/midi/midi_device.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/midi/midi_device.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/midi/midi_device.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/msc/msc_device.o: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/msc/msc_device.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/msc/msc_device.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/msc/msc_device.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/msc/msc_device.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/msc/msc_device.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/msc/msc_device.i: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/msc/msc_device.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/msc/msc_device.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/msc/msc_device.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/msc/msc_device.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/msc/msc_device.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/msc/msc_device.s: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/msc/msc_device.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/msc/msc_device.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/msc/msc_device.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/msc/msc_device.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/msc/msc_device.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ecm_rndis_device.o: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ecm_rndis_device.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ecm_rndis_device.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ecm_rndis_device.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ecm_rndis_device.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ecm_rndis_device.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ecm_rndis_device.i: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ecm_rndis_device.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ecm_rndis_device.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ecm_rndis_device.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ecm_rndis_device.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ecm_rndis_device.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ecm_rndis_device.s: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ecm_rndis_device.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ecm_rndis_device.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ecm_rndis_device.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ecm_rndis_device.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ecm_rndis_device.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ncm_device.o: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ncm_device.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ncm_device.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ncm_device.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ncm_device.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ncm_device.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ncm_device.i: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ncm_device.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ncm_device.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ncm_device.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ncm_device.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ncm_device.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ncm_device.s: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ncm_device.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ncm_device.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ncm_device.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ncm_device.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ncm_device.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/usbtmc/usbtmc_device.o: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/usbtmc/usbtmc_device.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/usbtmc/usbtmc_device.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/usbtmc/usbtmc_device.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/usbtmc/usbtmc_device.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/usbtmc/usbtmc_device.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/usbtmc/usbtmc_device.i: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/usbtmc/usbtmc_device.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/usbtmc/usbtmc_device.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/usbtmc/usbtmc_device.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/usbtmc/usbtmc_device.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/usbtmc/usbtmc_device.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/usbtmc/usbtmc_device.s: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/usbtmc/usbtmc_device.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/usbtmc/usbtmc_device.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/usbtmc/usbtmc_device.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/usbtmc/usbtmc_device.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/usbtmc/usbtmc_device.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/vendor/vendor_device.o: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/vendor/vendor_device.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/vendor/vendor_device.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/vendor/vendor_device.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/vendor/vendor_device.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/vendor/vendor_device.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/vendor/vendor_device.i: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/vendor/vendor_device.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/vendor/vendor_device.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/vendor/vendor_device.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/vendor/vendor_device.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/vendor/vendor_device.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/vendor/vendor_device.s: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/vendor/vendor_device.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/vendor/vendor_device.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/vendor/vendor_device.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/vendor/vendor_device.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/vendor/vendor_device.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/video/video_device.o: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/video/video_device.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/video/video_device.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/video/video_device.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/video/video_device.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/video/video_device.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/video/video_device.i: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/video/video_device.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/video/video_device.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/video/video_device.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/video/video_device.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/video/video_device.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/video/video_device.s: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/video/video_device.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/video/video_device.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/video/video_device.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/video/video_device.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/video/video_device.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/common/tusb_fifo.o: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/common/tusb_fifo.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/common/tusb_fifo.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/common/tusb_fifo.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/common/tusb_fifo.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/common/tusb_fifo.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/common/tusb_fifo.i: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/common/tusb_fifo.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/common/tusb_fifo.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/common/tusb_fifo.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/common/tusb_fifo.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/common/tusb_fifo.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/common/tusb_fifo.s: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/common/tusb_fifo.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/common/tusb_fifo.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/common/tusb_fifo.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/common/tusb_fifo.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/common/tusb_fifo.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd.o: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd.i: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd.s: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd_control.o: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd_control.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd_control.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd_control.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd_control.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd_control.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd_control.i: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd_control.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd_control.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd_control.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd_control.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd_control.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd_control.s: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd_control.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd_control.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd_control.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd_control.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd_control.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/dcd_rp2040.o: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/dcd_rp2040.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/dcd_rp2040.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/dcd_rp2040.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/dcd_rp2040.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/dcd_rp2040.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/dcd_rp2040.i: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/dcd_rp2040.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/dcd_rp2040.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/dcd_rp2040.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/dcd_rp2040.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/dcd_rp2040.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/dcd_rp2040.s: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/dcd_rp2040.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/dcd_rp2040.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/dcd_rp2040.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/dcd_rp2040.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/dcd_rp2040.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/rp2040_usb.o: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/rp2040_usb.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/rp2040_usb.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/rp2040_usb.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/rp2040_usb.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/rp2040_usb.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/rp2040_usb.i: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/rp2040_usb.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/rp2040_usb.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/rp2040_usb.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/rp2040_usb.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/rp2040_usb.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/rp2040_usb.s: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/rp2040_usb.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/rp2040_usb.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/rp2040_usb.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/rp2040_usb.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/rp2040_usb.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/tusb.o: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/tusb.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/tusb.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/tusb.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/tusb.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/tusb.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/tusb.i: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/tusb.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/tusb.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/tusb.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/tusb.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/tusb.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/tusb.s: home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/tusb.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/tusb.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/tusb.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/tusb.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/tusb.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/hardware_claim/claim.o: home/jg/.pico-sdk/sdk/2.2.0/src/common/hardware_claim/claim.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/hardware_claim/claim.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/hardware_claim/claim.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/hardware_claim/claim.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/hardware_claim/claim.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/hardware_claim/claim.i: home/jg/.pico-sdk/sdk/2.2.0/src/common/hardware_claim/claim.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/hardware_claim/claim.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/hardware_claim/claim.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/hardware_claim/claim.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/hardware_claim/claim.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/hardware_claim/claim.s: home/jg/.pico-sdk/sdk/2.2.0/src/common/hardware_claim/claim.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/hardware_claim/claim.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/hardware_claim/claim.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/hardware_claim/claim.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/hardware_claim/claim.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/critical_section.o: home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/critical_section.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/critical_section.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/critical_section.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/critical_section.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/critical_section.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/critical_section.i: home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/critical_section.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/critical_section.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/critical_section.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/critical_section.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/critical_section.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/critical_section.s: home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/critical_section.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/critical_section.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/critical_section.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/critical_section.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/critical_section.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/lock_core.o: home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/lock_core.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/lock_core.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/lock_core.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/lock_core.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/lock_core.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/lock_core.i: home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/lock_core.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/lock_core.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/lock_core.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/lock_core.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/lock_core.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/lock_core.s: home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/lock_core.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/lock_core.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/lock_core.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/lock_core.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/lock_core.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/mutex.o: home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/mutex.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/mutex.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/mutex.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/mutex.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/mutex.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/mutex.i: home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/mutex.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/mutex.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/mutex.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/mutex.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/mutex.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/mutex.s: home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/mutex.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/mutex.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/mutex.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/mutex.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/mutex.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/sem.o: home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/sem.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/sem.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/sem.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/sem.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/sem.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/sem.i: home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/sem.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/sem.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/sem.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/sem.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/sem.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/sem.s: home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/sem.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/sem.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/sem.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/sem.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/sem.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/time.o: home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/time.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/time.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/time.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/time.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/time.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/time.i: home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/time.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/time.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/time.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/time.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/time.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/time.s: home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/time.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/time.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/time.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/time.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/time.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/timeout_helper.o: home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/timeout_helper.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/timeout_helper.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/timeout_helper.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/timeout_helper.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/timeout_helper.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/timeout_helper.i: home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/timeout_helper.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/timeout_helper.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/timeout_helper.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/timeout_helper.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/timeout_helper.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/timeout_helper.s: home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/timeout_helper.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/timeout_helper.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/timeout_helper.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/timeout_helper.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/timeout_helper.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/datetime.o: home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/datetime.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/datetime.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/datetime.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/datetime.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/datetime.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/datetime.i: home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/datetime.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/datetime.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/datetime.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/datetime.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/datetime.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/datetime.s: home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/datetime.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/datetime.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/datetime.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/datetime.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/datetime.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/pheap.o: home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/pheap.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/pheap.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/pheap.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/pheap.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/pheap.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/pheap.i: home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/pheap.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/pheap.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/pheap.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/pheap.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/pheap.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/pheap.s: home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/pheap.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/pheap.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/pheap.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/pheap.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/pheap.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/queue.o: home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/queue.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/queue.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/queue.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/queue.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/queue.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/queue.i: home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/queue.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/queue.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/queue.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/queue.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/queue.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/queue.s: home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/queue.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/queue.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/queue.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/queue.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/queue.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2040/pico_platform/platform.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2040/pico_platform/platform.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2040/pico_platform/platform.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2040/pico_platform/platform.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2040/pico_platform/platform.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2040/pico_platform/platform.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2040/pico_platform/platform.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2040/pico_platform/platform.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2040/pico_platform/platform.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2040/pico_platform/platform.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2040/pico_platform/platform.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2040/pico_platform/platform.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2040/pico_platform/platform.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2040/pico_platform/platform.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2040/pico_platform/platform.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2040/pico_platform/platform.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2040/pico_platform/platform.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2040/pico_platform/platform.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_adc/adc.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_adc/adc.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_adc/adc.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_adc/adc.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_adc/adc.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_adc/adc.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_adc/adc.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_adc/adc.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_adc/adc.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_adc/adc.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_adc/adc.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_adc/adc.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_adc/adc.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_adc/adc.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_adc/adc.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_adc/adc.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_adc/adc.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_adc/adc.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_boot_lock/boot_lock.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_boot_lock/boot_lock.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_boot_lock/boot_lock.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_boot_lock/boot_lock.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_boot_lock/boot_lock.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_boot_lock/boot_lock.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_boot_lock/boot_lock.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_boot_lock/boot_lock.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_boot_lock/boot_lock.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_boot_lock/boot_lock.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_boot_lock/boot_lock.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_boot_lock/boot_lock.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_boot_lock/boot_lock.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_boot_lock/boot_lock.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_boot_lock/boot_lock.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_boot_lock/boot_lock.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_boot_lock/boot_lock.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_boot_lock/boot_lock.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_clocks/clocks.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_clocks/clocks.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_clocks/clocks.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_clocks/clocks.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_clocks/clocks.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_clocks/clocks.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_clocks/clocks.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_clocks/clocks.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_clocks/clocks.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_clocks/clocks.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_clocks/clocks.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_clocks/clocks.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_clocks/clocks.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_clocks/clocks.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_clocks/clocks.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_clocks/clocks.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_clocks/clocks.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_clocks/clocks.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_divider/divider.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_divider/divider.S.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_divider/divider.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_divider/divider.S.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_divider/divider.S.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_divider/divider.S.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_dma/dma.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_dma/dma.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_dma/dma.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_dma/dma.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_dma/dma.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_dma/dma.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_dma/dma.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_dma/dma.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_dma/dma.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_dma/dma.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_dma/dma.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_dma/dma.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_dma/dma.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_dma/dma.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_dma/dma.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_dma/dma.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_dma/dma.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_dma/dma.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_exception/exception.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_exception/exception.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_exception/exception.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_exception/exception.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_exception/exception.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_exception/exception.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_exception/exception.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_exception/exception.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_exception/exception.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_exception/exception.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_exception/exception.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_exception/exception.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_exception/exception.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_exception/exception.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_exception/exception.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_exception/exception.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_exception/exception.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_exception/exception.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_flash/flash.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_flash/flash.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_flash/flash.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_flash/flash.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_flash/flash.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_flash/flash.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_flash/flash.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_flash/flash.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_flash/flash.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_flash/flash.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_flash/flash.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_flash/flash.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_flash/flash.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_flash/flash.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_flash/flash.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_flash/flash.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_flash/flash.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_flash/flash.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_gpio/gpio.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_gpio/gpio.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_gpio/gpio.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_gpio/gpio.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_gpio/gpio.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_gpio/gpio.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_gpio/gpio.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_gpio/gpio.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_gpio/gpio.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_gpio/gpio.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_gpio/gpio.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_gpio/gpio.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_gpio/gpio.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_gpio/gpio.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_gpio/gpio.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_gpio/gpio.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_gpio/gpio.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_gpio/gpio.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_i2c/i2c.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_i2c/i2c.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_i2c/i2c.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_i2c/i2c.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_i2c/i2c.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_i2c/i2c.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_i2c/i2c.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_i2c/i2c.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_i2c/i2c.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_i2c/i2c.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_i2c/i2c.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_i2c/i2c.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_i2c/i2c.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_i2c/i2c.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_i2c/i2c.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_i2c/i2c.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_i2c/i2c.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_i2c/i2c.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq_handler_chain.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq_handler_chain.S.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq_handler_chain.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq_handler_chain.S.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq_handler_chain.S.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq_handler_chain.S.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_pll/pll.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_pll/pll.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_pll/pll.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_pll/pll.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_pll/pll.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_pll/pll.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_pll/pll.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_pll/pll.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_pll/pll.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_pll/pll.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_pll/pll.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_pll/pll.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_pll/pll.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_pll/pll.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_pll/pll.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_pll/pll.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_pll/pll.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_pll/pll.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_rtc/rtc.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_rtc/rtc.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_rtc/rtc.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_rtc/rtc.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_rtc/rtc.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_rtc/rtc.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_rtc/rtc.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_rtc/rtc.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_rtc/rtc.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_rtc/rtc.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_rtc/rtc.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_rtc/rtc.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_rtc/rtc.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_rtc/rtc.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_rtc/rtc.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_rtc/rtc.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_rtc/rtc.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_rtc/rtc.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_spi/spi.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_spi/spi.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_spi/spi.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_spi/spi.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_spi/spi.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_spi/spi.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_spi/spi.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_spi/spi.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_spi/spi.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_spi/spi.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_spi/spi.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_spi/spi.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_spi/spi.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_spi/spi.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_spi/spi.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_spi/spi.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_spi/spi.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_spi/spi.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync/sync.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync/sync.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync/sync.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync/sync.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync/sync.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync/sync.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync/sync.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync/sync.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync/sync.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync/sync.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync/sync.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync/sync.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync/sync.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync/sync.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync/sync.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync/sync.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync/sync.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync/sync.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync_spin_lock/sync_spin_lock.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync_spin_lock/sync_spin_lock.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync_spin_lock/sync_spin_lock.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync_spin_lock/sync_spin_lock.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync_spin_lock/sync_spin_lock.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync_spin_lock/sync_spin_lock.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync_spin_lock/sync_spin_lock.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync_spin_lock/sync_spin_lock.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync_spin_lock/sync_spin_lock.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync_spin_lock/sync_spin_lock.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync_spin_lock/sync_spin_lock.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync_spin_lock/sync_spin_lock.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync_spin_lock/sync_spin_lock.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync_spin_lock/sync_spin_lock.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync_spin_lock/sync_spin_lock.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync_spin_lock/sync_spin_lock.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync_spin_lock/sync_spin_lock.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync_spin_lock/sync_spin_lock.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_ticks/ticks.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_ticks/ticks.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_ticks/ticks.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_ticks/ticks.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_ticks/ticks.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_ticks/ticks.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_ticks/ticks.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_ticks/ticks.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_ticks/ticks.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_ticks/ticks.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_ticks/ticks.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_ticks/ticks.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_ticks/ticks.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_ticks/ticks.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_ticks/ticks.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_ticks/ticks.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_ticks/ticks.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_ticks/ticks.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_timer/timer.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_timer/timer.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_timer/timer.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_timer/timer.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_timer/timer.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_timer/timer.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_timer/timer.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_timer/timer.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_timer/timer.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_timer/timer.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_timer/timer.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_timer/timer.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_timer/timer.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_timer/timer.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_timer/timer.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_timer/timer.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_timer/timer.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_timer/timer.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_uart/uart.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_uart/uart.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_uart/uart.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_uart/uart.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_uart/uart.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_uart/uart.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_uart/uart.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_uart/uart.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_uart/uart.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_uart/uart.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_uart/uart.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_uart/uart.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_uart/uart.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_uart/uart.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_uart/uart.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_uart/uart.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_uart/uart.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_uart/uart.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_vreg/vreg.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_vreg/vreg.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_vreg/vreg.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_vreg/vreg.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_vreg/vreg.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_vreg/vreg.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_vreg/vreg.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_vreg/vreg.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_vreg/vreg.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_vreg/vreg.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_vreg/vreg.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_vreg/vreg.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_vreg/vreg.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_vreg/vreg.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_vreg/vreg.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_vreg/vreg.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_vreg/vreg.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_vreg/vreg.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_watchdog/watchdog.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_watchdog/watchdog.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_watchdog/watchdog.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_watchdog/watchdog.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_watchdog/watchdog.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_watchdog/watchdog.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_watchdog/watchdog.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_watchdog/watchdog.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_watchdog/watchdog.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_watchdog/watchdog.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_watchdog/watchdog.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_watchdog/watchdog.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_watchdog/watchdog.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_watchdog/watchdog.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_watchdog/watchdog.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_watchdog/watchdog.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_watchdog/watchdog.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_watchdog/watchdog.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xip_cache/xip_cache.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xip_cache/xip_cache.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xip_cache/xip_cache.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xip_cache/xip_cache.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xip_cache/xip_cache.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xip_cache/xip_cache.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xip_cache/xip_cache.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xip_cache/xip_cache.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xip_cache/xip_cache.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xip_cache/xip_cache.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xip_cache/xip_cache.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xip_cache/xip_cache.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xip_cache/xip_cache.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xip_cache/xip_cache.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xip_cache/xip_cache.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xip_cache/xip_cache.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xip_cache/xip_cache.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xip_cache/xip_cache.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xosc/xosc.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xosc/xosc.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xosc/xosc.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xosc/xosc.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xosc/xosc.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xosc/xosc.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xosc/xosc.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xosc/xosc.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xosc/xosc.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xosc/xosc.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xosc/xosc.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xosc/xosc.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xosc/xosc.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xosc/xosc.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xosc/xosc.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xosc/xosc.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xosc/xosc.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xosc/xosc.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_atomic/atomic.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_atomic/atomic.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_atomic/atomic.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_atomic/atomic.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_atomic/atomic.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_atomic/atomic.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_atomic/atomic.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_atomic/atomic.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_atomic/atomic.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_atomic/atomic.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_atomic/atomic.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_atomic/atomic.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_atomic/atomic.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_atomic/atomic.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_atomic/atomic.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_atomic/atomic.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_atomic/atomic.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_atomic/atomic.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bit_ops/bit_ops_aeabi.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bit_ops/bit_ops_aeabi.S.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bit_ops/bit_ops_aeabi.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bit_ops/bit_ops_aeabi.S.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bit_ops/bit_ops_aeabi.S.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bit_ops/bit_ops_aeabi.S.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom_lock.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom_lock.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom_lock.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom_lock.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom_lock.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom_lock.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom_lock.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom_lock.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom_lock.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom_lock.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom_lock.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom_lock.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom_lock.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom_lock.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom_lock.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom_lock.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom_lock.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom_lock.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_clib_interface/newlib_interface.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_clib_interface/newlib_interface.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_clib_interface/newlib_interface.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_clib_interface/newlib_interface.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_clib_interface/newlib_interface.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_clib_interface/newlib_interface.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_clib_interface/newlib_interface.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_clib_interface/newlib_interface.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_clib_interface/newlib_interface.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_clib_interface/newlib_interface.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_clib_interface/newlib_interface.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_clib_interface/newlib_interface.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_clib_interface/newlib_interface.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_clib_interface/newlib_interface.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_clib_interface/newlib_interface.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_clib_interface/newlib_interface.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_clib_interface/newlib_interface.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_clib_interface/newlib_interface.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_crt0/crt0.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_crt0/crt0.S.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_crt0/crt0.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_crt0/crt0.S.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_crt0/crt0.S.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_crt0/crt0.S.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_cxx_options/new_delete.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_cxx_options/new_delete.cpp.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_cxx_options/new_delete.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_cxx_options/new_delete.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_cxx_options/new_delete.cpp.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_cxx_options/new_delete.cpp.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_cxx_options/new_delete.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_cxx_options/new_delete.cpp.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_cxx_options/new_delete.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_cxx_options/new_delete.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_cxx_options/new_delete.cpp.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_cxx_options/new_delete.cpp.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_cxx_options/new_delete.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_cxx_options/new_delete.cpp.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_cxx_options/new_delete.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_cxx_options/new_delete.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_cxx_options/new_delete.cpp.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_cxx_options/new_delete.cpp.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_divider/divider_hardware.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_divider/divider_hardware.S.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_divider/divider_hardware.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_divider/divider_hardware.S.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_divider/divider_hardware.S.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_divider/divider_hardware.S.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_aeabi_rp2040.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_aeabi_rp2040.S.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_aeabi_rp2040.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_aeabi_rp2040.S.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_aeabi_rp2040.S.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_aeabi_rp2040.S.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_init_rom_rp2040.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_init_rom_rp2040.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_init_rom_rp2040.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_init_rom_rp2040.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_init_rom_rp2040.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_init_rom_rp2040.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_init_rom_rp2040.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_init_rom_rp2040.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_init_rom_rp2040.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_init_rom_rp2040.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_init_rom_rp2040.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_init_rom_rp2040.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_init_rom_rp2040.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_init_rom_rp2040.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_init_rom_rp2040.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_init_rom_rp2040.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_init_rom_rp2040.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_init_rom_rp2040.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_math.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_math.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_math.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_math.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_math.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_math.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_math.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_math.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_math.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_math.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_math.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_math.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_math.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_math.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_math.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_math.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_math.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_math.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_v1_rom_shim_rp2040.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_v1_rom_shim_rp2040.S.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_v1_rom_shim_rp2040.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_v1_rom_shim_rp2040.S.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_v1_rom_shim_rp2040.S.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_v1_rom_shim_rp2040.S.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/rp2040_usb_device_enumeration.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/rp2040_usb_device_enumeration.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/rp2040_usb_device_enumeration.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/rp2040_usb_device_enumeration.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/rp2040_usb_device_enumeration.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/rp2040_usb_device_enumeration.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/rp2040_usb_device_enumeration.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/rp2040_usb_device_enumeration.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/rp2040_usb_device_enumeration.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/rp2040_usb_device_enumeration.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/rp2040_usb_device_enumeration.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/rp2040_usb_device_enumeration.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/rp2040_usb_device_enumeration.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/rp2040_usb_device_enumeration.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/rp2040_usb_device_enumeration.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/rp2040_usb_device_enumeration.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/rp2040_usb_device_enumeration.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/rp2040_usb_device_enumeration.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_flash/flash.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_flash/flash.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_flash/flash.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_flash/flash.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_flash/flash.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_flash/flash.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_flash/flash.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_flash/flash.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_flash/flash.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_flash/flash.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_flash/flash.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_flash/flash.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_flash/flash.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_flash/flash.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_flash/flash.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_flash/flash.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_flash/flash.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_flash/flash.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_aeabi_rp2040.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_aeabi_rp2040.S.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_aeabi_rp2040.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_aeabi_rp2040.S.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_aeabi_rp2040.S.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_aeabi_rp2040.S.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_init_rom_rp2040.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_init_rom_rp2040.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_init_rom_rp2040.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_init_rom_rp2040.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_init_rom_rp2040.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_init_rom_rp2040.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_init_rom_rp2040.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_init_rom_rp2040.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_init_rom_rp2040.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_init_rom_rp2040.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_init_rom_rp2040.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_init_rom_rp2040.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_init_rom_rp2040.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_init_rom_rp2040.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_init_rom_rp2040.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_init_rom_rp2040.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_init_rom_rp2040.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_init_rom_rp2040.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_math.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_math.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_math.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_math.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_math.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_math.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_math.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_math.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_math.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_math.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_math.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_math.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_math.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_math.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_math.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_math.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_math.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_math.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_v1_rom_shim_rp2040.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_v1_rom_shim_rp2040.S.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_v1_rom_shim_rp2040.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_v1_rom_shim_rp2040.S.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_v1_rom_shim_rp2040.S.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_v1_rom_shim_rp2040.S.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_int64_ops/pico_int64_ops_aeabi.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_int64_ops/pico_int64_ops_aeabi.S.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_int64_ops/pico_int64_ops_aeabi.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_int64_ops/pico_int64_ops_aeabi.S.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_int64_ops/pico_int64_ops_aeabi.S.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_int64_ops/pico_int64_ops_aeabi.S.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_malloc/malloc.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_malloc/malloc.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_malloc/malloc.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_malloc/malloc.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_malloc/malloc.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_malloc/malloc.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_malloc/malloc.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_malloc/malloc.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_malloc/malloc.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_malloc/malloc.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_malloc/malloc.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_malloc/malloc.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_malloc/malloc.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_malloc/malloc.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_malloc/malloc.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_malloc/malloc.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_malloc/malloc.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_malloc/malloc.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_mem_ops/mem_ops_aeabi.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_mem_ops/mem_ops_aeabi.S.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_mem_ops/mem_ops_aeabi.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_mem_ops/mem_ops_aeabi.S.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_mem_ops/mem_ops_aeabi.S.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_mem_ops/mem_ops_aeabi.S.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_common/common.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_common/common.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_common/common.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_common/common.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_common/common.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_common/common.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_common/common.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_common/common.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_common/common.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_common/common.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_common/common.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_common/common.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_common/common.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_common/common.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_common/common.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_common/common.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_common/common.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_common/common.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_panic/panic.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_panic/panic.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_panic/panic.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_panic/panic.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_panic/panic.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_panic/panic.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_panic/panic.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_panic/panic.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_panic/panic.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_panic/panic.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_panic/panic.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_panic/panic.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_panic/panic.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_panic/panic.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_panic/panic.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_panic/panic.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_panic/panic.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_panic/panic.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_printf/printf.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_printf/printf.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_printf/printf.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_printf/printf.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_printf/printf.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_printf/printf.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_printf/printf.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_printf/printf.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_printf/printf.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_printf/printf.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_printf/printf.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_printf/printf.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_printf/printf.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_printf/printf.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_printf/printf.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_printf/printf.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_printf/printf.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_printf/printf.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime/runtime.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime/runtime.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime/runtime.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime/runtime.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime/runtime.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime/runtime.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime/runtime.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime/runtime.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime/runtime.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime/runtime.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime/runtime.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime/runtime.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime/runtime.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime/runtime.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime/runtime.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime/runtime.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime/runtime.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime/runtime.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_clocks.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_clocks.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_clocks.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_clocks.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_clocks.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_clocks.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_clocks.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_clocks.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_clocks.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_clocks.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_clocks.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_clocks.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_clocks.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_clocks.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_clocks.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_clocks.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_clocks.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_clocks.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_stack_guard.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_stack_guard.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_stack_guard.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_stack_guard.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_stack_guard.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_stack_guard.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_stack_guard.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_stack_guard.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_stack_guard.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_stack_guard.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_stack_guard.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_stack_guard.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_stack_guard.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_stack_guard.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_stack_guard.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_stack_guard.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_stack_guard.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_stack_guard.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_standard_binary_info/standard_binary_info.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_standard_binary_info/standard_binary_info.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_standard_binary_info/standard_binary_info.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_standard_binary_info/standard_binary_info.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_standard_binary_info/standard_binary_info.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_standard_binary_info/standard_binary_info.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_standard_binary_info/standard_binary_info.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_standard_binary_info/standard_binary_info.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_standard_binary_info/standard_binary_info.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_standard_binary_info/standard_binary_info.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_standard_binary_info/standard_binary_info.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_standard_binary_info/standard_binary_info.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_standard_binary_info/standard_binary_info.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_standard_binary_info/standard_binary_info.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_standard_binary_info/standard_binary_info.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_standard_binary_info/standard_binary_info.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_standard_binary_info/standard_binary_info.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_standard_binary_info/standard_binary_info.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio/stdio.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio/stdio.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio/stdio.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio/stdio.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio/stdio.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio/stdio.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio/stdio.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio/stdio.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio/stdio.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio/stdio.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio/stdio.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio/stdio.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio/stdio.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio/stdio.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio/stdio.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio/stdio.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio/stdio.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio/stdio.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio_uart/stdio_uart.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio_uart/stdio_uart.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio_uart/stdio_uart.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio_uart/stdio_uart.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio_uart/stdio_uart.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio_uart/stdio_uart.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio_uart/stdio_uart.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio_uart/stdio_uart.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio_uart/stdio_uart.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio_uart/stdio_uart.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio_uart/stdio_uart.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio_uart/stdio_uart.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio_uart/stdio_uart.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio_uart/stdio_uart.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio_uart/stdio_uart.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio_uart/stdio_uart.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio_uart/stdio_uart.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio_uart/stdio_uart.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdlib/stdlib.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdlib/stdlib.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdlib/stdlib.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdlib/stdlib.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdlib/stdlib.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdlib/stdlib.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdlib/stdlib.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdlib/stdlib.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdlib/stdlib.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdlib/stdlib.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdlib/stdlib.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdlib/stdlib.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdlib/stdlib.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdlib/stdlib.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdlib/stdlib.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdlib/stdlib.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdlib/stdlib.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdlib/stdlib.c.s
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_unique_id/unique_id.o: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_unique_id/unique_id.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_unique_id/unique_id.o
+
+# target to build an object file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_unique_id/unique_id.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_unique_id/unique_id.c.o
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_unique_id/unique_id.c.o
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_unique_id/unique_id.i: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_unique_id/unique_id.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_unique_id/unique_id.i
+
+# target to preprocess a source file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_unique_id/unique_id.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_unique_id/unique_id.c.i
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_unique_id/unique_id.c.i
+
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_unique_id/unique_id.s: home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_unique_id/unique_id.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_unique_id/unique_id.s
+
+# target to generate assembly for a file
+home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_unique_id/unique_id.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_unique_id/unique_id.c.s
+.PHONY : home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_unique_id/unique_id.c.s
+
+main.o: main.cpp.o
+.PHONY : main.o
+
+# target to build an object file
+main.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/main.cpp.o
+.PHONY : main.cpp.o
+
+main.i: main.cpp.i
+.PHONY : main.i
+
+# target to preprocess a source file
+main.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/main.cpp.i
+.PHONY : main.cpp.i
+
+main.s: main.cpp.s
+.PHONY : main.s
+
+# target to generate assembly for a file
+main.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/main.cpp.s
+.PHONY : main.cpp.s
+
+usb-descriptors.o: usb-descriptors.c.o
+.PHONY : usb-descriptors.o
+
+# target to build an object file
+usb-descriptors.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/usb-descriptors.c.o
+.PHONY : usb-descriptors.c.o
+
+usb-descriptors.i: usb-descriptors.c.i
+.PHONY : usb-descriptors.i
+
+# target to preprocess a source file
+usb-descriptors.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/usb-descriptors.c.i
+.PHONY : usb-descriptors.c.i
+
+usb-descriptors.s: usb-descriptors.c.s
+.PHONY : usb-descriptors.s
+
+# target to generate assembly for a file
+usb-descriptors.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Marlinspike.dir/build.make CMakeFiles/Marlinspike.dir/usb-descriptors.c.s
+.PHONY : usb-descriptors.c.s
+
+# Help Target
+help:
+	@echo "The following are some of the valid targets for this Makefile:"
+	@echo "... all (the default if no target is provided)"
+	@echo "... clean"
+	@echo "... depend"
+	@echo "... edit_cache"
+	@echo "... rebuild_cache"
+	@echo "... bs2_default_bin"
+	@echo "... cyw43_driver_picow_cyw43_bus_pio_spi_pio_h"
+	@echo "... pico_status_led_ws2812_pio_h"
+	@echo "... Marlinspike"
+	@echo "... bs2_default"
+	@echo "... bs2_default_library"
+	@echo "... HardwareSerial.o"
+	@echo "... HardwareSerial.i"
+	@echo "... HardwareSerial.s"
+	@echo "... IMU/Adafruit_10DOF.o"
+	@echo "... IMU/Adafruit_10DOF.i"
+	@echo "... IMU/Adafruit_10DOF.s"
+	@echo "... IMU/Adafruit_BMP085U.o"
+	@echo "... IMU/Adafruit_BMP085U.i"
+	@echo "... IMU/Adafruit_BMP085U.s"
+	@echo "... IMU/Adafruit_L3GD20U.o"
+	@echo "... IMU/Adafruit_L3GD20U.i"
+	@echo "... IMU/Adafruit_L3GD20U.s"
+	@echo "... IMU/Adafruit_LSM303U.o"
+	@echo "... IMU/Adafruit_LSM303U.i"
+	@echo "... IMU/Adafruit_LSM303U.s"
+	@echo "... IMU/PitchRollHeading.o"
+	@echo "... IMU/PitchRollHeading.i"
+	@echo "... IMU/PitchRollHeading.s"
+	@echo "... Print.o"
+	@echo "... Print.i"
+	@echo "... Print.s"
+	@echo "... Propulsion/AbstractMotorControl.o"
+	@echo "... Propulsion/AbstractMotorControl.i"
+	@echo "... Propulsion/AbstractMotorControl.s"
+	@echo "... Propulsion/DelayHBridgeDriver.o"
+	@echo "... Propulsion/DelayHBridgeDriver.i"
+	@echo "... Propulsion/DelayHBridgeDriver.s"
+	@echo "... Propulsion/HBridgeDriver.o"
+	@echo "... Propulsion/HBridgeDriver.i"
+	@echo "... Propulsion/HBridgeDriver.s"
+	@echo "... Propulsion/RoboteqDevice.o"
+	@echo "... Propulsion/RoboteqDevice.i"
+	@echo "... Propulsion/RoboteqDevice.s"
+	@echo "... Propulsion/SplitBridgeDriver.o"
+	@echo "... Propulsion/SplitBridgeDriver.i"
+	@echo "... Propulsion/SplitBridgeDriver.s"
+	@echo "... Propulsion/SwitchBridgeDriver.o"
+	@echo "... Propulsion/SwitchBridgeDriver.i"
+	@echo "... Propulsion/SwitchBridgeDriver.s"
+	@echo "... Propulsion/SwitchHBridgeDriver.o"
+	@echo "... Propulsion/SwitchHBridgeDriver.i"
+	@echo "... Propulsion/SwitchHBridgeDriver.s"
+	@echo "... RoboCore_main.o"
+	@echo "... RoboCore_main.i"
+	@echo "... RoboCore_main.s"
+	@echo "... Stream.o"
+	@echo "... Stream.i"
+	@echo "... Stream.s"
+	@echo "... Ultrasonic.o"
+	@echo "... Ultrasonic.i"
+	@echo "... Ultrasonic.s"
+	@echo "... VariablePWMDriver.o"
+	@echo "... VariablePWMDriver.i"
+	@echo "... VariablePWMDriver.s"
+	@echo "... WPWM.o"
+	@echo "... WPWM.i"
+	@echo "... WPWM.s"
+	@echo "... WShift.o"
+	@echo "... WShift.i"
+	@echo "... WShift.s"
+	@echo "... WString.o"
+	@echo "... WString.i"
+	@echo "... WString.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/hw/bsp/rp2040/family.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/hw/bsp/rp2040/family.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/hw/bsp/rp2040/family.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/audio/audio_device.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/audio/audio_device.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/audio/audio_device.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/cdc/cdc_device.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/cdc/cdc_device.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/cdc/cdc_device.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_device.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_device.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_device.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_rt_device.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_rt_device.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_rt_device.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/hid/hid_device.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/hid/hid_device.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/hid/hid_device.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/midi/midi_device.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/midi/midi_device.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/midi/midi_device.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/msc/msc_device.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/msc/msc_device.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/msc/msc_device.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ecm_rndis_device.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ecm_rndis_device.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ecm_rndis_device.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ncm_device.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ncm_device.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ncm_device.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/usbtmc/usbtmc_device.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/usbtmc/usbtmc_device.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/usbtmc/usbtmc_device.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/vendor/vendor_device.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/vendor/vendor_device.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/vendor/vendor_device.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/video/video_device.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/video/video_device.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/video/video_device.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/common/tusb_fifo.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/common/tusb_fifo.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/common/tusb_fifo.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd_control.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd_control.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd_control.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/dcd_rp2040.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/dcd_rp2040.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/dcd_rp2040.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/rp2040_usb.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/rp2040_usb.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/rp2040_usb.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/tusb.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/tusb.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/tusb.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/hardware_claim/claim.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/hardware_claim/claim.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/hardware_claim/claim.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/critical_section.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/critical_section.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/critical_section.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/lock_core.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/lock_core.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/lock_core.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/mutex.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/mutex.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/mutex.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/sem.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/sem.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_sync/sem.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/time.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/time.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/time.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/timeout_helper.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/timeout_helper.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_time/timeout_helper.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/datetime.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/datetime.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/datetime.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/pheap.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/pheap.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/pheap.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/queue.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/queue.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/common/pico_util/queue.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2040/pico_platform/platform.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2040/pico_platform/platform.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2040/pico_platform/platform.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_adc/adc.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_adc/adc.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_adc/adc.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_boot_lock/boot_lock.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_boot_lock/boot_lock.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_boot_lock/boot_lock.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_clocks/clocks.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_clocks/clocks.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_clocks/clocks.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_divider/divider.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_dma/dma.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_dma/dma.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_dma/dma.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_exception/exception.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_exception/exception.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_exception/exception.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_flash/flash.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_flash/flash.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_flash/flash.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_gpio/gpio.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_gpio/gpio.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_gpio/gpio.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_i2c/i2c.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_i2c/i2c.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_i2c/i2c.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq_handler_chain.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_pll/pll.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_pll/pll.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_pll/pll.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_rtc/rtc.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_rtc/rtc.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_rtc/rtc.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_spi/spi.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_spi/spi.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_spi/spi.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync/sync.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync/sync.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync/sync.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync_spin_lock/sync_spin_lock.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync_spin_lock/sync_spin_lock.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync_spin_lock/sync_spin_lock.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_ticks/ticks.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_ticks/ticks.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_ticks/ticks.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_timer/timer.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_timer/timer.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_timer/timer.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_uart/uart.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_uart/uart.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_uart/uart.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_vreg/vreg.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_vreg/vreg.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_vreg/vreg.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_watchdog/watchdog.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_watchdog/watchdog.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_watchdog/watchdog.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xip_cache/xip_cache.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xip_cache/xip_cache.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xip_cache/xip_cache.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xosc/xosc.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xosc/xosc.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xosc/xosc.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_atomic/atomic.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_atomic/atomic.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_atomic/atomic.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bit_ops/bit_ops_aeabi.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom_lock.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom_lock.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom_lock.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_clib_interface/newlib_interface.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_clib_interface/newlib_interface.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_clib_interface/newlib_interface.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_crt0/crt0.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_cxx_options/new_delete.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_cxx_options/new_delete.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_cxx_options/new_delete.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_divider/divider_hardware.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_aeabi_rp2040.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_init_rom_rp2040.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_init_rom_rp2040.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_init_rom_rp2040.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_math.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_math.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_math.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_v1_rom_shim_rp2040.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/rp2040_usb_device_enumeration.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/rp2040_usb_device_enumeration.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/rp2040_usb_device_enumeration.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_flash/flash.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_flash/flash.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_flash/flash.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_aeabi_rp2040.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_init_rom_rp2040.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_init_rom_rp2040.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_init_rom_rp2040.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_math.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_math.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_math.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_v1_rom_shim_rp2040.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_int64_ops/pico_int64_ops_aeabi.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_malloc/malloc.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_malloc/malloc.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_malloc/malloc.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_mem_ops/mem_ops_aeabi.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_common/common.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_common/common.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_common/common.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_panic/panic.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_panic/panic.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_panic/panic.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_printf/printf.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_printf/printf.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_printf/printf.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime/runtime.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime/runtime.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime/runtime.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_clocks.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_clocks.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_clocks.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_stack_guard.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_stack_guard.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_stack_guard.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_standard_binary_info/standard_binary_info.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_standard_binary_info/standard_binary_info.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_standard_binary_info/standard_binary_info.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio/stdio.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio/stdio.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio/stdio.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio_uart/stdio_uart.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio_uart/stdio_uart.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio_uart/stdio_uart.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdlib/stdlib.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdlib/stdlib.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdlib/stdlib.s"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_unique_id/unique_id.o"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_unique_id/unique_id.i"
+	@echo "... home/jg/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_unique_id/unique_id.s"
+	@echo "... main.o"
+	@echo "... main.i"
+	@echo "... main.s"
+	@echo "... usb-descriptors.o"
+	@echo "... usb-descriptors.i"
+	@echo "... usb-descriptors.s"
+.PHONY : help
 
 
-.PHONY:	all build elf hex eep lss sym program coff extcoff clean depend sizebefore sizeafter
 
-# Automaticaly include the dependency files created by gcc
--include ${wildcard $(BUILD_DIR)/*.d}
+#=============================================================================
+# Special targets to cleanup operation of make.
+
+# Special rule to run CMake to check the build system integrity.
+# No rule that depends on this can have commands that come from listfiles
+# because they might be regenerated.
+cmake_check_build_system:
+	$(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
+.PHONY : cmake_check_build_system
+

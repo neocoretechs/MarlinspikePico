@@ -127,7 +127,7 @@ int RoboteqDevice::queryFaultFlag() {
 	// Query: ?FF
 	// Response: FF=<status>
 	int fault = -1;
-	memset(buffer, NULL, ROBOTEQ_BUFFER_SIZE);
+	memset(buffer, 0, ROBOTEQ_BUFFER_SIZE);
 	int res = 0;
 	if ((res = this->sendQuery("?FF\r", (uint8_t*)buffer, ROBOTEQ_BUFFER_SIZE)) < 0)
 		return res;
@@ -152,7 +152,7 @@ int RoboteqDevice::queryStatusFlag() {
 	// Query: ?FS
 	// Response: FS=<status>
 	int status = -1;
-	memset(buffer, NULL, ROBOTEQ_BUFFER_SIZE);
+	memset(buffer, 0, ROBOTEQ_BUFFER_SIZE);
 	int res;
 	if ((res = this->sendQuery("?FS\r", (uint8_t*)buffer, ROBOTEQ_BUFFER_SIZE)) < 0)
 	return res;
@@ -167,7 +167,7 @@ int RoboteqDevice::queryStatusFlag() {
 int RoboteqDevice::queryFirmware(char* buf, size_t bufSize) {
 	// Query: ?FID
 	// Response: FID=<firmware>
-	memset(buf, NULL, bufSize);
+	memset(buf, 0, bufSize);
 	return this->sendQuery("?FID\r", (uint8_t*)buf, 100);
 	// TODO: Parse response
 }
@@ -244,7 +244,7 @@ int RoboteqDevice::queryBatteryVoltage(void) {
 	// Query: ?V 2 (2 = main battery voltage)
 	// Response: V=<voltage>*10
 	int voltage = -1;
-	memset(buffer, NULL, ROBOTEQ_BUFFER_SIZE);
+	memset(buffer, 0, ROBOTEQ_BUFFER_SIZE);
 	int res;
 	if ((res = this->sendQuery("?V 2\r", (uint8_t*)buffer, ROBOTEQ_BUFFER_SIZE)) < 0)
 	return res;
@@ -260,7 +260,7 @@ int RoboteqDevice::queryMotorVoltage(void) {
 	// Query: ?V 1 (1 = main motor voltage)
 	// Response: V=<voltage>*10
 	int voltage = -1;
-	memset(buffer, NULL, ROBOTEQ_BUFFER_SIZE);
+	memset(buffer, 0, ROBOTEQ_BUFFER_SIZE);
 	int res;
 	if ((res = this->sendQuery("?V 1\r", (uint8_t*)buffer, ROBOTEQ_BUFFER_SIZE)) < 0)
 	return res;

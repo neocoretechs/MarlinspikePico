@@ -15,8 +15,7 @@
   BSD license, all text above must be included in any redistribution
  ***************************************************************************/
 #include <limits.h>
-#include <Math.h>
-
+#include "math.h"
 #include "Adafruit_10DOF.h"
 #include "Configuration_adv.h"
 

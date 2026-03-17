@@ -63,7 +63,7 @@ protected:
 	int fault_flag = 0;
 	//functions
 	public:	
-	virtual ~AbstractPWMControl() = default;
+	AbstractPWMControl();
 	void setDuration(uint ch, uint32_t durx) { maxPWMDuration[ch-1] = durx; }
 	void setMinPWMLevel(uint ch, uint32_t mpow) { minPWMLevel[ch-1] = mpow;}
 	virtual int commandPWMLevel(uint8_t ch, int16_t p)=0;

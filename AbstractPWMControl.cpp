@@ -24,14 +24,9 @@
 * Author: Groff
 */
 #include "AbstractPWMControl.h"
-
+AbstractPWMControl::AbstractPWMControl() {}
 // functions
 void AbstractPWMControl::resetLevels(void) {
 	for(int i = 0; i < 10; i++) pwmLevel[i] = 0; // all channels down
 }
-
-// virtual destructor
-AbstractPWMControl::~AbstractPWMControl()
-{
-} //~AbstractPWMControl
 

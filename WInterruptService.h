@@ -1,10 +1,9 @@
 #ifndef __INTERRUPT_SERVICE_
 #define __INTERRUPT_SERVICE_
-#include "WInterruptsBase.h"
-class InterruptService : public InterruptsBase
+class InterruptService
 {
 	public:
-	InterruptService() : InterruptsBase(){}
+	InterruptService() {}
 	virtual void service(void)=0;
 };
 
