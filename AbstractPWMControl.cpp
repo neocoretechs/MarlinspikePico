@@ -29,4 +29,14 @@ AbstractPWMControl::AbstractPWMControl() {}
 void AbstractPWMControl::resetLevels(void) {
 	for(int i = 0; i < 10; i++) pwmLevel[i] = 0; // all channels down
 }
+int AbstractPWMControl::commandPWMLevel(uint8_t, int16_t) { return 0; }
+int AbstractPWMControl::commandEmergencyStop(int) { return 0; }
+int AbstractPWMControl::isConnected(void) { return 0; }
+int AbstractPWMControl::queryFaultFlag(void) { return 0; }
+int AbstractPWMControl::queryStatusFlag(void) { return 0; }
+void AbstractPWMControl::setMaxPWMLevel(int) {}
+bool AbstractPWMControl::usesPWM(uint8_t) { return false; }
+void AbstractPWMControl::getDriverInfo(uint8_t, char*) {}
+
+
 
