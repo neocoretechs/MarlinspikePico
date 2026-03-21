@@ -40,7 +40,7 @@ no parity, and issuing commands directly to the microcontroller. Minicom works w
 
 Overview
 
-Marlinspike uses a structured set of M‑codes to declare, configure, and activate logical controllers inside the microcontroller subsystem.
+Marlinspike uses a structured set of M-codes to declare, configure, and activate logical controllers inside the microcontroller subsystem.
 All controller configuration begins with M10 controller slot asignment, followed by one or more configuration commands.
 
 This document describes the supported controller-related M-codes and their parameters.
@@ -49,7 +49,7 @@ This document describes the supported controller-related M-codes and their param
 
 Syntax
 
-M10 Z [slot] T[type]
+M10 Z[slot] T[type]
 
 Creates a logical controller in a numbered slot.Subsequent M-codes configure that controller.
 
@@ -91,41 +91,41 @@ These commands configure the controller declared by M10.
 
 Syntax
 
-M2 [Zslot] [Cchannel ] [Wencoder pin] [Edefault dir]
+M2 Z[slot] C[channel ] W[encoder pin] E[default dir]
 
 2.2 M3 — H-Bridge (Type 1)
 
 Syntax
 
-M3 [Zslot] Ppwm pin Cchannel Ddirection pin Edefault dir Wencoder pin [Ffrequency] [Hduty]
+M3 Z[slot] P[pwm pin] C[channel] D[direction pin] E[default dir] W[encoder pin]
 
 2.3 M4 — SplitBridge (Type 2)
 
 Syntax
 
-M4 [Zslot] Ppwm pin A Qpwm pin B Cchannel Denable pin Edefault dir [Wencoder pin] [Ffrequency] [Hduty]
+M4 Z[slot] P[pwm pin A] Q[pwm pin B] C[channel] D[enable pin] E[default dir] (W[encoder pin])
 
 2.4 M5 — SwitchBridge / SwitchHBridge (Types 3 & 4)
 
 SwitchBridge (Type 3)
 
-M5 Zslot Ppin A Qpin B Cchannel Denable pin Edefault dir [Wencoder]
+M5 Z[slot] P[pin A] Q[pin B] C[channel] D[enable pin] E[default dir] (W[encoder])
 
 SwitchHBridge (Type 4)(no Q pin)
 
-M5 Z<slot> Ppin Cchannel Ddirection pin Edefault dir [Wencoder]
+M5 Z[slot] P[pin] C[channel] D[direction pin] E[default dir] (W[encoder])
 
 2.5 M9 — PWM Driver (Type 5)
 
 Syntax
 
-M9 [Zslot] Ppwm pin Cchannel Denable pin [Ffrequency] [Hduty]
+M9 Z[slot] P[pwm pin] C[channel] D[enable pin]
 
 2.6 M16 — Delay HBridge (Type 8)
 
 Syntax
 
-M16 [Zslot] Ppwm pin Cchannel Ddirection pin Edefault dir Wencoder pin [Ffrequency] [Hduty]
+M16 Z[slot] P[pwm pin] C[channel] D[direction pin] E[default dir] W[encoder pin]
 
 3. Encoder Configuration
 
@@ -133,33 +133,35 @@ M16 [Zslot] Ppwm pin Cchannel Ddirection pin Edefault dir Wencoder pin [Ffrequen
 
 Syntax
 
-M14 Zslot Cchannel Ppin Llo Hhi Ncount
+M14 Z[slot] C[channel] P[pin] L[lo value] H[hi value] N[count]
 
 3.2 M15 — Digital Encoder
 
 Syntax
 
-M15 Zslot Cchannel Ppin Sstate Ncount
+M15 Z[slot] C[channel] P[pin] S[state] N[count]
 
 4. Standalone Pin Configuration
 
 4.1 M41 — Output Pin
 
-M41 Ppin
+M41 P[pin] S[state 0 - off 1 - on]
 
-4.2 M43 — Input Pin
+4.11 M42 - Create persistent digital INPUT pin if not existing
 
-M43 Ppin
+M42 P[pin] S0(read) S1(read PULLUP)
+
+4.2 M43 — Create persistent Analog Input Pin
+
+M43 P[pin]
 
 5. Examples
 
-Differential Drive (Two H-Bridges)
+Differential Drive T1(Two H-Bridges) in slot 0 PWM on pin 2 and 3, enable on 12, default dir forward, encoder on pin 26
 <pre>
 M10 Z0 T1
-M3 Z0 P8  C1 D24 E0 W68
-</pre>
-<pre>
-M3 Z0 P10 C2 D22 E0 W69
+M3 Z0 P2 C1 D12 E0 W26
+M3 Z0 P3 C2 D12 E0 W26
 </pre>
 <pre>
 PWM LED Driver
@@ -167,16 +169,13 @@ PWM LED Driver
 <pre>
 M10 Z0 T5
 </pre>
-<pre>
-M9  Z0 P13 C1 D30
-</pre>
 
-SplitBridge Lift Actuator
+SplitBridge Lift Actuator in slot 2 PWM pin 6 and pin 7 channel 1 enable 16 default dir forward
 <pre>
 M10 Z2 T2
 </pre>
 <pre>
-M4  Z2 P6 Q7 C1 D32 E0
+M4 Z2 P6 Q7 C1 D16 E0
 </pre>
 
 6. Notes
@@ -187,4 +186,6 @@ Encoder configuration (M14/M15) may follow depending on controller type.
 
 The firmware enforces construction invariants; invalid states cannot be created.
 
-The host should treat controller creation/configuration as a transaction.
+The host should treat controller creation/configuration as a transaction. 
+For instance, issuing an M41 command results in an ack of &lt;/M41&gt; 
+unless an error occurs, in that case a detailed error such as &lt;/M41 PIN ERROR&gt;
