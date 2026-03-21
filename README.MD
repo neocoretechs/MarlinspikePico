@@ -163,9 +163,7 @@ M10 Z0 T1
 M3 Z0 P2 C1 D12 E0 W26
 M3 Z0 P3 C2 D12 E0 W26
 </pre>
-<pre>
 PWM LED Driver
-</pre>
 <pre>
 M10 Z0 T5
 </pre>
