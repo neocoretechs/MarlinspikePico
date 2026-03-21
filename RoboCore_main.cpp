@@ -819,7 +819,8 @@ void processMCode(int cval) {
 			tud_cdc_write("M2 SLOT ERROR", strlen("M2 SLOT ERROR"));
 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 			tud_cdc_write_flush();
-			}
+		}
+		if(motorControl[motorController]) {
 		if(code_seen('C')) {
 			channel = code_value();
 			if(channel <= 0) {
@@ -846,7 +847,13 @@ void processMCode(int cval) {
 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 			tud_cdc_write_flush();
 		}
-		break;
+		} else {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M2 SLOT UNASSIGNED ERROR", strlen("M2 SLOT UNASSIGNED ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+		}
+	break;
 		
 	// Set HBridge PWM motor driver, map pin to channel, this will check to prevent free running motors during inactivity
 	// For a PWM motor control subsequent G5 commands are affected here.
@@ -922,7 +929,6 @@ void processMCode(int cval) {
 		if( code_seen('W')) {
 			encode_pin = code_value();
 		}
-
 		((HBridgeDriver*)motorControl[motorController])->createPWM(channel, pin_number, dir_pin, dir_default);
 		if(encode_pin) {
 			motorControl[motorController]->createEncoder(channel, encode_pin);
@@ -931,17 +937,20 @@ void processMCode(int cval) {
 		tud_cdc_write("M3", strlen("M3"));
 		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 		tud_cdc_write_flush();
+		break;
 	   } // code_seen['C']
-      } // if motorControl[motorController]
+      } else {// if motorControl[motorController]
+		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+		tud_cdc_write("M3 SLOT UNASSIGNED ERROR", strlen("M3 SLOT UNASSIGNED ERROR"));
+		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+		tud_cdc_write_flush();
+	  }
 	  break;
 	  
 	// Split bridge or 2 half bridge motor controller. Takes 2 inputs: one for forward,called P, one for backward,called Q, then motor channel, 
-	// and then D, an enable pin. Finally, W<encoder pin>  to receive hall wheel sensor signals and 
-	// optionally PWM timer setup [R<resolution 8,9,10 bits>] [X<prescale 0-7>].
+	// and then D, an enable pin. Finally, W<encoder pin>  to receive hall wheel sensor signals 
 	// Everything derived from HBridgeDriver can be done here.
 	case 4:// M4 [Z<slot>] P<pin> Q<pin> C<channel> D<enable pin> E<default dir> [W<encoder pin>] [R<resolution 8,9,10 bits>] [X<prescale 0-7>]
-		//timer_res = 8; // resolution in bits
-		//timer_pre = 1; // 1 is no prescale
 		pin_number = -1;
 		pin_numberB = -1;
 		encode_pin = 0;
@@ -1015,7 +1024,13 @@ void processMCode(int cval) {
 		  		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 		  		tud_cdc_write_flush();
 			} // code C
-		} //motorcontrol[motorcontroller]
+		} else {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M4 SLOT UNASSIGNED ERROR", strlen("M4 SLOT UNASSIGNED ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+			break;
+	  	}//motorcontrol[motorcontroller]
 	break;
 		
 	// Switch bridge or 2 digital motor controller. Takes 2 inputs: one digital pin for forward,called P, one for backward,called Q, then motor channel,
@@ -1024,16 +1039,16 @@ void processMCode(int cval) {
 		pin_number = -1;
 		pin_numberB = -1;
 		encode_pin = 0;
-		  if(code_seen('Z')) {
+		if(code_seen('Z')) {
 			  motorController = code_value();
-		  } else {
+		} else {
 			  tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 			  tud_cdc_write("M5 SLOT ERROR", strlen("M5 SLOT ERROR"));
 			  tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 			  tud_cdc_write_flush();
 			  break;
-		  }
-		  if(motorControl[motorController]) {
+		}
+		if(motorControl[motorController]) {
 			  ((SwitchBridgeDriver*)motorControl[motorController])->setPins((Digital**)&pdigitals);
 			  if(code_seen('P')) {
 				  pin_number = code_value();
@@ -1092,7 +1107,13 @@ void processMCode(int cval) {
 				  tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 				  tud_cdc_write_flush();
 			  } // code C
-		  } //motorcontrol[motorcontroller]
+		} else {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M5 SLOT UNASSIGNED ERROR", strlen("M5 SLOT UNASSIGNED ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+			break;
+	  	}//motorcontrol[motorcontroller]
 		break;
 		
 	case 6: //M6 [Z<slot>] [S<scale>] [X<scale>] - Set motor or PWM scaling, divisor for final power to limit speed or level, set to 0 to cancel. If X, slot is PWM
@@ -1112,8 +1133,14 @@ void processMCode(int cval) {
 				tud_cdc_write("M6", strlen("M6"));
 				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 				tud_cdc_write_flush();
+			} else {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("M6 SLOT UNASSIGNED ERROR", strlen("M6 SLOT UNASSIGNED ERROR"));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
+				break;
 			}
-		} else {
+	  	} else {
 			if(code_seen('X')) {
 				if(pwmControl[motorController]) {
 					pwmControl[motorController]->setPWMPowerScale(code_value());
@@ -1121,7 +1148,19 @@ void processMCode(int cval) {
 					tud_cdc_write("M6", strlen("M6"));
 					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 					tud_cdc_write_flush();
+				} else {
+					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+					tud_cdc_write("M6 SLOT UNASSIGNED ERROR", strlen("M6 SLOT UNASSIGNED ERROR"));
+					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+					tud_cdc_write_flush();
+					break;
 				}
+			} else {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("M6 NEITHER S NOR X ERROR", strlen("M6 NEITHER S NOR X ERROR"));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
+				break;
 			}
 		}
 		break;
@@ -1129,6 +1168,12 @@ void processMCode(int cval) {
 	case 7: // M7 [Z<slot>] [X]- Set motor override to stop motor operation, or optionally PWM operation, if X, slot is PWM
 		if(code_seen('Z')) {
 			motorController = code_value();
+		} else {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M7 SLOT ERROR", strlen("M7 SLOT ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+			break;
 		}
 		if(code_seen('X')) {
 			if(pwmControl[motorController]) {
@@ -1152,6 +1197,12 @@ void processMCode(int cval) {
 	case 8: // M8 [Z<slot>][X] - Set motor override to start motor operation after stop override M7. If X, slot is PWM
 		if(code_seen('Z')) {
 			motorController = code_value();
+		} else {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M8 SLOT ERROR", strlen("M8 SLOT ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+			break;
 		}
 		if(code_seen('X')) {
 			if(pwmControl[motorController]) {
@@ -1175,28 +1226,46 @@ void processMCode(int cval) {
 	// Activate a previously created PWM controller of type AbstractPWMControl - a non propulsion PWM device such as LED or pump
 	// Note there is no encoder or direction pin, and no possibility of reverse. What would be reverse in a motor control is the first
 	// half of the power scale instead.
-	case 9: // M9 [Z<slot>] P<pin> C<channel> D<enable pin> [R<resolution 8,9,10 bits>] [X<prescale 0-7>] - PWM control
+	case 9: // M9 [Z<slot>] P<pin> C<channel> D<enable pin> - PWM control
 		pin_number = -1;
 		encode_pin = 0;
 		if(code_seen('Z')) {
 			  PWMDriver = code_value();
+		} else {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M9 SLOT ERROR", strlen("M9 SLOT ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+			break;
 		}
 		if(pwmControl[PWMDriver]) {
-		 ((VariablePWMDriver*)pwmControl[PWMDriver])->setPWMs((PWM**)&ppwms);
-		 ((VariablePWMDriver*)pwmControl[PWMDriver])->setEnablePins((Digital**)&pdigitals);
+			((VariablePWMDriver*)pwmControl[PWMDriver])->setPWMs((PWM**)&ppwms);
+			((VariablePWMDriver*)pwmControl[PWMDriver])->setEnablePins((Digital**)&pdigitals);
 		 if(code_seen('P')) {
-			  pin_number = code_value();
+			pin_number = code_value();
 		 } else {
-			  break;
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M9 PIN ERROR", strlen("M9 PIN ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+			break;
 		 }
 		 if(code_seen('C')) {
 			channel = code_value();
 			if(channel <= 0) {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("M9 CHANNEL ERROR", strlen("M9 CHANNEL ERROR"));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
 				break;
 			}
 			if( code_seen('D')) {
 				enable_pin = code_value();
 			} else {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("M9 ENABLE PIN ERROR", strlen("M9 ENABLE PIN ERROR"));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
 				break;
 			}
 			((VariablePWMDriver*)pwmControl[PWMDriver])->createPWM(channel, pin_number, enable_pin);
@@ -1204,7 +1273,19 @@ void processMCode(int cval) {
 			tud_cdc_write("M9",strlen("M9"));
 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 			tud_cdc_write_flush();
+		 } else {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M9 CHANNEL ERROR", strlen("M9 CHANNEL ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+			break;
 		 }
+		} else {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M9 SLOT UNASSIGNED ERROR", strlen("M9 SLOT UNASSIGNED ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+			break;
 		}
 		break;
 		
@@ -1381,25 +1462,43 @@ void processMCode(int cval) {
 						break;
 					default:
 						tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-						tud_cdc_write("BAD CONTROLLER TYPE:", strlen("BAD CONTROLLER TYPE:"));
-						tud_cdc_write(itoa(controllerType), strlen(itoa(controllerType)));
+						tud_cdc_write("M10 BAD CONTROLLER TYPE ERROR", strlen("M10 BAD CONTROLLER TYPE ERROR"));
 						tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 						tud_cdc_write_flush();
 						break;
 				}
 			} else {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("M10 MISSING CONTROLLER TYPE ERROR", strlen("M10 MISSING CONTROLLER TYPE ERROR"));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
 				break;
 			}
+		} else {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M10 SLOT ERROR", strlen("M10 SLOT ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
 		}
 		break;
 		
 	case 11: // M11 [Z<slot>] C<channel> [D<duration>] [X<duration>] - Set maximum cycle duration for given channel. If X, slot is PWM
 		if(code_seen('Z')) {
 			motorController = code_value();
+		} else {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M11 SLOT ERROR", strlen("M11 SLOT ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+			break;
 		}
 		if( code_seen('C') ) {
 			channel = code_value();
 			if(channel <= 0) {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("M11 CHANNEL ERROR", strlen("M11 CHANNEL ERROR"));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
 				break;
 			}
 			if(code_seen('X')) {
@@ -1421,16 +1520,32 @@ void processMCode(int cval) {
 					}
 				}
 			}
+		} else {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M11 CHANNEL ERROR", strlen("M11 CHANNEL ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+			break;
 		}
 		break;
 	
 	case 12: // M12 [Z<slot>] C<channel> [P<offset>] [X<offset>] - set amount to add to G5 for min motor power, or X PWM level, If X, slot is PWM
 		if(code_seen('Z')) {
 			motorController = code_value();
+		} else {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M12 SLOT ERROR", strlen("M12 SLOT ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+			break;
 		}
 		if( code_seen('C') ) {
 			channel = code_value();
 			if(channel <= 0) {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("M12 CHANNEL ERROR", strlen("M12 CHANNEL ERROR"));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
 				break;
 			}
 			if(code_seen('X')) {
@@ -1545,6 +1660,12 @@ void processMCode(int cval) {
 			int digitalState;
 			if(code_seen('Z')) {
 				motorController = (int) code_value();
+			} else {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("M15 SLOT ERROR", strlen("M15 SLOT ERROR"));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
+				break;
 			}
 			if( code_seen('C') ) {
 				channel = (int) code_value();
@@ -1562,12 +1683,26 @@ void processMCode(int cval) {
 					if( code_seen('I')) {
 						interrupt_pin = (int) code_value();
 					}
-					motorControl[motorController]->createEncoder(channel, pin);
-					// ((Encoder*)motorControl[motorController]->getEncoder(channel))->setDigital(digitalState, counts, interrupt_pin);
-			 		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-			 		tud_cdc_write("M15", strlen("M15"));
-			 		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-			 		tud_cdc_write_flush();
+					if(motorControl[motorController]) {
+						motorControl[motorController]->createEncoder(channel, pin);
+						// ((Encoder*)motorControl[motorController]->getEncoder(channel))->setDigital(digitalState, counts, interrupt_pin);
+			 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			 			tud_cdc_write("M15", strlen("M15"));
+			 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			 			tud_cdc_write_flush();
+					} else {
+						tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+						tud_cdc_write("M15 SLOT UNASSIGNED ERROR", strlen("M15 SLOT UNASSIGNED ERROR"));
+						tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+						tud_cdc_write_flush();
+						break;
+					}
+				} else {
+					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+					tud_cdc_write("M15 PIN ERROR", strlen("M15 PIN ERROR"));
+					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+					tud_cdc_write_flush();
+					break;
 				}
 			} else {
 				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
@@ -1659,7 +1794,7 @@ void processMCode(int cval) {
 				tud_cdc_write_flush();
 			} else {
 				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-				tud_cdc_write("M16 CONTROLLER UNASSIGNED ERROR", strlen("M16 CONTROLLER UNASSIGNED ERROR"));
+				tud_cdc_write("M16 SLOT UNASSIGNED ERROR", strlen("M16 SLOT UNASSIGNED ERROR"));
 				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 				tud_cdc_write_flush();
 			}
@@ -1706,7 +1841,7 @@ void processMCode(int cval) {
 			} // code seen 'P'
 	  	} else {// motor control exists
 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-			tud_cdc_write("M33 CONTROLLER ERROR", strlen("M33 CONTROLLER ERROR"));
+			tud_cdc_write("M33 SLOT UNASSIGNED ERROR", strlen("M33 SLOT UNASSIGNED ERROR"));
 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));	
 			tud_cdc_write_flush();
 		}
@@ -1937,10 +2072,10 @@ void processMCode(int cval) {
 	break;
 
 	case 42: //M42 - Create persistent digital INPUT pin if not existing, P<pin> S0(read) S1 (read PULLP)
-	     pin_number = -1;
-		 slot = -1;
-		 found = false;
-	     if(code_seen('P')) {
+	    pin_number = -1;
+		slot = -1;
+		found = false;
+	    if(code_seen('P')) {
 			pin_number = code_value();
 			if( code_seen('S')) {
 				 int state = code_value();
@@ -1967,7 +2102,7 @@ void processMCode(int cval) {
 			if(!found) {
 				if(slot == -1) {
 					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-					tud_cdc_write("M41 SLOTS FULL ERROR", strlen("M41 SLOTS FULL ERROR"));
+					tud_cdc_write("M42 SLOTS FULL ERROR", strlen("M42 SLOTS FULL ERROR"));
 					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 					tud_cdc_write_flush();
 					break;
@@ -1991,7 +2126,7 @@ void processMCode(int cval) {
 			tud_cdc_write_flush();
 		} else {
 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-			tud_cdc_write("M41 PIN ERROR", strlen("M41 PIN ERROR"));
+			tud_cdc_write("M42 PIN ERROR", strlen("M42 PIN ERROR"));
 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 			tud_cdc_write_flush();
 		}     
