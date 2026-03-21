@@ -49,9 +49,9 @@ This document describes the supported controller-related M-codes and their param
 
 Syntax
 
-M10 Z<slot> T<type>
+M10 Z [slot] T[type]
 
-Creates a logical controller in a numbered slot.Subsequent M‑codes configure that controller.
+Creates a logical controller in a numbered slot.Subsequent M-codes configure that controller.
 
 Controller Types
 
@@ -74,15 +74,15 @@ Controller Types
 8 - DelayHBridge: HBridge with delayed activation
 
 Examples
-
+<pre>
 M10 Z0 T0   ; SmartController in slot 0
-M10 Z1 T1   ; H‑Bridge in slot 1
+M10 Z1 T1   ; H-Bridge in slot 1
 M10 Z2 T2   ; SplitBridge in slot 2
 M10 Z3 T3   ; SwitchBridge in slot 3
 M10 Z0 T4   ; SwitchHBridge in slot 0
 M10 Z0 T5   ; PWM driver in PWM slot 0
-M10 Z1 T8   ; Delay H‑Bridge in slot 1
-
+M10 Z1 T8   ; Delay H-Bridge in slot 1
+</pre>
 2. Controller Configuration MCodes
 
 These commands configure the controller declared by M10.
@@ -91,41 +91,41 @@ These commands configure the controller declared by M10.
 
 Syntax
 
-M2 [Z<slot>] [C<channel>] [W<encoder pin>] [E<default dir>]
+M2 [Zslot] [Cchannel ] [Wencoder pin] [Edefault dir]
 
-2.2 M3 — H‑Bridge (Type 1)
+2.2 M3 — H-Bridge (Type 1)
 
 Syntax
 
-M3 [Z<slot>] P<pwm pin> C<channel> D<direction pin> E<default dir> W<encoder pin> [F<frequency>] [H<duty>]
+M3 [Zslot] Ppwm pin Cchannel Ddirection pin Edefault dir Wencoder pin [Ffrequency] [Hduty]
 
 2.3 M4 — SplitBridge (Type 2)
 
 Syntax
 
-M4 [Z<slot>] P<pwm pin A> Q<pwm pin B> C<channel> D<enable pin> E<default dir> [W<encoder pin>] [F<frequency>] [H<duty>]
+M4 [Zslot] Ppwm pin A Qpwm pin B Cchannel Denable pin Edefault dir [Wencoder pin] [Ffrequency] [Hduty]
 
 2.4 M5 — SwitchBridge / SwitchHBridge (Types 3 & 4)
 
 SwitchBridge (Type 3)
 
-M5 Z<slot> P<pin A> Q<pin B> C<channel> D<enable pin> E<default dir> [W<encoder>]
+M5 Zslot Ppin A Qpin B Cchannel Denable pin Edefault dir [Wencoder]
 
 SwitchHBridge (Type 4)(no Q pin)
 
-M5 Z<slot> P<pin> C<channel> D<direction pin> E<default dir> [W<encoder>]
+M5 Z<slot> Ppin Cchannel Ddirection pin Edefault dir [Wencoder]
 
 2.5 M9 — PWM Driver (Type 5)
 
 Syntax
 
-M9 [Z<slot>] P<pwm pin> C<channel> D<enable pin> [F<frequency>] [H<duty>]
+M9 [Zslot] Ppwm pin Cchannel Denable pin [Ffrequency] [Hduty]
 
 2.6 M16 — Delay HBridge (Type 8)
 
 Syntax
 
-M16 [Z<slot>] P<pwm pin> C<channel> D<direction pin> E<default dir> W<encoder pin> [F<frequency>] [H<duty>]
+M16 [Zslot] Ppwm pin Cchannel Ddirection pin Edefault dir Wencoder pin [Ffrequency] [Hduty]
 
 3. Encoder Configuration
 
@@ -133,42 +133,51 @@ M16 [Z<slot>] P<pwm pin> C<channel> D<direction pin> E<default dir> W<encoder pi
 
 Syntax
 
-M14 Z<slot> C<channel> P<pin> L<lo> H<hi> N<count>
+M14 Zslot Cchannel Ppin Llo Hhi Ncount
 
 3.2 M15 — Digital Encoder
 
 Syntax
 
-M15 Z<slot> C<channel> P<pin> S<state> N<count>
+M15 Zslot Cchannel Ppin Sstate Ncount
 
 4. Standalone Pin Configuration
 
 4.1 M41 — Output Pin
 
-M41 P<pin>
+M41 Ppin
 
 4.2 M43 — Input Pin
 
-M43 P<pin>
+M43 Ppin
 
 5. Examples
 
-Differential Drive (Two H‑Bridges)
-
+Differential Drive (Two H-Bridges)
+<pre>
 M10 Z0 T1
 M3 Z0 P8  C1 D24 E0 W68
-
+</pre>
+<pre>
 M3 Z0 P10 C2 D22 E0 W69
-
+</pre>
+<pre>
 PWM LED Driver
-
+</pre>
+<pre>
 M10 Z0 T5
+</pre>
+<pre>
 M9  Z0 P13 C1 D30
+</pre>
 
 SplitBridge Lift Actuator
-
+<pre>
 M10 Z2 T2
+</pre>
+<pre>
 M4  Z2 P6 Q7 C1 D32 E0
+</pre>
 
 6. Notes
 
