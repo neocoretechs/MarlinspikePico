@@ -649,8 +649,22 @@ void processGCode(int cval) {
 				 tud_cdc_write_flush();
 				 break;
 			}
+			if(!motorControl[motorController]) {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("G5 SLOT UNASSIGNED ERROR",strlen("G5 SLOT UNASSIGNED ERROR"));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
+				break;
+			}
 		    if(code_seen('C')) {
 				motorChannel = code_value(); // channel 1,2
+				if(motorControl[motorController]->getChannels() < motorChannel || motorChannel == 0) {
+					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+					tud_cdc_write("G5 CHANNEL ERROR",strlen("G5 CHANNEL ERROR"));
+					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+					tud_cdc_write_flush();
+					break;
+				}
 				if(code_seen('P')) {
 					motorPower = code_value(); // motor power -1000,1000
 					fault = 0; // clear fault flag
@@ -929,7 +943,18 @@ void processMCode(int cval) {
 		if( code_seen('W')) {
 			encode_pin = code_value();
 		}
-		((HBridgeDriver*)motorControl[motorController])->createPWM(channel, pin_number, dir_pin, dir_default);
+		int createStatus = 0;
+		createStatus = ((HBridgeDriver*)motorControl[motorController])->createPWM(channel, pin_number, dir_pin, dir_default);
+		if(createStatus) {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M3 PWM ERROR ", strlen("M3 PWM ERROR "));
+			tud_cdc_write(itoa(createStatus),strlen(itoa(createStatus)));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+			delete motorControl[motorController];
+			motorControl[motorController] = 0;
+			break;
+		}
 		if(encode_pin) {
 			motorControl[motorController]->createEncoder(channel, encode_pin);
 		}
@@ -1015,7 +1040,18 @@ void processMCode(int cval) {
 		  		if( code_seen('W')) {
 					encode_pin = code_value();
 		  		}
-		  		((SplitBridgeDriver*)motorControl[motorController])->createPWM(channel, pin_number, pin_numberB, dir_pin, dir_default);
+				int createStatus = 0;
+		  		createStatus = ((SplitBridgeDriver*)motorControl[motorController])->createPWM(channel, pin_number, pin_numberB, dir_pin, dir_default);
+				if(createStatus) {
+					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+					tud_cdc_write("M4 PWM ERROR ", strlen("M4 PWM ERROR "));
+					tud_cdc_write(itoa(createStatus),strlen(itoa(createStatus)));
+					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+					tud_cdc_write_flush();
+					delete motorControl[motorController];
+					motorControl[motorController] = 0;
+					break;
+				}
 		  		if(encode_pin) {
 					motorControl[motorController]->createEncoder(channel, encode_pin);
 		  		}
@@ -1777,7 +1813,18 @@ void processMCode(int cval) {
 					if( code_seen('W')) {
 						encode_pin = (int) code_value();
 					}
-					((HBridgeDriver*)motorControl[motorController])->createPWM(channel, pin_number, dir_pin, dir_default);
+					int createStatus = 0;
+					createStatus = ((HBridgeDriver*)motorControl[motorController])->createPWM(channel, pin_number, dir_pin, dir_default);
+					if(createStatus) {
+						tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+						tud_cdc_write("M16 PWM ERROR ", strlen("M16 PWM ERROR "));
+						tud_cdc_write(itoa(createStatus),strlen(itoa(createStatus)));
+						tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+						tud_cdc_write_flush();
+						delete motorControl[motorController];
+						motorControl[motorController] = 0;
+						break;
+					}
 					if(encode_pin != 0) {
 						motorControl[motorController]->createEncoder(channel, encode_pin);
 					}
