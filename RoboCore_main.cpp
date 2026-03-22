@@ -2116,9 +2116,8 @@ void processMCode(int cval) {
 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 			tud_cdc_write(digitalPinHdr, strlen(digitalPinHdr));
 			tud_cdc_write(MSG_DELIMIT,strlen(MSG_DELIMIT));
-			tud_cdc_write("1 ", strlen("1 "));
 			tud_cdc_write(itoa(pin_number), strlen(itoa(pin_number)));
-			tud_cdc_write("2 ", strlen("2 "));
+			tud_cdc_write(" ", strlen(" "));
 			tud_cdc_write(itoa(res), strlen(itoa(res)));
 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 			tud_cdc_write(digitalPinHdr, strlen(digitalPinHdr));
@@ -2238,9 +2237,8 @@ void processMCode(int cval) {
 				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 				tud_cdc_write(analogPinHdr, strlen(analogPinHdr));
 				tud_cdc_write(MSG_DELIMIT,strlen(MSG_DELIMIT));
-				tud_cdc_write("1 ", 2);
 				tud_cdc_write(itoa(pin_number), strlen(itoa(pin_number)));
-				tud_cdc_write("2 ", 2);
+				tud_cdc_write(" ", 1);
 				tud_cdc_write(itoa(res), strlen(itoa(res)));
 				tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
 				tud_cdc_write(analogPinHdr, strlen(analogPinHdr));
@@ -2269,9 +2267,8 @@ void processMCode(int cval) {
 					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 					tud_cdc_write(analogPinHdr, strlen(analogPinHdr));
 					tud_cdc_write(MSG_DELIMIT,strlen(MSG_DELIMIT));
-					tud_cdc_write("1 ", 2);
 					tud_cdc_write(itoa(pin_number), strlen(itoa(pin_number)));
-					tud_cdc_write("2 ", 2);
+					tud_cdc_write(" ", 1);
 					tud_cdc_write(itoa(res), strlen(itoa(res)));
 					tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
 					tud_cdc_write(analogPinHdr, strlen(analogPinHdr));
@@ -2372,9 +2369,8 @@ void processMCode(int cval) {
 		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 		tud_cdc_write(sonicCntrlHdr,strlen(sonicCntrlHdr));
 		tud_cdc_write(MSG_DELIMIT,strlen(MSG_DELIMIT));
-		tud_cdc_write("1 ", 2); // pin
 		tud_cdc_write(itoa(pin_number), strlen(itoa(pin_number)));
-		tud_cdc_write("2 ", 2); // sequence
+		tud_cdc_write(" ", 1); // sequence
 		tud_cdc_write(itoa(upin->getRange()), strlen(itoa(upin->getRange()))); // range
 		tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
 		tud_cdc_write(sonicCntrlHdr, strlen(sonicCntrlHdr));
