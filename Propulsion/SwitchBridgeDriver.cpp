@@ -107,9 +107,9 @@ int SwitchBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPow
 	if( MOTORSHUTDOWN )
 		return 0;
 	int foundPin = 0;
-	motorSpeed[motorChannel-1] = motorPower; //why? +/-
+
 	// set enable pin
-	for(int i = 0; i < 10; i++) {
+	for(int i = 0; i < 32; i++) {
 		if(pdigitals[i] && pdigitals[i]->pin == motorDrive[motorChannel-1][1]) {
 			//pdigitals[i]->setPin(motorDrive[motorChannel-1][1]);
 			pdigitals[i]->pinMode(PinMode::OUTPUT);
@@ -156,8 +156,10 @@ int SwitchBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPow
 		pindex += motorDriveB[motorChannel-1][1];
 		// turn off all pins
 		pdigitals[pindex]->digitalWrite(LOW);
+		fault_flag = 16;
+		return fault_flag;
 	}
-	fault_flag = 0;
+	fault_flag = 16;
 	return 0;
 }
 

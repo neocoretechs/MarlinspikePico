@@ -65,68 +65,62 @@ int SplitBridgeDriver::commandEmergencyStop(int status)
 * pin_numberB - the index in the PWM array defined in 'setMotors' for M2
 * enb_pin - the enable pin for this channel
 * dir_default - the default direction the motor starts in
-* timer_pre - timer prescale default 1 = no prescale
-* timer_res - timer resolution in bits - default 8
 */
-void SplitBridgeDriver::createPWM(uint8_t channel, uint8_t pin_numberA, uint8_t pin_numberB, uint8_t enable_pin, uint8_t dir_default) {
-	// See if pin assigned
+int SplitBridgeDriver::createPWM(uint8_t channel, uint8_t pin_numberA, uint8_t pin_numberB, uint8_t enable_pin, uint8_t dir_default) {
+		// See if pin assigned
 	int foundPin = 0;
-	for(int i = 0; i < 10; i++) {
-		if(pdigitals[i]->pin == enable_pin) {
-				//dpin = pdigitals[i];
-				foundPin = 1;
+	int pinSlot = 0;
+	for(int i = 0; i < 32; i++) {
+		if(!pdigitals[i])
+			pinSlot = i;
+		else
+			if(pdigitals[i]->pin == enable_pin) {
+				foundPin = i;
 				break;
-		}
+			}
 	}
-	if(!foundPin) {
-			return; // slots full...
+	// didnt find pin, didnt find a slot
+	if(!foundPin && !pinSlot) {
+		return -1; // slots full...
 	}
 		
 	if( getChannels() < channel ) 
 		setChannels(channel);
 	// Set up the digital direction pin
-	foundPin = 0;
-	// Set up the digital enable pin, we want to be able to re-use these pins for multiple channels on 1 controller
-	Digital* dpin = new Digital(enable_pin);
-	dpin->pinMode(PinMode::OUTPUT);
-	for(int i = 0; i < 10; i++) {
-		if(!pdigitals[i]) {
-			pdigitals[i] = dpin;
-			foundPin = 1;
-			break;
-		}
-	}
+	Digital* dpin;
 	if(!foundPin) {
-		delete dpin;
-		return; // no slots?
-	}
+	 	dpin = new Digital(enable_pin);
+		pdigitals[pinSlot] = dpin;
+	} else
+		dpin = pdigitals[foundPin];
+	dpin->pinMode(PinMode::OUTPUT);
 
 	int pindex;
 	for(pindex = 0; pindex < 9; pindex++) {
 		if( !ppwms[pindex] && !ppwms[pindex+1])
 		break;
 	}
+	// did we find candidates?
 	if( ppwms[pindex] || ppwms[pindex+1])
-		return;
+		return -2;
+
 	currentDirection[channel-1] = dir_default;
 	defaultDirection[channel-1] = dir_default;
 			
 	motorDrive[channel-1][0] = pindex;
 	motorDrive[channel-1][1] = enable_pin;
-	//motorDrive[channel-1][2] = timer_pre;
-	//motorDrive[channel-1][3] = timer_res;
 	//
 	motorDriveB[channel-1][0] = pindex+1;
 	// determines which input pin PWM signal goes to, motorDrive[0] or motorDriveB[0], which is at pindex, or pindex+1 in ppwms
 	motorDriveB[channel-1][1] = dir_default;
-	//motorDriveB[channel-1][2] = timer_pre;
-	//motorDriveB[channel-1][3] = timer_res;
+	
 	PWM* ppinA = new PWM(pin_numberA);
 	ppwms[pindex] = ppinA;
 	ppwms[pindex]->init(pin_numberA);
 	PWM* ppinB = new PWM(pin_numberB);
 	ppwms[pindex+1] = ppinB;
 	ppwms[pindex+1]->init(pin_numberB);
+	return 0;
 }
 /*
 * Command the bridge driver power level. Manage enable pin. If necessary limit min and max power and
@@ -139,7 +133,7 @@ int SplitBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPowe
 	int foundPin = 0;
 
 	// set enable pin
-	for(int i = 0; i < 10; i++) {
+	for(int i = 0; i < 32; i++) {
 			if(pdigitals[i] && pdigitals[i]->pin == motorDrive[motorChannel-1][1]) {
 				//pdigitals[i]->setPin(motorDrive[motorChannel-1][1]);
 				pdigitals[i]->pinMode(PinMode::OUTPUT);
@@ -191,19 +185,32 @@ int SplitBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPowe
 	// If we are setting power 0, we are stopping anyway
 	if( !checkUltrasonicShutdown()) {
 		// find the PWM pin and get the object we set up in M3 to write to power level
-		//int timer_mode = 2;
-		//int timer_pre = motorDrive[motorChannel-1][2]; // prescale from M3
-		//int timer_res = motorDrive[motorChannel-1][3]; // timer resolution in bits from M3
 		// element 0 of motorDrive has index to PWM array
 		int pindex = motorDrive[motorChannel-1][0];
-		// add the offset to the input pin, which will be 0 or 1 depending on above logic
-		pindex += motorDriveB[motorChannel-1][1];
 		// writing power 0 sets mode 0 and timer turnoff
-		ppwms[pindex]->init(ppwms[pindex]->pin);
-		//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
-		ppwms[pindex]->pwmWrite(true, motorPower);
+		if(motorPower > 0) {
+			ppwms[pindex]->init(ppwms[pindex]->pin);
+			//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
+			ppwms[pindex]->pwmWrite(true, motorPower);
+			motorSpeed[motorChannel-1] = motorPower; //why? +/-
+			pindex = motorDriveB[motorChannel-1][1];
+			ppwms[pindex]->init(ppwms[pindex]->pin);
+			//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
+			ppwms[pindex]->pwmWrite(false, motorPower);
+		} else { // motorPower < 0
+			ppwms[pindex]->init(ppwms[pindex]->pin);
+			//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
+			ppwms[pindex]->pwmWrite(false, motorPower);
+			motorSpeed[motorChannel-1] = motorPower; //why? +/-
+			pindex = motorDriveB[motorChannel-1][1];
+			ppwms[pindex]->init(ppwms[pindex]->pin);
+			//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
+			ppwms[pindex]->pwmWrite(true, motorPower);
+		}
+		fault_flag = 0;
+		return fault_flag;
 	}
-	fault_flag = 0;
+	fault_flag = 16;
 	return 0;
 }
 

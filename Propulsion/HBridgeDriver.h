@@ -55,7 +55,7 @@ public:
 	void setDirectionPins(Digital** dpin) { pdigitals = dpin; }
 	uint8_t getMotorPWMPin(uint8_t channel) { return motorDrive[channel-1][0]; }
 	uint8_t getMotorEnablePin(uint8_t channel) {return motorDrive[channel-1][1]; }
-	void createPWM(uint8_t channel, uint8_t pin_number, uint8_t dir_pin, uint8_t dir_default);
+	int createPWM(uint8_t channel, uint8_t pin_number, uint8_t dir_pin, uint8_t dir_default);
 	void getDriverInfo(uint8_t ch, char* outStr);
 	int queryFaultFlag(void) { return fault_flag; }
     int queryStatusFlag(void) { return status_flag; }

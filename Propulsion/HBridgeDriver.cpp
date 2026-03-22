@@ -47,35 +47,55 @@ int HBridgeDriver::commandEmergencyStop(int status)
 * timer_pre - timer prescale default 1 = no prescale
 * timer_res - timer resolution in bits - default 8
 */ 
-void HBridgeDriver::createPWM(uint8_t channel, uint8_t pin_number, uint8_t dir_pin, uint8_t dir_default) {
-	// Attempt to assign PWM pin, lock to 8 bits no prescale, mode 2 CTC
-	if( getChannels() < channel ) setChannels(channel);
-		// Set up the digital direction pin
-			Digital* dpin = new Digital(dir_pin);
-			dpin->pinMode(OUTPUT);
-			for(int i = 0; i < 10; i++) {
-				if(!pdigitals[i]) {
-					pdigitals[i] = dpin;
-					break;
-				}
+int HBridgeDriver::createPWM(uint8_t channel, uint8_t pin_number, uint8_t dir_pin, uint8_t dir_default) {
+	// See if pin assigned
+	int foundPin = 0;
+	int pinSlot = 0;
+	for(int i = 0; i < 32; i++) {
+		if(!pdigitals[i]) {
+			pinSlot = i;
+		} else {
+			if(pdigitals[i]->pin == dir_pin) {
+				foundPin = i;
+				break;
 			}
-			int pindex;
-			for(pindex = 0; pindex < 10; pindex++) {
-				if( !ppwms[pindex] )
-					break;
-			}
-			if( ppwms[pindex] )
-				return;
-			currentDirection[channel-1] = dir_default;
-			defaultDirection[channel-1] = dir_default;
+		}
+	}
+	// didnt find pin, didnt find a slot
+	if(!foundPin && !pinSlot) {
+		return -1; // slots full...
+	}
+		
+	if( getChannels() < channel ) 
+		setChannels(channel);
+	// Set up the digital direction pin
+	Digital* dpin;
+	if(!foundPin) {
+	 	dpin = new Digital(dir_pin);
+		pdigitals[pinSlot] = dpin;
+	} else
+		dpin = pdigitals[foundPin];
+	dpin->pinMode(PinMode::OUTPUT);
+
+	// set up PWM
+	int pindex;
+	for(pindex = 0; pindex < 10; pindex++) {
+		if( !ppwms[pindex] ) {
+				break;
+		}
+	}
+	if( ppwms[pindex] )
+		return -2;
+
+	currentDirection[channel-1] = dir_default;
+	defaultDirection[channel-1] = dir_default;
 			
-			motorDrive[channel-1][0] = pindex;
-			motorDrive[channel-1][1] = dir_pin;
-			//motorDrive[channel-1][2] = timer_pre;
-			//motorDrive[channel-1][3] = timer_res;
-			PWM* ppin = new PWM(pin_number);
-			ppwms[pindex] = ppin;
-			ppwms[pindex]->init(pin_number);
+	motorDrive[channel-1][0] = pindex;
+	motorDrive[channel-1][1] = dir_pin;
+	PWM* ppin = new PWM(pin_number);
+	ppwms[pindex] = ppin;
+	ppwms[pindex]->init(pin_number);
+	return 0;
 }
 /*
 * Command the bridge driver power level. Manage direction pin. If necessary limit min and max power and
