@@ -2247,7 +2247,7 @@ void processMCode(int cval) {
 		for(int i = 0; i < 12; i++) {
 			if(!ppwms[i]) {
 				ppin = new PWM(pin_number);
-				ppin->init(pin_number);
+				ppin->init();
 				ppwms[i] = ppin;
 				break;
 			}

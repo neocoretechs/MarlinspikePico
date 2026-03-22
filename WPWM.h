@@ -14,14 +14,17 @@
 using namespace std;
 class PWM {
 	public:
+	const uint MAX_PWM_LEVEL = 65535;
+	const uint PWM_INCREMENT = 65; // 0 - 1000
 	uint pin;
+	uint slice;
 	uint channel = 0;
 	volatile int watchdog = 0;
 	bool safeShutdown = false;
 	InterruptService* interruptService=NULL;
 	static PWM* instances[8];
 	PWM(uint spin);
-	void init(uint spin);
+	void init();
 	void pwmWrite(bool enable, uint power);
 	inline void pwmOff() { pwmWrite(0, 0); };
 	static void pwm_irq_handler();

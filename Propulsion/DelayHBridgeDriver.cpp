@@ -104,7 +104,7 @@ int DelayHBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPow
 			// element 0 of motorDrive has index to PWM array
 			int pindex = motorDrive[motorChannel-1][0];
 			// writing power 0 sets mode 0 and timer turnoff
-			ppwms[pindex]->init(ppwms[pindex]->pin);
+			ppwms[pindex]->init();
 			//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
 			ppwms[pindex]->pwmWrite(true,motorPower);
 		}

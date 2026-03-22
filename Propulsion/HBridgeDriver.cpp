@@ -29,7 +29,7 @@ int HBridgeDriver::commandEmergencyStop(int status)
 	for(int j=0; j < 10; j++) {
 		int pindex = motorDrive[j][0];
 		if(pindex != 255) {
-			ppwms[pindex]->init(ppwms[pindex]->pin);
+			ppwms[pindex]->init();
 			ppwms[pindex]->pwmOff();
 		}
 	}
@@ -94,7 +94,7 @@ int HBridgeDriver::createPWM(uint8_t channel, uint8_t pin_number, uint8_t dir_pi
 	motorDrive[channel-1][1] = dir_pin;
 	PWM* ppin = new PWM(pin_number);
 	ppwms[pindex] = ppin;
-	ppwms[pindex]->init(pin_number);
+	ppwms[pindex]->init();
 	return 0;
 }
 /*
@@ -173,7 +173,7 @@ int HBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPower) {
 			// element 0 of motorDrive has index to PWM array
 			int pindex = motorDrive[motorChannel-1][0];
 			// writing power 0 sets mode 0 and timer turnoff
-			ppwms[pindex]->init(ppwms[pindex]->pin);
+			ppwms[pindex]->init();
 			//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
 			ppwms[pindex]->pwmWrite(true,motorPower);
 		}

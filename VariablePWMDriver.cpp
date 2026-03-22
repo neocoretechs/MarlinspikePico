@@ -34,7 +34,7 @@ int VariablePWMDriver::commandEmergencyStop(int status) {
 		}
 		pindex = pwmDrive[j][0];
 		if(pindex != 255) {
-			ppwms[pindex]->init(ppwms[pindex]->pin);
+			ppwms[pindex]->init();
 			ppwms[pindex]->pwmOff();
 		}
 	}
@@ -91,7 +91,7 @@ void  VariablePWMDriver::createPWM(uint channel, uint pin_number, uint enable_pi
 	//pwmDrive[channel-1][3] = timer_res;
 	PWM* ppin = new PWM(pin_number);
 	ppwms[pindex] = ppin;
-	ppwms[pindex]->init(pin_number);
+	ppwms[pindex]->init();
 }
 /*
 * Command the driver power level. Manage enable pin. If necessary limit min and max power and
@@ -139,7 +139,7 @@ int VariablePWMDriver::commandPWMLevel(uint8_t pwmChannel, int16_t pwmPower) {
 	// element 0 of motorDrive has index to PWM array
 	int pindex = pwmDrive[pwmChannel-1][0];
 	// writing power 0 sets mode 0 and timer turnoff
-	ppwms[pindex]->init(ppwms[pindex]->pin);
+	ppwms[pindex]->init();
 	//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
 	ppwms[pindex]->pwmWrite(true, pwmPower);
 	fault_flag = 0;

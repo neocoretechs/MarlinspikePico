@@ -49,7 +49,7 @@ int SplitBridgeDriver::commandEmergencyStop(int status)
 		}
 		pindex = motorDriveB[j][0];
 		if(pindex != 255) {
-			ppwms[pindex]->init(ppwms[pindex]->pin);
+			ppwms[pindex]->init();
 			ppwms[pindex]->pwmOff();
 		}
 	}
@@ -116,10 +116,10 @@ int SplitBridgeDriver::createPWM(uint8_t channel, uint8_t pin_numberA, uint8_t p
 	
 	PWM* ppinA = new PWM(pin_numberA);
 	ppwms[pindex] = ppinA;
-	ppwms[pindex]->init(pin_numberA);
+	ppwms[pindex]->init();
 	PWM* ppinB = new PWM(pin_numberB);
 	ppwms[pindex+1] = ppinB;
-	ppwms[pindex+1]->init(pin_numberB);
+	ppwms[pindex+1]->init();
 	return 0;
 }
 /*
@@ -189,21 +189,21 @@ int SplitBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPowe
 		int pindex = motorDrive[motorChannel-1][0];
 		// writing power 0 sets mode 0 and timer turnoff
 		if(motorPower > 0) {
-			ppwms[pindex]->init(ppwms[pindex]->pin);
+			ppwms[pindex]->init();
 			//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
 			ppwms[pindex]->pwmWrite(true, motorPower);
 			motorSpeed[motorChannel-1] = motorPower; //why? +/-
 			pindex = motorDriveB[motorChannel-1][1];
-			ppwms[pindex]->init(ppwms[pindex]->pin);
+			ppwms[pindex]->init();
 			//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
 			ppwms[pindex]->pwmWrite(false, motorPower);
 		} else { // motorPower < 0
-			ppwms[pindex]->init(ppwms[pindex]->pin);
+			ppwms[pindex]->init();
 			//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
 			ppwms[pindex]->pwmWrite(false, motorPower);
 			motorSpeed[motorChannel-1] = motorPower; //why? +/-
 			pindex = motorDriveB[motorChannel-1][1];
-			ppwms[pindex]->init(ppwms[pindex]->pin);
+			ppwms[pindex]->init();
 			//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
 			ppwms[pindex]->pwmWrite(true, motorPower);
 		}
