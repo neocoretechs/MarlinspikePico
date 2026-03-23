@@ -27,6 +27,8 @@ PWM* PWM::instances[8] = {nullptr};
 		gpio_set_function(this->pin, GPIO_FUNC_PWM);
 		this->slice = pwm_gpio_to_slice_num(pin);
 		pwm_config config = pwm_get_default_config();
+		pwm_config_set_clkdiv(&config, 10.0f); // div
+		pwm_config_set_wrap(&config, 1248); // top
 		pwm_init(this->slice, &config, false);
 		// Clear any pending IRQ
     	pwm_clear_irq(this->slice);
