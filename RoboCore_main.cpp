@@ -92,7 +92,7 @@ Digital* pdigitals[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 PWM* ppwms[12]={0,0,0,0,0,0,0,0,0,0,0,0};
 
 uint8_t channel;
-uint8_t slot;
+int slot = -1;
 int digitarg;
 int uspin = 0;
 unsigned long t;
@@ -393,11 +393,8 @@ void printAnalog(Analog* apin, int index) {
 	tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
 	tud_cdc_write(analogPinHdr, strlen(analogPinHdr));
 	tud_cdc_write(MSG_DELIMIT, strlen(MSG_DELIMIT));
-	tud_cdc_write("1", 1); // sequence
-	tud_cdc_write(" ", 1);
 	// 0 element is pin number
 	tud_cdc_write(itoa(apin->pin), strlen(itoa(apin->pin)));
-	tud_cdc_write("2", 1); // sequence
 	tud_cdc_write(" ", 1);
 	tud_cdc_write(itoa(nread*10), strlen(itoa(nread*10))); // value
 	tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
@@ -418,10 +415,7 @@ void printDigital(Digital* dpin, int target) {
 		tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
 		tud_cdc_write(digitalPinHdr, strlen(digitalPinHdr));
 		tud_cdc_write(MSG_DELIMIT, strlen(MSG_DELIMIT));
-		tud_cdc_write("1", 1); // sequence
-		tud_cdc_write(" ", 1);
 		tud_cdc_write(itoa(dpin->pin), strlen(itoa(dpin->pin)));
-		tud_cdc_write("2", 1); // sequence
 		tud_cdc_write(" ", 1);
 		tud_cdc_write(itoa(nread), strlen(itoa(nread)));
 		tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
@@ -815,7 +809,7 @@ void processMCode(int cval) {
 		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 		tud_cdc_write_flush();
 		break;
-		
+
 	case 1: // M1 - Set real time output on
 		realtime_output = 1;
 		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
@@ -2224,57 +2218,69 @@ void processMCode(int cval) {
 	 // PWM value between 0 and 1000
 	 // Use M445 to disable pin permanently or use timer more 0 to stop pulse without removing pin assignment
      case 45: // M45 - set up PWM P<pin> S<power val 0-1000>
-	  pin_number = -1;
-	  if(code_seen('P') ) {
+		pin_number = -1;
+		if(code_seen('P') ) {
           pin_number = code_value();
-	  } else {
-		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-		tud_cdc_write("M45 PIN ERROR",strlen("M45 PIN ERROR"));
-		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-		tud_cdc_write_flush();
-		break;
-	  }
-      if (code_seen('S')) {
-        power = code_value();
-		if(power < 0 || power > 1000) {
+		} else {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M45 PIN ERROR",strlen("M45 PIN ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+			break;
+		}
+    	if(code_seen('S')) {
+        	power = code_value();
+			if(power < 0 || power > 1000) {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("M45 POWER ERROR",strlen("M45 POWER ERROR"));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
+				break;
+			}
+		} else {
 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 			tud_cdc_write("M45 POWER ERROR",strlen("M45 POWER ERROR"));
 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 			tud_cdc_write_flush();
 			break;
 		}
-		// this is a semi-permanent pin assignment so dont add if its already assigned
-		for(int i = 0; i < 12; i++) {
-			if(!ppwms[i]) {
-				ppin = new PWM(pin_number);
-				ppin->init();
-				ppwms[i] = ppin;
-				break;
-			}
-		}
 		enable = false;
+		slot = -1;
+		// this is a semi-permanent pin assignment so dont add if its already assigned
 		for(int i = 0; i < 12; i++) {
 			if(ppwms[i] && ppwms[i]->pin == pin_number) {
 				enable = true;
 				ppwms[i]->pwmWrite(true, power);
+				break;
+			}
+			if(!ppwms[i]) {
+				slot = i;
+			}
+		}
+		if(!enable) {
+			if(slot != -1) {
+				ppin = new PWM(pin_number);
+				ppin->init();
+				ppwms[slot] = ppin;
+				ppwms[slot]->pwmWrite(true, power);
+				break;
+			} else {
 				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-				tud_cdc_write("M45", strlen("M45"));
+				tud_cdc_write("M45 NO SLOT ERROR",strlen("M45 NO SLOT ERROR"));
 				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 				tud_cdc_write_flush();
 				break;
 			}
 		}
-		if(!enable) {
-			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-			tud_cdc_write("M45 PIN ASSIGN ERROR",strlen("M45 PIN ASSIGN ERROR"));
-			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-			tud_cdc_write_flush();
-		}
+		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+		tud_cdc_write("M45", strlen("M45"));
+		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+		tud_cdc_write_flush();
 	  break;
-	  
+  
 	  case 46: // M46 -Read analog pin P<pin>
         pin_number = -1;
-        if (code_seen('P')) {
+        if(code_seen('P')) {
           pin_number = code_value();
 		  for(int i = 0; i < 16; i++) {
 			if(panalogs[i] && panalogs[i]->pin == pin_number) {
@@ -2567,6 +2573,7 @@ void processMCode(int cval) {
 	case 445: // M445 P<pin> - Turn off pulsed write pin - disable PWM
       if(code_seen('P')) {
         pin_number = code_value();
+		found = false;
 		for(int i = 0; i < 12; i++) {
 			if(ppwms[i] && ppwms[i]->pin == pin_number) {
 				ppwms[i]->pwmWrite(0,0); // default is 2, clear on match. to turn off, use 0 
@@ -2576,12 +2583,26 @@ void processMCode(int cval) {
 				tud_cdc_write("M445", strlen("M445"));
 				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 				tud_cdc_write_flush();
+				found = true;
 				break;
 			}
 		}
+		if(!found) {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M445 PIN UNASSIGNED ERROR", strlen("M445 PIN UNASSIGNED ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+			break;
+		}
+	  } else {
+		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+		tud_cdc_write("M445 PIN ERROR", strlen("M445 PIN ERROR"));
+		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+		tud_cdc_write_flush();
+		break;
 	  }
 	  break;
-	  
+	
     case 502: // M502 Revert to default settings
 		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 		tud_cdc_write("M502", strlen("M502"));
@@ -2909,16 +2930,14 @@ void processMCode(int cval) {
 		tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
 		tud_cdc_write_flush();
 		break;
-		
+	
 	default:
-		int ibuf = 0;
 		tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
 		tud_cdc_write(MSG_UNKNOWN_MCODE, strlen(MSG_UNKNOWN_MCODE));
 		tud_cdc_write(cmdbuffer, strlen(cmdbuffer));
 		tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
 		tud_cdc_write_flush();
 		break;
-	}
 	
   } // switch m code
 
