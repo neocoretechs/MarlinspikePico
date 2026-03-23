@@ -5,7 +5,7 @@
 #include <common/tusb_common.h>
 #include <class/cdc/cdc_device.h>
 #include <stdint.h>
-
+#include "usb-descriptors.h"
 #define DESC_STR_MAX 20
 
 #define USBD_VID 0x2E8A
@@ -55,7 +55,7 @@ static const tusb_desc_device_t usbd_desc_device = {
 	.bNumConfigurations = 1,
 };
 
-static const uint8_t usbd_desc_cfg[USBD_DESC_LEN] = {
+const uint8_t usbd_desc_cfg[USBD_DESC_LEN] = {
 	TUD_CONFIG_DESCRIPTOR(1, USBD_ITF_MAX, USBD_STR_0, USBD_DESC_LEN,
 		TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, USBD_MAX_POWER_MA),
 
@@ -70,7 +70,7 @@ static const uint8_t usbd_desc_cfg[USBD_DESC_LEN] = {
 
 static char usbd_serial[USBD_STR_SERIAL_LEN] = "000000000000";
 
-static const char *const usbd_desc_str[] = {
+const char *const usbd_desc_str[] = {
 	[USBD_STR_MANUF] = "NeoCoreTechs",
 	[USBD_STR_PRODUCT] = "Marlinspike",
 	[USBD_STR_SERIAL] = usbd_serial,

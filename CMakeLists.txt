@@ -74,6 +74,8 @@ add_executable(Marlinspike
     usb-descriptors.c
     )
      
+    pico_set_binary_type(Marlinspike default)
+    
 # Make sure tusb_config.h is visible to TinyUSB
 target_include_directories(Marlinspike PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}

@@ -11,6 +11,7 @@
 #include <hardware/clocks.h>
 #include <hardware/pwm.h>
 #include <hardware/irq.h>
+PWM* PWM::instances[8] = {nullptr};
 	/*
 	* Constructor 
 	*/
@@ -68,6 +69,7 @@
 					PWM::instances[xslice]->interruptService->service();
 				}
 			}
+			
 			if(PWM::instances[xslice]->safeShutdown) {
 				uint xslice = pwm_get_irq_status_mask();
 				pwm_clear_irq(xslice);
