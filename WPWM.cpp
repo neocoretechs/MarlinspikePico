@@ -17,12 +17,23 @@
 	PWM::PWM(uint spin) {
 		this->pin = spin;
 	}
-
+	/*
+	* Init GPIO and set up global interrupt handler
+	* We will handle safe shutdown and process any additional interrupt
+	* handlers that get attached
+	*/
 	void PWM::init() {
-	 gpio_set_function(this->pin, GPIO_FUNC_PWM);
-	 this->slice = pwm_gpio_to_slice_num(pin);
-	 pwm_config config = pwm_get_default_config();
-	 pwm_init(this->slice, &config, false);
+		gpio_set_function(this->pin, GPIO_FUNC_PWM);
+		this->slice = pwm_gpio_to_slice_num(pin);
+		pwm_config config = pwm_get_default_config();
+		pwm_init(this->slice, &config, false);
+		// Clear any pending IRQ
+    	pwm_clear_irq(this->slice);
+    	// Enable IRQ for this slice
+    	pwm_set_irq_enabled(this->slice, true);
+		// Register the handler (only once globally)
+		irq_set_exclusive_handler(PWM_IRQ_WRAP, pwm_irq_handler);
+		irq_set_enabled(PWM_IRQ_WRAP, true);
 	}
 
 	/*
@@ -35,19 +46,14 @@
 	*/
 	void PWM::attachInterrupt(InterruptService* cins, bool overflow) {
     	this->interruptService = cins;
-   	 	// Clear any pending IRQ
-    	pwm_clear_irq(this->slice);
-    	// Enable IRQ for this slice
-    	pwm_set_irq_enabled(this->slice, true);
-		// Register the handler (only once globally)
-		irq_set_exclusive_handler(PWM_IRQ_WRAP, pwm_irq_handler);
-		irq_set_enabled(PWM_IRQ_WRAP, true);
+   	 
 	}
 	void PWM::detachInterrupt() {
    	 	// Clear any pending IRQ
-    	pwm_clear_irq(this->slice);
+    	//pwm_clear_irq(this->slice);
     	// Enable IRQ for this slice
-    	pwm_set_irq_enabled(this->channel, false);
+    	//pwm_set_irq_enabled(this->channel, false);
+		this->interruptService = 0;
 	}
 	/*
 	* Static IRQ handler that dispatches to the correct instance
@@ -69,14 +75,21 @@
 					PWM::instances[xslice]->watchdog--;
 				} else {
 					pwm_set_enabled(xslice,false);
+					PWM::instances[xslice]->watchdog = PWM::instances[xslice]->watchdogMax;
 				}
 			}
 		}
 	}
+
+	void PWM::setSafeShutdown(bool enable, int max) {
+		safeShutdown = enable;
+		watchdogMax = max;
+	}
+
 	void PWM::pwmWrite(bool enable, uint power) {
 		pwm_set_gpio_level(this->pin, (power*PWM_INCREMENT));
     	pwm_set_enabled(this->slice, enable);
-		watchdog = 1000;
+		watchdog = watchdogMax;
 	}		
 
 

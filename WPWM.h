@@ -20,6 +20,7 @@ class PWM {
 	uint slice;
 	uint channel = 0;
 	volatile int watchdog = 0;
+	int watchdogMax = 1000000;
 	bool safeShutdown = false;
 	InterruptService* interruptService=NULL;
 	static PWM* instances[8];
@@ -30,6 +31,7 @@ class PWM {
 	static void pwm_irq_handler();
 	void attachInterrupt(InterruptService* cins, bool overflow = false);
 	void detachInterrupt();
+	void setSafeShutdown(bool enable, int max);
 };
 
 

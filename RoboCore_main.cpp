@@ -2263,7 +2263,6 @@ void processMCode(int cval) {
 				ppin->init();
 				ppwms[slot] = ppin;
 				ppwms[slot]->pwmWrite(true, power);
-				break;
 			} else {
 				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 				tud_cdc_write("M45 NO SLOT ERROR",strlen("M45 NO SLOT ERROR"));
