@@ -76,7 +76,6 @@ protected:
 	int fault_flag = 0;
 public:
   	AbstractMotorControl(int maxPower) : MAXMOTORPOWER(maxPower) {}
-	virtual ~AbstractMotorControl() = default;
 	virtual int commandMotorPower(uint8_t ch, int16_t p)=0;//make AbstractMotorControl not instantiable
 	virtual int commandEmergencyStop(int status)=0;
 	virtual int isConnected(void)=0;

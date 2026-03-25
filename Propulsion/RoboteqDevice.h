@@ -165,7 +165,7 @@ class RoboteqDevice : public AbstractSmartMotorControl {
         /*
          * query status flags
          */
-        int queryStatusFlag(void);
+        int queryStatusFlag(void) override;
 
         /*
          * query encoder speed in RPM
@@ -273,9 +273,10 @@ class RoboteqDevice : public AbstractSmartMotorControl {
         int sendCommand(const char *command, size_t commandSize);
 
         int readResponse(uint8_t *buf, size_t bufSize);
-	    void setMinMotorPower(uint8_t ch, int mpow) override;
+
     // Private Data
     private:
+        void setMinMotorPower(uint8_t ch, int mpow) override;
         uint16_t    m_Timeout;
         HardwareSerial      *m_Serial;
 
