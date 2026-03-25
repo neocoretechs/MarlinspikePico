@@ -3,7 +3,6 @@
 
 #include "HardwareSerial.h"
 #include "AbstractMotorControl.h"
-#include "AbstractSmartMotorControl.h"
 
 #define ROBOTEQ_DEFAULT_TIMEOUT     1000
 #define ROBOTEQ_BUFFER_SIZE         64
@@ -39,19 +38,18 @@
 * Uses HardwareSerial on the designated UART, presumably with an RS232 converter, to communicate with RobotEQ controllers.
 * Tested on VBL2360 but should be universal.
 */
-class RoboteqDevice : public AbstractSmartMotorControl {
+class RoboteqDevice : public AbstractMotorControl {
 	private:
 		char command[ROBOTEQ_COMMAND_BUFFER_SIZE];
 		uint8_t buffer[ROBOTEQ_BUFFER_SIZE];
     // Constructors
     public:
-	    RoboteqDevice(int maxPower) : AbstractSmartMotorControl(maxPower) {
+	    RoboteqDevice(int maxPower) : AbstractMotorControl(maxPower) {
 				m_Timeout = ROBOTEQ_DEFAULT_TIMEOUT;
 				setChannels(2);
 				m_Serial = new HardwareSerial(uart1, 4, 5); // Example pin numbers, replace with actual pins
 	            m_Serial->begin(115200);
 		}
-		void resetMaxMotorPower() override { MAXMOTORPOWER = 1000; }
         /*
          * check if controller is connected
          *
@@ -62,7 +60,6 @@ class RoboteqDevice : public AbstractSmartMotorControl {
         //*********************************************************************
         // Commands
         //*********************************************************************
-
         /*
          * send motor power command (!G)
          *
@@ -71,32 +68,23 @@ class RoboteqDevice : public AbstractSmartMotorControl {
          * @return ROBOTEQ_OK if successful 
          */
         int commandMotorPower(uint8_t ch, int16_t p) override;
-
         /*
          * send emergency stop command (!EX)
          * note: you have to reset the controller after this sending command
          *
          * @return ROBOTEQ_OK if successful
          */
-        int commandEmergencyStop(int status) override;
-		
+        int commandEmergencyStop(int status) override;	
 		int commandReset(void);
-		
 		int commandBrushlessCounter(void);
-
+        void setMinMotorPower(uint8_t ch, int mpow) override;
         //*********************************************************************
         // Query
         //*********************************************************************
-
         /*
          * query controller firmware
-         * 
-         * @param
-         * @param
-         * @return
          */
         int queryFirmware(char *buf, size_t bufSize);
-
         /*
          * query motor amps
          * 
@@ -104,105 +92,73 @@ class RoboteqDevice : public AbstractSmartMotorControl {
          * @return motor amps * 10
          */
         int queryMotorAmps(uint8_t ch);
-
         /*
          * query battery amps
-         * 
          * @return battery amps * 10
          */
         int queryBatteryAmps(void);
-
         /*
          * query battery amps
-         * 
          * @param ch channel
          * @return battery amps * 10
          */
         int queryBatteryAmps(uint8_t ch);
-
         /*
          * query battery voltage
-         * 
          * @return battery voltage * 10
          */ 
         int queryBatteryVoltage(void);
-
         /*
          * query motor voltage
-         * 
          * @return motor voltage * 10
          */
         int queryMotorVoltage(void);
-
         /*
          * query internal temp 
-         *
          * @return temp (in degrees C)
          */
         int queryInternalTemp(void);
-
         /*
          * query channel temp 
-         * 
          * @param ch channel
          * @return temp (in degrees C)
          */
         int queryTemp(uint8_t ch);
-
         /*
          * query the motor power command
-         * 
          * @param ch channel
          * @return motor power
          */
         int queryMotorPower(uint8_t ch);
-
-        /*
-         * query fault flags
-         */
         int queryFaultFlag(void) override;
-
-        /*
-         * query status flags
-         */
         int queryStatusFlag(void) override;
-
         /*
          * query encoder speed in RPM
-         *
          * @param ch channel
          * @return rpm
          */
         int queryEncoderSpeed(uint8_t ch);
-
         /*
          * query encoder speed in RPM
-         *
          * @param ch channel
          * @return rpm
          */
         int queryEncoderRelativeSpeed(uint8_t ch);
-
 		int queryBrushlessCounterRelative(uint8_t ch);
 		int queryBrushlessSpeed(uint8_t ch);
 		int queryBrushlessSpeedRelative(uint8_t ch);
 		int queryTime();
         /*
          * Query user variable
-         *
          * @param var
          * @param value
-         *
          * @return ROBOTEQ_OK if successful
          */
         int queryUserVariable(uint32_t var, int32_t *value);
-
         /*
          * Query user variable
-         *
          * @param var
          * @param value
-         *
          * @return ROBOTEQ_OK if successful
          */
         int queryUserVariable(uint32_t var, bool *value);
@@ -210,76 +166,46 @@ class RoboteqDevice : public AbstractSmartMotorControl {
         //*********************************************************************
         // Configuration
         //*********************************************************************
-
         /*
          * set encoder pulse per rotation
-         *
          * @param ch channel
          * @param ppr pulese per rotation
-         *
          * @return ROBOTEQ_OK if successful
          */
         int setEncoderPulsePerRotation(uint8_t ch, uint16_t ppr);
-
-        /*
-         * get encoder pulse per rotation
-         */
         int getEncoderPulsePerRotation(uint8_t ch);
-
         /*
          * set motor amp limit
-         *
          * @param ch channel
          * @param a amps level (x10)
-         *
          * @return ROBOTEQ_OK if successful
          */
         int setMotorAmpLimit(uint8_t ch, uint16_t a);
-
-        /*
-         * get motor amp limit
-         */
         int getMotorAmpLimit(uint8_t ch);
-
         /*
          * load controller configuration
-         *
          * @return ROBOTEQ_OK if successful
          */
         int loadConfiguration(void);
-
         /*
          * save controller configuration
-         *
          * @return ROBOTEQ_OK if successful
          */
         int saveConfiguration(void);
-
-        /*
-         * set timeout
-         */
-        void setTimeout(uint16_t timeout);
-		
+        void setTimeout(uint16_t timeout);		
 		void getDriverInfo(uint8_t ch, char* outStr) override;
-        
         int queryBrushlessCounter(uint8_t ch) override;
     // Private Methods
     private:
-
         int sendQuery(const char *query, uint8_t *buf, size_t bufSize);
         int sendQuery(const char *query, size_t querySize, uint8_t *buf, size_t bufSize);
-
         int sendCommand(const char *command);
         int sendCommand(const char *command, size_t commandSize);
-
         int readResponse(uint8_t *buf, size_t bufSize);
-
     // Private Data
     private:
-        void setMinMotorPower(uint8_t ch, int mpow) override;
         uint16_t    m_Timeout;
         HardwareSerial      *m_Serial;
-
 };
 
 // Helper Functions
