@@ -210,19 +210,18 @@ void FlushSerialRequestResend()
   tud_cdc_write_flush();
 }
 
-
 /*---------------------------------------------------
 * Arrive here at the end of each command processing iteration to check for status related events
 * ---------------------------------------------------
 */
 void manage_inactivity() {
-	char tmpbuf[256];
-  // check motor controllers
+	//char tmpbuf[256];
+	// check motor controllers
   for(int j =0; j < 10; j++) {
 	  if(motorControl[j]) {
-		sprintf(tmpbuf, "MI: j=%d ptr=%p vtable=%p\r\n\0", j, motorControl[j], *(void**)motorControl[j]);
-		tud_cdc_write(tmpbuf,strlen(tmpbuf));
-		tud_cdc_write_flush();
+		//sprintf(tmpbuf, "MI: j=%d ptr=%p vtable=%p\r\n\0", j, motorControl[j], *(void**)motorControl[j]);
+		//tud_cdc_write(tmpbuf,strlen(tmpbuf));
+		//tud_cdc_write_flush();
 		if( motorControl[j]->isConnected() ) {
 			motorControl[j]->checkEncoderShutdown();
 			motorControl[j]->checkUltrasonicShutdown();
@@ -824,41 +823,41 @@ void processMCode(int cval) {
 		
 	//CHANNEL 1-10, NO CHANNEL ZERO!	
 	case 2: // M2 [Z<slot>] [C<channel> W<encoder pin> E<default dir>] - set smart controller (default) with optional encoder pin per channel, can be issued multiple times
-		 if(code_seen('Z')) {
-			 motorController = code_value();
-		 } else {
+		if(code_seen('Z')) {
+			motorController = code_value();
+		} else {
 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 			tud_cdc_write("M2 SLOT ERROR", strlen("M2 SLOT ERROR"));
 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 			tud_cdc_write_flush();
 		}
 		if(motorControl[motorController]) {
-		if(code_seen('C')) {
-			channel = code_value();
-			if(channel <= 0) {
+			if(code_seen('C')) {
+				channel = code_value();
+				if(channel <= 0) {
+					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+					tud_cdc_write("M2 CHANNEL ERROR", strlen("M2 CHANNEL ERROR"));
+					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+					tud_cdc_write_flush();
+					break;
+				}
+				if(code_seen('W')) {
+					pin_number = code_value();
+					motorControl[motorController]->createEncoder(channel, pin_number);
+				}
+				if(code_seen('E')) {
+					motorControl[motorController]->setDefaultDirection(channel, code_value());
+				}
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("M2", strlen("M2"));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
+			} else {
 				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 				tud_cdc_write("M2 CHANNEL ERROR", strlen("M2 CHANNEL ERROR"));
 				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 				tud_cdc_write_flush();
-				break;
 			}
-			if(code_seen('W')) {
-				pin_number = code_value();
-				motorControl[motorController]->createEncoder(channel, pin_number);
-			}
-			if(code_seen('E')) {
-				motorControl[motorController]->setDefaultDirection(channel, code_value());
-			}
-			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-			tud_cdc_write("M2", strlen("M2"));
-			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-			tud_cdc_write_flush();
-		} else {
-			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-			tud_cdc_write("M2 CHANNEL ERROR", strlen("M2 CHANNEL ERROR"));
-			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-			tud_cdc_write_flush();
-		}
 		} else {
 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 			tud_cdc_write("M2 SLOT UNASSIGNED ERROR", strlen("M2 SLOT UNASSIGNED ERROR"));
@@ -1770,8 +1769,12 @@ void processMCode(int cval) {
 				tud_cdc_write_flush();
 				break;
 			}
-			if(motorControl[motorController]) {
-				delete motorControl[motorController];
+			if(!motorControl[motorController]) {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("M16 SLOT NOT CONFIGURED ERROR", strlen("M16 SLOT NOT CONFIGURED ERROR"));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
+				break;
 			}
 			if(code_seen('P')) {
 				pin_number = (int) code_value();
@@ -1784,7 +1787,7 @@ void processMCode(int cval) {
 			}
 			if(code_seen('C')) {
 				channel = (int) code_value();
-				if(channel <= 0) {
+				if(channel <= 0 || channel >10) {
 					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 					tud_cdc_write("M16 CHANNEL ERROR", strlen("M16 CHANNEL ERROR"));
 					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));

@@ -66,8 +66,7 @@ bool AbstractMotorControl::checkUltrasonicShutdown()
 {
 	bool shutdown = false;
 	for (int i = 0; i < 10; i++)
-		if (motorSpeed[i] != 0)
-		{
+		if (motorSpeed[i] != 0) {
 			break;
 		}
 	if (shutdown)
@@ -76,18 +75,15 @@ bool AbstractMotorControl::checkUltrasonicShutdown()
 	// ultrasonicIndex corresponds to ultrasonic object pointer array, element 0 points to Ultrasonic array element
 	for (int i = 0; i < 10; i++)
 	{
-		if (ultrasonicIndex[i][0] != 255)
-		{
+		if (ultrasonicIndex[i][0] != 255) {
 			// does the direction of sensor match movement direction?
 			// we stop if Moving backwards with backward facing sensor or forward with forward facing
 			// If motor is mirrored such the speed commands are reversed, then default direction should initially be 1
 			// So the decision to stop is based on distance from obstacle, the current direction of travel,
 			// the desired direction of travel, and the way the sensor is facing.
 			if (!currentDirection[i] && !ultrasonicIndex[i][1] ||
-				currentDirection[i] && ultrasonicIndex[i][1])
-			{
-				if (usensor[ultrasonicIndex[i][0]]->getRange() < minMotorDist[i])
-				{
+				currentDirection[i] && ultrasonicIndex[i][1]) {
+				if (usensor[ultrasonicIndex[i][0]]->getRange() < minMotorDist[i]) {
 					// commandEmergencyStop();
 					shutdown = true;
 					break;
@@ -114,24 +110,19 @@ void AbstractMotorControl::createEncoder(uint8_t channel, uint8_t encode_pin)
 bool AbstractMotorControl::checkEncoderShutdown()
 {
 	bool running = false;
-	for (int i = 0; i < 10; i++)
-		if (motorSpeed[i] != 0)
-		{
+	// consider only configured channels
+	for(uint8_t ch = 1; ch <= getChannels(); ch++)
+		if(motorSpeed[ch-1] != 0) {
 			running = true;
 			break;
 		}
 	if (!running)
-		return running;
-	for (int j = 0; j < 10; j++)
-	{ // by channel
-		if (wheelEncoderService[j])
-		{
-			int cntxmd = wheelEncoderService[j]->get_counter();
-			if (cntxmd >= maxMotorDuration[j])
-			{
-				commandEmergencyStop(10);
-				return true;
-			}
+		return false;
+	for(uint8_t ch = 1; ch <= getChannels(); ch++) { // by channel
+		int encoderCount = getEncoderCount(ch);
+		if(encoderCount != -1 && encoderCount >= maxMotorDuration[ch-1]) {
+			commandEmergencyStop(10);
+			return true;
 		}
 	}
 	return false;
@@ -146,10 +137,8 @@ int AbstractMotorControl::getEncoderCount(uint8_t ch)
 
 void AbstractMotorControl::resetEncoders(void)
 {
-	for (int i = 0; i < 10; i++)
-	{
-		if (wheelEncoderService[i])
-		{
+	for (int i = 0; i < 10; i++) {
+		if (wheelEncoderService[i]) {
 			wheelEncoderService[i]->set_counter(0);
 		}
 	}

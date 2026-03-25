@@ -49,11 +49,12 @@ int HBridgeDriver::commandEmergencyStop(int status)
 */ 
 int HBridgeDriver::createPWM(uint8_t channel, uint8_t pin_number, uint8_t dir_pin, uint8_t dir_default) {
 	// See if pin assigned
-	int foundPin = 0;
-	int pinSlot = 0;
+	int foundPin = -1;
+	int pinSlot = -1;
 	for(int i = 0; i < 32; i++) {
 		if(!pdigitals[i]) {
-			pinSlot = i;
+			if(pinSlot == -1)
+				pinSlot = i;
 		} else {
 			if(pdigitals[i]->pin == dir_pin) {
 				foundPin = i;
@@ -62,15 +63,17 @@ int HBridgeDriver::createPWM(uint8_t channel, uint8_t pin_number, uint8_t dir_pi
 		}
 	}
 	// didnt find pin, didnt find a slot
-	if(!foundPin && !pinSlot) {
+	if(foundPin == -1 && pinSlot == -1) {
 		return -1; // slots full...
 	}
+	if( channel <= 0 || channel > 10)
+		return -99;
 		
 	if( getChannels() < channel ) 
 		setChannels(channel);
 	// Set up the digital direction pin
 	Digital* dpin;
-	if(!foundPin) {
+	if(foundPin == -1) {
 	 	dpin = new Digital(dir_pin);
 		pdigitals[pinSlot] = dpin;
 	} else
