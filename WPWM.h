@@ -14,8 +14,8 @@
 using namespace std;
 class PWM {
 	public:
-	const uint MAX_PWM_LEVEL = 65535;
-	const uint PWM_INCREMENT = 65; // 0 - 1000
+	//const uint MAX_PWM_LEVEL = 65535;
+	//const uint PWM_INCREMENT = 65; // 0 - 1000
 	uint pin;
 	uint slice;
 	uint channel = 0;

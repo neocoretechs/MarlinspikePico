@@ -1642,44 +1642,44 @@ void processMCode(int cval) {
 	// Detect range N times before interrupt
 	//
 	case 14:
-			double analogRangeL, analogRangeH;
-			int counts;
-			if(code_seen('Z')) {
-				motorController = (int) code_value();
-			} else {
-				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-				tud_cdc_write("M14 SLOT ERROR", strlen("M14 SLOT ERROR"));
-				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-				tud_cdc_write_flush();
-				break;
-			}
-			if( code_seen('C') ) {
-				channel = (int) code_value();
-				if(channel <= 0) {
-					break;
-				}
-				if(code_seen('P')) {
-					int pin = (int) code_value();
-					analogRangeL = code_seen('L') ? code_value() : 0;
-					analogRangeH = code_seen('H') ? code_value() : 0;
-					counts = (int) (code_seen('N') ? code_value() : 1);
-					if( code_seen('I')) {
-						interrupt_pin = (int) code_value();
-					}
-					motorControl[motorController]->createEncoder(channel, pin);
-					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-			 		tud_cdc_write("M14", strlen("M14"));
-			 		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-					tud_cdc_write_flush();
-				}
-			} else {
-				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-				tud_cdc_write("M14 CHANNEL ERROR", strlen("M14 CHANNEL ERROR"));
-				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-				tud_cdc_write_flush();
-				break;
-			}
+		double analogRangeL, analogRangeH;
+		int counts;
+		if(code_seen('Z')) {
+			motorController = (int) code_value();
+		} else {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M14 SLOT ERROR", strlen("M14 SLOT ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
 			break;
+		}
+		if( code_seen('C') ) {
+			channel = (int) code_value();
+			if(channel <= 0) {
+				break;
+			}
+			if(code_seen('P')) {
+				int pin = (int) code_value();
+				analogRangeL = code_seen('L') ? code_value() : 0;
+				analogRangeH = code_seen('H') ? code_value() : 0;
+				counts = (int) (code_seen('N') ? code_value() : 1);
+				if( code_seen('I')) {
+					interrupt_pin = (int) code_value();
+				}
+				motorControl[motorController]->createEncoder(channel, pin);
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("M14", strlen("M14"));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
+			}
+		} else {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M14 CHANNEL ERROR", strlen("M14 CHANNEL ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+			break;
+		}
+		break;
 		//  
 		// M15 [Z<slot>] C<channel> P<pin> S<pin state 0 low, 1 high> N<number of counts before interrupt generated>
 		// Create digital encoder for controller at slot and channel.
@@ -1754,9 +1754,9 @@ void processMCode(int cval) {
 		// that fires at the maximum input level is created.
 		//
 		case 16: 
-			pin_number = -1;
+			pin_number = 0;
 			encode_pin = 0;
-			interrupt_pin = 0;
+			status = 0;
 			if(code_seen('Z')) {
 				motorController = (int) code_value();
 			} else {
@@ -1767,79 +1767,68 @@ void processMCode(int cval) {
 				break;
 			}
 			if(motorControl[motorController]) {
-				if(code_seen('P')) {
-					pin_number = (int) code_value();
-				} else {
-					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-					tud_cdc_write("M16 PIN ERROR", strlen("M16 PIN ERROR"));
-					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-					tud_cdc_write_flush();
-					break;
-				}
-				if(code_seen('C')) {
-					channel = (int) code_value();
-					if(channel <= 0) {
-						tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-						tud_cdc_write("M16 CHANNEL ERROR", strlen("M16 CHANNEL ERROR"));
-						tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-						tud_cdc_write_flush();
-						break;
-					}
-					if( code_seen('D')) {
-						dir_pin = (int) code_value();
-					} else {
-						tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-						tud_cdc_write("M16 DIR PIN ERROR", strlen("M16 DIR PIN ERROR"));
-						tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-						tud_cdc_write_flush();
-						break;
-					}
-					if( code_seen('E')) {
-						dir_default = (int) code_value();
-					} else {
-						tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-						tud_cdc_write("M16 DIR DEFAULT ERROR", strlen("M16 DIR DEFAULT ERROR"));
-						tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));	
-						tud_cdc_write_flush();
-						break;
-					}
-					// optional
-					if( code_seen('W')) {
-						encode_pin = (int) code_value();
-					}
-					int createStatus = 0;
-					createStatus = ((HBridgeDriver*)motorControl[motorController])->createPWM(channel, pin_number, dir_pin, dir_default);
-					if(createStatus) {
-						tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-						tud_cdc_write("M16 PWM ERROR ", strlen("M16 PWM ERROR "));
-						tud_cdc_write(itoa(createStatus),strlen(itoa(createStatus)));
-						tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-						tud_cdc_write_flush();
-						delete motorControl[motorController];
-						motorControl[motorController] = 0;
-						break;
-					}
-					if(encode_pin != 0) {
-						motorControl[motorController]->createEncoder(channel, encode_pin);
-					}
-				} else {
+				delete motorControl[motorController];
+			}
+			if(code_seen('P')) {
+				pin_number = (int) code_value();
+			} else {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("M16 PIN ERROR", strlen("M16 PIN ERROR"));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
+				break;
+			}
+			if(code_seen('C')) {
+				channel = (int) code_value();
+				if(channel <= 0) {
 					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 					tud_cdc_write("M16 CHANNEL ERROR", strlen("M16 CHANNEL ERROR"));
 					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 					tud_cdc_write_flush();
 					break;
 				}
-				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-				tud_cdc_write("M16", strlen("M16"));
-				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-				tud_cdc_write_flush();
+			}
+			if( code_seen('D')) {
+				dir_pin = (int) code_value();
 			} else {
 				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-				tud_cdc_write("M16 SLOT UNASSIGNED ERROR", strlen("M16 SLOT UNASSIGNED ERROR"));
+				tud_cdc_write("M16 DIR PIN ERROR", strlen("M16 DIR PIN ERROR"));
 				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 				tud_cdc_write_flush();
+				break;
 			}
-			break;
+			if( code_seen('E')) {
+				dir_default = (int) code_value();
+			} else {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("M16 DIR DEFAULT ERROR", strlen("M16 DIR DEFAULT ERROR"));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
+				break;
+			}
+			// optional
+			if( code_seen('W')) {
+				encode_pin = (int) code_value();
+			}
+			status = ((HBridgeDriver*)motorControl[motorController])->createPWM(channel, pin_number, dir_pin, dir_default);
+			if(status) {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("M16 PWM CREATE ERROR ", strlen("M16 PWM CREATE ERROR "));
+				tud_cdc_write(itoa(status),strlen(itoa(status)));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
+				delete motorControl[motorController];
+				motorControl[motorController] = 0;
+				break;
+			}
+			if(encode_pin != 0) {
+				motorControl[motorController]->createEncoder(channel, encode_pin);
+			}
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M16", strlen("M16"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+		break;
 
 	case 33: // M33 [Z<slot>] P<ultrasonic pin> D<min. distance in cm> [E<direction 1- forward facing, 0 - reverse facing sensor>] 
 	// link Motor controller to ultrasonic sensor, the sensor must exist via M301
@@ -2720,7 +2709,7 @@ void processMCode(int cval) {
 			for(int j = 0; j < 10; j++) {
 				if( motorControl[j] ) {
 					for(int i = 0 ; i < motorControl[j]->getChannels(); i++) { //per channel
-						tud_cdc_write("Motor channel:", strlen("Motor channel:"));
+						tud_cdc_write(" Motor channel:", strlen(" Motor channel:"));
 						tud_cdc_write(itoa(i+1), strlen(itoa(i+1)));
 						tud_cdc_write(" Min Power:", strlen(" Min Power:"));
 						tud_cdc_write(itoa(motorControl[j]->getMinMotorPower(i+1)), strlen(itoa(motorControl[j]->getMinMotorPower(i+1))));
@@ -2731,8 +2720,7 @@ void processMCode(int cval) {
 						tud_cdc_write(" Default. Dir:", strlen(" Default. Dir:"));
 						tud_cdc_write(itoa(motorControl[j]->getDefaultDirection(i+1)), strlen(itoa(motorControl[j]->getDefaultDirection(i+1))));
 						tud_cdc_write(" Encoder Pin:", strlen(" Encoder Pin:"));
-						if(motorControl[j]->getWheelEncoder(i+1)) {
-				
+						if(motorControl[j]->getWheelEncoder(i+1)) {		
 							tud_cdc_write(" Count:", strlen(" Count:"));
 							tud_cdc_write(itoa(motorControl[j]->getEncoderCount(i+1)), strlen(itoa(motorControl[j]->getEncoderCount(i+1))));
 							tud_cdc_write(" Duration:", strlen(" Duration:"));
@@ -2742,11 +2730,11 @@ void processMCode(int cval) {
 							tud_cdc_write("None.", strlen("None."));
 						}
 					}
-					tud_cdc_write("Ultrasonic pins:", strlen("Ultrasonic pins:"));
+					tud_cdc_write(" Ultrasonic pins:", strlen(" Ultrasonic pins:"));
 					if( motorControl[j]->totalUltrasonics() ) {
 						tud_cdc_write(itoa(motorControl[j]->totalUltrasonics()),strlen(itoa(motorControl[j]->totalUltrasonics())));
 						for(int k = 0; k < motorControl[j]->totalUltrasonics(); k++) {
-							tud_cdc_write("Pin:", strlen("Pin:"));
+							tud_cdc_write(" Pin:", strlen(" Pin:"));
 							tud_cdc_write(itoa(psonics[motorControl[j]->getUltrasonicIndex(k+1)]->getPin()), strlen(itoa(psonics[motorControl[j]->getUltrasonicIndex(k+1)]->getPin())));
 							tud_cdc_write(" Facing:", strlen(" Facing:"));
 							tud_cdc_write(itoa(motorControl[j]->getUltrasonicFacing(k+1)), strlen(itoa(motorControl[j]->getUltrasonicFacing(k+1))));
@@ -2771,7 +2759,7 @@ void processMCode(int cval) {
 			for(int j = 0; j < 10; j++) {
 				if(pwmControl[j]) {
 					for(int i = 0 ; i < pwmControl[j]->getChannels(); i++) { //per channel
-						tud_cdc_write("PWM channel:", strlen("PWM channel:"));
+						tud_cdc_write(" PWM channel:", strlen(" PWM channel:"));
 						tud_cdc_write(itoa(i+1), strlen(itoa(i+1)));
 						tud_cdc_write(" Min Level:", strlen(" Min Level:"));
 						tud_cdc_write(itoa(pwmControl[j]->getMinPWMLevel(i+1)), strlen(itoa(pwmControl[j]->getMinPWMLevel(i+1))));
@@ -2812,7 +2800,7 @@ void processMCode(int cval) {
 			if(code_seen('X')) {
 				if(pwmControl[motorController]) {
 					for(int i = 0; i < pwmControl[motorController]->getChannels() ; i++ ) {
-						tud_cdc_write("PWM Channel:", strlen("PWM Channel:"));
+						tud_cdc_write(" PWM Channel:", strlen(" PWM Channel:"));
 						tud_cdc_write(itoa(i+1), strlen(itoa(i+1)));
 						pwmControl[motorController]->getDriverInfo(i+1,outbuffer);
 						tud_cdc_write(outbuffer,strlen(outbuffer));
@@ -2822,7 +2810,7 @@ void processMCode(int cval) {
 			} else {
 				if( motorControl[motorController] && motorControl[motorController]->isConnected() ) {
 					for(int i = 0; i < motorControl[motorController]->getChannels() ; i++ ) {
-						tud_cdc_write("Motor Channel:", strlen("Motor Channel:"));
+						tud_cdc_write(" Motor Channel:", strlen(" Motor Channel:"));
 						tud_cdc_write(itoa(i+1), strlen(itoa(i+1)));
 						motorControl[motorController]->getDriverInfo(i+1, outbuffer);
 						tud_cdc_write(outbuffer, strlen(outbuffer));
@@ -2837,7 +2825,7 @@ void processMCode(int cval) {
 			for(int xslot = 0; xslot < 10; xslot++) {
 				if(xp) {
 					if(pwmControl[xslot]) {
-						tud_cdc_write("PWM Slot:", strlen("PWM Slot:"));
+						tud_cdc_write(" PWM Slot:", strlen(" PWM Slot:"));
 						tud_cdc_write(itoa(xslot), strlen(itoa(xslot)));
 						tud_cdc_write("\r\n", 2);
 						for(int i = 0; i < pwmControl[xslot]->getChannels() ; i++ ) {
@@ -2850,11 +2838,11 @@ void processMCode(int cval) {
 					}
 				} else { // xp
 					if( motorControl[xslot] && motorControl[xslot]->isConnected() ) {
-						tud_cdc_write("Motor Slot:", strlen("Motor Slot:"));
+						tud_cdc_write(" Motor Slot:", strlen(" Motor Slot:"));
 						tud_cdc_write(itoa(xslot), strlen(itoa(xslot)));
 						tud_cdc_write("\r\n", 2);
 						for(int i = 0; i < motorControl[xslot]->getChannels() ; i++ ) {
-							tud_cdc_write("Motor Channel:", strlen("Motor Channel:"));
+							tud_cdc_write(" Motor Channel:", strlen(" Motor Channel:"));
 							tud_cdc_write(itoa(i+1), strlen(itoa(i+1)));
 							motorControl[xslot]->getDriverInfo(i+1, outbuffer);
 							tud_cdc_write(outbuffer, strlen(outbuffer));

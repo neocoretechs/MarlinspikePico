@@ -167,21 +167,9 @@ void SwitchBridgeDriver::getDriverInfo(uint8_t ch, char* outStr) {
 	char cout[OUT_BUFFER_SIZE];
 	char dout1[5];
 	char dout2[5];
-	char dout3[5];
 	char dout4[5];
-	char dpin0[5];
-	char dpin1[5];
-	char dpin2[5];
-	char dpin3[5];
-	char dpin4[5];
-	char dpin5[5];
-	char dpin6[5];
-	char dpin7[5];
-	char dpin8[5];
-	char dpin9[5];
 	if( motorDrive[ch-1][0] == 255 ) {
 		itoa(-1, dout1, 10);
-		itoa(-1, dout3, 10);
 	} else {
 		itoa(pdigitals[motorDrive[ch-1][0]]->pin, dout1, 10);
 	}
@@ -192,52 +180,11 @@ void SwitchBridgeDriver::getDriverInfo(uint8_t ch, char* outStr) {
 	}
 	
 	itoa(motorDrive[ch-1][1], dout4, 10);
-	if(pdigitals[0])
-		itoa(pdigitals[0]->pin, dpin0, 10);
-	else
-		itoa(0, dpin0, 10);
-	if(pdigitals[1])
-		itoa(pdigitals[1]->pin, dpin1, 10);
-	else
-		itoa(0, dpin1, 10);
-	if(pdigitals[2])
-		itoa(pdigitals[2]->pin, dpin2, 10);
-	else
-		itoa(0, dpin2, 10);
-	if(pdigitals[3])
-		itoa(pdigitals[3]->pin, dpin3, 10);
-	else
-		itoa(0, dpin3, 10);
-	if(pdigitals[4])
-		itoa(pdigitals[4]->pin, dpin4, 10);
-	else
-		itoa(0, dpin4, 10);
-	if(pdigitals[5])
-		itoa(pdigitals[5]->pin, dpin5, 10);
-	else
-		itoa(0, dpin5, 10);
-	if(pdigitals[6])
-		itoa(pdigitals[6]->pin, dpin6, 10);
-	else
-		itoa(0, dpin6, 10);
-	if(pdigitals[7])
-		itoa(pdigitals[7]->pin, dpin7, 10);
-	else
-		itoa(0, dpin7, 10);
-	if(pdigitals[8])
-		itoa(pdigitals[8]->pin, dpin8, 10);
-	else
-		itoa(0, dpin8, 10);
-	if(pdigitals[9])
-		itoa(pdigitals[9]->pin, dpin9, 10);
-	else
-		itoa(0, dpin9, 10);
+	
 	if( motorDrive[ch-1][0] == 255 ) {
-		sprintf(cout,"SB-Digital UNITIALIZED PinA:%s, Digital PinB:%s, Mode:%s, Enable Pin:%s\r\nDir Pins:0=%s,1=%s,2=%s,3=%s,4=%s,5=%s,6=%s,7=%s,8=%s,9=%s\0",
-			dout1, dout2, dout3 ,dout4, dpin0, dpin1, dpin2, dpin3, dpin4, dpin5, dpin6, dpin7, dpin8, dpin9);
+		sprintf(cout,"SB-Digital UNITIALIZED PinA:%s, Digital PinB:%s, Enable Pin:%s\r\n\0",dout1,dout2,dout4);
 	} else {
-		sprintf(cout,"SB-Digital PinA:%s, Digital PinB:%s, Mode:%s, Enable Pin:%s\r\nDir Pins:0=%s,1=%s,2=%s,3=%s,4=%s,5=%s,6=%s,7=%s,8=%s,9=%s\0",
-			dout1, dout2, dout3 ,dout4, dpin0, dpin1, dpin2, dpin3, dpin4, dpin5, dpin6, dpin7, dpin8, dpin9);
+		sprintf(cout,"SB-Digital PinA:%s, Digital PinB:%s, Enable Pin:%s\r\n\0",dout1,dout2,dout4);
 	}
 	for(int i=0; i < OUT_BUFFER_SIZE; ++i){
 		 outStr[i] = cout[i];
