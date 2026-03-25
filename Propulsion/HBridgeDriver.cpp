@@ -95,7 +95,7 @@ int HBridgeDriver::createPWM(uint8_t channel, uint8_t pin_number, uint8_t dir_pi
 	PWM* ppin = new PWM(pin_number);
 	ppwms[pindex] = ppin;
 	ppwms[pindex]->init();
-	ppwms[pindex]->setSafeShutdown(true, ppwms[pindex]->watchdogMax);
+	//ppwms[pindex]->setSafeShutdown(true, ppwms[pindex]->watchdogMax);
 	return 0;
 }
 /*
@@ -152,8 +152,6 @@ int HBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPower) {
 		if(!foundPin) {
 			return commandEmergencyStop(2);
 		}	
-		// scale motor power from 0-1000 to our 0-255 8 bit timer val
-		motorPower /= 4;
 		if( motorPower != 0 && motorPower < minMotorPower[motorChannel-1])
 				motorPower = minMotorPower[motorChannel-1];
 		if( motorPower > MAXMOTORPOWER ) // cap it at max

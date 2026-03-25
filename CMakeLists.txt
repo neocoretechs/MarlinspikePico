@@ -53,7 +53,6 @@ add_executable(Marlinspike
     IMU/PitchRollHeading.cpp
     IMU/IMUInterruptService.h
     Propulsion/AbstractMotorControl.cpp
-    Propulsion/AbstractSmartMotorControl.h
     Propulsion/DelayHBridgeDriver.cpp
     Propulsion/HBridgeDriver.cpp
     Propulsion/RoboteqDevice.cpp

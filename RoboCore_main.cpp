@@ -216,9 +216,13 @@ void FlushSerialRequestResend()
 * ---------------------------------------------------
 */
 void manage_inactivity() {
+	char tmpbuf[256];
   // check motor controllers
   for(int j =0; j < 10; j++) {
 	  if(motorControl[j]) {
+		sprintf(tmpbuf, "MI: j=%d ptr=%p vtable=%p\r\n\0", j, motorControl[j], *(void**)motorControl[j]);
+		tud_cdc_write(tmpbuf,strlen(tmpbuf));
+		tud_cdc_write_flush();
 		if( motorControl[j]->isConnected() ) {
 			motorControl[j]->checkEncoderShutdown();
 			motorControl[j]->checkUltrasonicShutdown();
@@ -1810,6 +1814,8 @@ void processMCode(int cval) {
 			if( code_seen('W')) {
 				encode_pin = (int) code_value();
 			}
+			((HBridgeDriver*)motorControl[motorController])->setMotors((PWM**)&ppwms);
+	  		((HBridgeDriver*)motorControl[motorController])->setDirectionPins((Digital**)&pdigitals);
 			status = ((HBridgeDriver*)motorControl[motorController])->createPWM(channel, pin_number, dir_pin, dir_default);
 			if(status) {
 				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
