@@ -11,7 +11,7 @@ class AbstractSmartMotorControl : public AbstractMotorControl {
 //functions
 public:
 	AbstractSmartMotorControl(int maxPower) : AbstractMotorControl(maxPower) {};
-	void setMinMotorPower(uint ch, uint mpow) {setMinMotorPower(ch,mpow);}
+	void setMinMotorPower(uint8_t ch, int mpow);
 	void setMaxMotorPower(int p) {MAXMOTORPOWER = p;}
 	void setMotorPowerScale(int p) {MOTORPOWERSCALE = p;}
 	virtual void resetMaxMotorPower()=0;//set back to the maximum power, subclass sets

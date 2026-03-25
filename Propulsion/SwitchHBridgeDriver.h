@@ -31,12 +31,12 @@ class SwitchHBridgeDriver : public SwitchBridgeDriver {
 	public:
 	SwitchHBridgeDriver(int maxPower) : SwitchBridgeDriver(maxPower){};
     void createDigital(uint8_t channel, uint8_t pin_number, uint8_t dir_pin, uint8_t dir_default);
-	int commandMotorPower(uint8_t channel, int16_t motorPower);
-	int commandEmergencyStop(int status);
-	void getDriverInfo(uint8_t ch, char* outStr);
+	int commandMotorPower(uint8_t channel, int16_t motorPower) override;
+	int commandEmergencyStop(int status) override;
+	void getDriverInfo(uint8_t ch, char* outStr) override;
     private:
-	SwitchHBridgeDriver( const SwitchHBridgeDriver &c );
-	SwitchHBridgeDriver& operator=( const SwitchHBridgeDriver &c );
+	SwitchHBridgeDriver( const SwitchHBridgeDriver &c ) = delete;
+	SwitchHBridgeDriver& operator=( const SwitchHBridgeDriver &c ) = delete;
 
 };
 #endif

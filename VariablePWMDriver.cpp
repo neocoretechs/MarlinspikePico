@@ -23,9 +23,6 @@
 #include "VariablePWMDriver.h"
 #include "Configuration_adv.h"
 
-#include "VariablePWMDriver.h"
-
-
 int VariablePWMDriver::commandEmergencyStop(int status) {
 	for(int j=0; j < 10; j++) {
 		int pindex = pwmDrive[j][0];
@@ -48,7 +45,7 @@ int VariablePWMDriver::commandEmergencyStop(int status) {
 * pin_number - the index in the PWM array defined in 'setPWM', this is the next blank slot available
 * enable_pin - the enable pin for this channel. Assumed that low is disabled, high is enable.
 */
-void  VariablePWMDriver::createPWM(uint channel, uint pin_number, uint enable_pin) {
+int VariablePWMDriver::createPWM(uint8_t channel, uint8_t pin_number, uint8_t enable_pin) {
 	// Attempt to assign PWM pin, lock to 8 bits no prescale, mode 2 CTC
 	if( getChannels() < channel ) setChannels(channel);
 	int foundPin = 0;
@@ -63,7 +60,7 @@ void  VariablePWMDriver::createPWM(uint channel, uint pin_number, uint enable_pi
 	}
 	if(!foundPin) {
 		delete dpin;
-		return; // no slots?
+		return -1; // no slots?
 	}
 	for(int i = 0; i < 10; i++) {
 		if(pdigitals[i]->pin == enable_pin) {
@@ -73,7 +70,7 @@ void  VariablePWMDriver::createPWM(uint channel, uint pin_number, uint enable_pi
 		}
 	}
 	if(!foundPin) {
-		return; // slots full...
+		return -1; // slots full...
 	}
 		
 	// find slot for new PWM pin and init
@@ -83,15 +80,15 @@ void  VariablePWMDriver::createPWM(uint channel, uint pin_number, uint enable_pi
 			break;
 	}
 	if( ppwms[pindex] ) // already assigned, slots full
-			return;
+			return -2;
 				
 	pwmDrive[channel-1][0] = pindex;
 	pwmDrive[channel-1][1] = enable_pin;
-	//pwmDrive[channel-1][2] = timer_pre;
-	//pwmDrive[channel-1][3] = timer_res;
+
 	PWM* ppin = new PWM(pin_number);
 	ppwms[pindex] = ppin;
 	ppwms[pindex]->init();
+	return 0;
 }
 /*
 * Command the driver power level. Manage enable pin. If necessary limit min and max power and

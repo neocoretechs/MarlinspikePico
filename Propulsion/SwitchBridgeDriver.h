@@ -44,19 +44,19 @@ public:
 	SwitchBridgeDriver(int maxPower) : AbstractMotorControl(maxPower){};
 	uint8_t getMotorDigitalPin(uint8_t channel) { return motorDrive[channel-1][0]; }
 	uint8_t getMotorDigitalPinB(uint8_t channel) { return motorDriveB[channel-1][0]; }
-	int commandMotorPower(uint8_t ch, int16_t p);
-	int commandEmergencyStop(int status);
-	int isConnected(void) { return true; }
+	int commandMotorPower(uint8_t ch, int16_t p) override;
+	int commandEmergencyStop(int status) override;
+	int isConnected(void) override { return true; }
 	void setPins(Digital** pins) { pdigitals = pins; }
 	uint8_t getMotorEnablePin(uint8_t channel) {return motorDrive[channel-1][1]; }
 	void createDigital(uint8_t channel, uint8_t pin_number, uint8_t pin_numberB, uint8_t dir_pin, uint8_t dir_default);
-	void getDriverInfo(uint8_t ch, char* outStr);
-	int queryFaultFlag(void) { return fault_flag; }
-	int queryStatusFlag(void) { return status_flag; }
+	void getDriverInfo(uint8_t ch, char* outStr) override;
+	int queryFaultFlag(void) override { return fault_flag; }
+	int queryStatusFlag(void) override { return status_flag; }
 protected:
 private:
-	SwitchBridgeDriver( const SwitchBridgeDriver &c );
-	SwitchBridgeDriver& operator=( const SwitchBridgeDriver &c );
+	SwitchBridgeDriver( const SwitchBridgeDriver &c ) = delete;
+	SwitchBridgeDriver& operator=( const SwitchBridgeDriver &c ) = delete;
 
 }; //SwitchBridgeDriver
 

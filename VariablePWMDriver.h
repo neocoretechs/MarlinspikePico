@@ -37,20 +37,20 @@ private:
 //functions
 public:
 	VariablePWMDriver(): AbstractPWMControl(){};
-	int commandPWMLevel(uint8_t ch, int16_t p);
-	int commandEmergencyStop(int status);
-	int isConnected(void) { return true; }
+	int commandPWMLevel(uint8_t ch, int16_t p) override;
+	int commandEmergencyStop(int status) override;
+	int isConnected(void) override { return true; }
 	void setPWMs(PWM** pwm) { ppwms = pwm; }
 	void setEnablePins(Digital** dpin) { pdigitals = dpin; }
-	void setMaxPWMLevel(int p) { MAXPWMLEVEL = p; }
+	void setMaxPWMLevel(int p) override { MAXPWMLEVEL = p; }
 	uint getPWMLevelPin(uint channel) { return pwmDrive[channel-1][0]; }
 	uint getPWMEnablePin(uint channel) {return pwmDrive[channel-1][1]; }
-	void createPWM(uint channel, uint pin_number, uint enable_pin);
-	void getDriverInfo(uint8_t ch, char* outStr);
-	int queryFaultFlag(void) { return fault_flag; }
-	int queryStatusFlag(void) { return status_flag; }
+	int createPWM(uint8_t channel, uint8_t pin_number, uint8_t enable_pin) override;
+	void getDriverInfo(uint8_t ch, char* outStr) override;
+	int queryFaultFlag(void) override { return fault_flag; }
+	int queryStatusFlag(void) override { return status_flag; }
 	Digital** pdigitals;
-	bool usesPWM(uint8_t pin) {
+	bool usesPWM(uint8_t pin) override {
 		for(int i = 0; i < 10; i++) {
 			if(pwmDrive[i][0] != 255 && pwmDrive[i][0] && 
 				ppwms[pwmDrive[i][0]] && ppwms[pwmDrive[i][0]]->pin == pin)

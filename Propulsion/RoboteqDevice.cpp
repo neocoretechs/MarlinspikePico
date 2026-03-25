@@ -559,6 +559,8 @@ int RoboteqDevice::readResponse(uint8_t *buf, size_t bufferSize) {
 	return ROBOTEQ_TIMEOUT;
 }
 
+void RoboteqDevice::setMinMotorPower(uint8_t ch, int mpow) {}
+
 void RoboteqDevice::getDriverInfo(uint8_t ch, char* outStr) {
 	char cout[80];
 	char dout1[10];

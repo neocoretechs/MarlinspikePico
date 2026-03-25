@@ -80,7 +80,7 @@ public:
 	virtual int commandMotorPower(uint8_t ch, int16_t p)=0;//make AbstractMotorControl not instantiable
 	virtual int commandEmergencyStop(int status)=0;
 	virtual int isConnected(void)=0;
-	virtual void getDriverInfo(uint ch, char* outStr);
+	virtual void getDriverInfo(uint8_t ch, char* outStr) = 0;
 	virtual int queryFaultFlag(void)=0;
     virtual int queryStatusFlag(void)=0;
 	virtual int queryBrushlessCounter(uint8_t ch);
@@ -94,15 +94,15 @@ public:
 	// If the wheel is mirrored to speed commands or commutation, 0 - normal, 1 - mirror
 	void setDefaultDirection(uint8_t ch, uint8_t val) { defaultDirection[ch-1] = val; }
 	void setDuration(uint8_t ch, uint32_t durx) { maxMotorDuration[ch-1] = durx; }
-	void setMinMotorPower(uint8_t ch, uint32_t mpow) { minMotorPower[ch-1] = mpow; 	if( mpow != 0 ) minMotorPower[ch-1] /= 4; }
+	virtual void setMinMotorPower(uint8_t ch, int mpow) { minMotorPower[ch-1] = mpow; }
 	int  getEncoderCount(uint8_t ch);
 	int totalUltrasonics(void) {  int j = 0; for(int i = 0; i < 10; i++) if(ultrasonicIndex[i][0] != 255)++j; return j; }
 	uint8_t getUltrasonicFacing(uint8_t ch) { return ultrasonicIndex[ch-1][1]; }
 	uint32_t getMinMotorDist(uint8_t ch) { return minMotorDist[ch-1]; }
 	uint8_t getUltrasonicIndex(uint8_t ch) { return ultrasonicIndex[ch-1][0]; }
-	uint32_t getMaxMotorDuration(uint8_t ch) { return maxMotorDuration[ch-1]; }
-	uint32_t getMinMotorPower(uint8_t ch) { return minMotorPower[ch-1] ; }
-	void setMaxMotorPower(int p) { MAXMOTORPOWER = p; if( p != 0 ) MAXMOTORPOWER /= 4; }
+	int getMaxMotorDuration(uint8_t ch) { return maxMotorDuration[ch-1]; }
+	int getMinMotorPower(uint8_t ch) { return minMotorPower[ch-1] ; }
+	virtual void setMaxMotorPower(int p) { MAXMOTORPOWER = p; }
 	int getMotorSpeed(uint8_t ch) { return motorSpeed[ch-1]; }
 	uint8_t getCurrentDirection(uint8_t ch) { return currentDirection[ch-1]; }
 	uint8_t getDefaultDirection(uint8_t ch) { return defaultDirection[ch-1]; }
@@ -115,7 +115,7 @@ public:
 	void setMotorShutdown(void) { commandEmergencyStop(1); MOTORSHUTDOWN = 1;}
 	void setMotorRun(void) { commandEmergencyStop(0); MOTORSHUTDOWN = 0;}
 	uint8_t getMotorShutdown(void) { return MOTORSHUTDOWN; }
-	void setMotorPowerScale(int p) { MOTORPOWERSCALE = p; if( p != 0 ) MOTORPOWERSCALE /= 4;}
+	virtual void setMotorPowerScale(int p) { MOTORPOWERSCALE = p; }
 }; //AbstractMotorControl
 
 #endif //__ABSTRACTMOTORCONTROL_H__

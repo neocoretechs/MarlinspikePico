@@ -40,7 +40,7 @@
 class AbstractPWMControl
 {
 private:
-	uint channels = 0;
+	uint8_t channels = 0;
 
 protected:
 	int status_flag = 0;
@@ -53,13 +53,13 @@ protected:
 	// 1-enable pin
 	// 2-timer prescale (1-none)
 	// 3-timer resolution (8 bit)
-	uint pwmDrive[10][4]={{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8}};
+	uint8_t pwmDrive[10][4]={{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8}};
 	int32_t maxPWMDuration[10] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1}; // number of milliseconds operation before auto shutdown
 	// 10 channels of last PWM value
 	int pwmLevel[10] = {0,0,0,0,0,0,0,0,0,0};
 	uint32_t minPWMLevel[10] = {0,0,0,0,0,0,0,0,0,0}; // Offset to add to G6, use with care, meant to compensate for electrical differences
 	int PWMPOWERSCALE = 0; // scale, divisor for PWM level to reduce 0-1000 scale if non zero
-	uint PWMSHUTDOWN = 0; // Override of PWM controls, puts it in irons
+	uint8_t PWMSHUTDOWN = 0; // Override of PWM controls, puts it in irons
 	int fault_flag = 0;
 	//functions
 	public:	
@@ -74,12 +74,13 @@ protected:
 	virtual int queryStatusFlag(void)=0;
 	virtual void setMaxPWMLevel(int p)=0;
 	virtual bool usesPWM(uint8_t pin)=0;
+	virtual int createPWM(uint8_t channel, uint8_t pin_number, uint8_t enable_pin)=0;
 	virtual bool usesDigital(uint8_t pin) { return false; }
-	uint32_t getMaxPWMDuration(uint ch) { return maxPWMDuration[ch-1]; }
-	uint32_t getMinPWMLevel(uint ch) { return minPWMLevel[ch-1] ; }
-	int getPWMLevel(uint ch) { return pwmLevel[ch-1]; }
-	void setChannels(uint ch) { channels = ch; }
-	uint getChannels(void) { return channels; }
+	uint32_t getMaxPWMDuration(uint8_t ch) { return maxPWMDuration[ch-1]; }
+	uint32_t getMinPWMLevel(uint8_t ch) { return minPWMLevel[ch-1] ; }
+	int getPWMLevel(uint8_t ch) { return pwmLevel[ch-1]; }
+	void setChannels(uint8_t ch) { channels = ch; }
+	uint8_t getChannels(void) { return channels; }
 	void resetLevels(void);
 	void setPWMShutdown(void) { commandEmergencyStop(1); PWMSHUTDOWN = 1;}
 	void setPWMRun(void) { commandEmergencyStop(0); PWMSHUTDOWN = 0;}

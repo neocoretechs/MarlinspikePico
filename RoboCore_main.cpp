@@ -79,17 +79,17 @@ int interrupt_pin = 0;
 int fault = 0;
 bool found=false;
 // Dynamically defined ultrasonic rangers
-Ultrasonic* psonics[10]={0,0,0,0,0,0,0,0,0,0};
+static Ultrasonic* psonics[10]={0,0,0,0,0,0,0,0,0,0};
 // Last distance published per sensor
 float sonicDist[10]={0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f};
 // Dynamically defined analog pins
-int analogRanges[2][16];
-Analog* panalogs[16]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+static int analogRanges[2][16];
+static Analog* panalogs[16]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 // Dynamically defined digital pins
-int digitalTarget[32];
-Digital* pdigitals[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+static int digitalTarget[32];
+static Digital* pdigitals[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 // PWM control block
-PWM* ppwms[12]={0,0,0,0,0,0,0,0,0,0,0,0};
+static PWM* ppwms[12]={0,0,0,0,0,0,0,0,0,0,0,0};
 
 uint8_t channel;
 int slot = -1;
@@ -103,8 +103,8 @@ uint8_t dir_face;
 uint32_t dist;
 
 // &roboteqDevice, new HBridgeDriver, new SplitBridgeDriver...
-AbstractMotorControl* motorControl[10]={0,0,0,0,0,0,0,0,0,0};
-AbstractPWMControl* pwmControl[10]={0,0,0,0,0,0,0,0,0,0};
+static AbstractMotorControl* motorControl[10]={0,0,0,0,0,0,0,0,0,0};
+static AbstractPWMControl* pwmControl[10]={0,0,0,0,0,0,0,0,0,0};
 	
 #define STEPS_PER_TURN 2048 // number of steps in 360deg;	
 //===========================================================================
@@ -2807,10 +2807,9 @@ void processMCode(int cval) {
 		tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
 		tud_cdc_write(controllerStatusHdr, strlen(controllerStatusHdr));
 		tud_cdc_write(MSG_DELIMIT, strlen(MSG_DELIMIT));
-		if (code_seen('Z')) {
-			motorController = code_value();
-		}		
-		if(code_seen('X')) {
+		if(code_seen('Z')) {
+			motorController = code_value();	
+			if(code_seen('X')) {
 				if(pwmControl[motorController]) {
 					for(int i = 0; i < pwmControl[motorController]->getChannels() ; i++ ) {
 						tud_cdc_write("PWM Channel:", strlen("PWM Channel:"));
@@ -2820,17 +2819,51 @@ void processMCode(int cval) {
 						tud_cdc_write_flush();
 					}
 				}
-		} else {
-			if( motorControl[motorController] && motorControl[motorController]->isConnected() ) {
-				for(int i = 0; i < motorControl[motorController]->getChannels() ; i++ ) {
-					tud_cdc_write("Motor Channel:", strlen("Motor Channel:"));
-					tud_cdc_write(itoa(i+1), strlen(itoa(i+1)));
-					motorControl[motorController]->getDriverInfo(i+1, outbuffer);
-					tud_cdc_write(outbuffer, strlen(outbuffer));
-					tud_cdc_write_flush();
+			} else {
+				if( motorControl[motorController] && motorControl[motorController]->isConnected() ) {
+					for(int i = 0; i < motorControl[motorController]->getChannels() ; i++ ) {
+						tud_cdc_write("Motor Channel:", strlen("Motor Channel:"));
+						tud_cdc_write(itoa(i+1), strlen(itoa(i+1)));
+						motorControl[motorController]->getDriverInfo(i+1, outbuffer);
+						tud_cdc_write(outbuffer, strlen(outbuffer));
+						tud_cdc_write_flush();
+					}
 				}
 			}
-		} // code_seen('X')
+		} else { // all slots
+			bool xp = false;
+			if(code_seen('X')) 
+				xp = true;
+			for(int xslot = 0; xslot < 10; xslot++) {
+				if(xp) {
+					if(pwmControl[xslot]) {
+						tud_cdc_write("PWM Slot:", strlen("PWM Slot:"));
+						tud_cdc_write(itoa(xslot), strlen(itoa(xslot)));
+						tud_cdc_write("\r\n", 2);
+						for(int i = 0; i < pwmControl[xslot]->getChannels() ; i++ ) {
+							tud_cdc_write(" PWM Channel:", strlen(" PWM Channel:"));
+							tud_cdc_write(itoa(i+1), strlen(itoa(i+1)));
+							pwmControl[xslot]->getDriverInfo(i+1,outbuffer);
+							tud_cdc_write(outbuffer,strlen(outbuffer));
+							tud_cdc_write_flush();
+						}
+					}
+				} else { // xp
+					if( motorControl[xslot] && motorControl[xslot]->isConnected() ) {
+						tud_cdc_write("Motor Slot:", strlen("Motor Slot:"));
+						tud_cdc_write(itoa(xslot), strlen(itoa(xslot)));
+						tud_cdc_write("\r\n", 2);
+						for(int i = 0; i < motorControl[xslot]->getChannels() ; i++ ) {
+							tud_cdc_write("Motor Channel:", strlen("Motor Channel:"));
+							tud_cdc_write(itoa(i+1), strlen(itoa(i+1)));
+							motorControl[xslot]->getDriverInfo(i+1, outbuffer);
+							tud_cdc_write(outbuffer, strlen(outbuffer));
+							tud_cdc_write_flush();
+						}
+					}
+				}
+			}
+		} // one slot
 		tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
 		tud_cdc_write(controllerStatusHdr, strlen(controllerStatusHdr));
 		tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));

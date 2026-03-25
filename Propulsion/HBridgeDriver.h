@@ -47,19 +47,19 @@ protected:
 private:
 public:
 	HBridgeDriver(int maxPower) : AbstractPWMMotorControl(maxPower){};
-	void resetMaxMotorPower() { MAXMOTORPOWER = 255; }
-	int commandMotorPower(uint8_t ch, int16_t p);
-	int commandEmergencyStop(int status);
-	int isConnected(void) { return true; }
+	void resetMaxMotorPower() override { MAXMOTORPOWER = 1000; }
+	int commandMotorPower(uint8_t ch, int16_t p) override;
+	int commandEmergencyStop(int status) override;
+	int isConnected(void) override { return true; }
 	void setMotors(PWM** pwm) { ppwms = pwm; }
 	void setDirectionPins(Digital** dpin) { pdigitals = dpin; }
 	uint8_t getMotorPWMPin(uint8_t channel) { return motorDrive[channel-1][0]; }
 	uint8_t getMotorEnablePin(uint8_t channel) {return motorDrive[channel-1][1]; }
-	int createPWM(uint8_t channel, uint8_t pin_number, uint8_t dir_pin, uint8_t dir_default);
-	void getDriverInfo(uint8_t ch, char* outStr);
-	int queryFaultFlag(void) { return fault_flag; }
-    int queryStatusFlag(void) { return status_flag; }
-	bool usesPWM(uint8_t pin) {
+	int createPWM(uint8_t channel, uint8_t pin_number, uint8_t dir_pin, uint8_t dir_default) override;
+	void getDriverInfo(uint8_t ch, char* outStr) override;
+	int queryFaultFlag(void) override { return fault_flag; }
+    int queryStatusFlag(void) override { return status_flag; }
+	bool usesPWM(uint8_t pin) override {
 		for(int i = 0; i < 10; i++) {
 			if(motorDrive[i][0] != 255 && motorDrive[i][0] && 
 				ppwms[motorDrive[i][0]] && ppwms[motorDrive[i][0]]->pin == pin)
@@ -77,8 +77,8 @@ public:
 	}
 protected:
 private:
-	HBridgeDriver( const HBridgeDriver &c );
-	HBridgeDriver& operator=( const HBridgeDriver &c );
+	HBridgeDriver( const HBridgeDriver &c ) = delete;
+	HBridgeDriver& operator=( const HBridgeDriver &c ) = delete;
 
 }; //HBridgeDriver
 //extern HBridgeDriver hBridgeDriver;

@@ -51,7 +51,7 @@ class RoboteqDevice : public AbstractSmartMotorControl {
 				m_Serial = new HardwareSerial(uart1, 4, 5); // Example pin numbers, replace with actual pins
 	            m_Serial->begin(115200);
 		}
-		void resetMaxMotorPower() { MAXMOTORPOWER = 1000; }
+		void resetMaxMotorPower() override { MAXMOTORPOWER = 1000; }
         /*
          * check if controller is connected
          *
@@ -70,7 +70,7 @@ class RoboteqDevice : public AbstractSmartMotorControl {
          * @param p power level (-1000, 1000)
          * @return ROBOTEQ_OK if successful 
          */
-        int commandMotorPower(uint8_t ch, int16_t p);
+        int commandMotorPower(uint8_t ch, int16_t p) override;
 
         /*
          * send emergency stop command (!EX)
@@ -78,7 +78,7 @@ class RoboteqDevice : public AbstractSmartMotorControl {
          *
          * @return ROBOTEQ_OK if successful
          */
-        int commandEmergencyStop(int status);
+        int commandEmergencyStop(int status) override;
 		
 		int commandReset(void);
 		
@@ -160,7 +160,7 @@ class RoboteqDevice : public AbstractSmartMotorControl {
         /*
          * query fault flags
          */
-        int queryFaultFlag(void);
+        int queryFaultFlag(void) override;
 
         /*
          * query status flags
@@ -260,9 +260,9 @@ class RoboteqDevice : public AbstractSmartMotorControl {
          */
         void setTimeout(uint16_t timeout);
 		
-		void getDriverInfo(uint8_t ch, char* outStr);
+		void getDriverInfo(uint8_t ch, char* outStr) override;
         
-        int queryBrushlessCounter(uint8_t ch);
+        int queryBrushlessCounter(uint8_t ch) override;
     // Private Methods
     private:
 
@@ -273,7 +273,7 @@ class RoboteqDevice : public AbstractSmartMotorControl {
         int sendCommand(const char *command, size_t commandSize);
 
         int readResponse(uint8_t *buf, size_t bufSize);
-
+	    void setMinMotorPower(uint8_t ch, int mpow) override;
     // Private Data
     private:
         uint16_t    m_Timeout;

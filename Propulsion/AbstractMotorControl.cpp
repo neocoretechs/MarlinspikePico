@@ -29,7 +29,7 @@
 
 #include "AbstractMotorControl.h"
 
-void AbstractMotorControl::getDriverInfo(unsigned int, char*) {
+void AbstractMotorControl::getDriverInfo(uint8_t, char*) {
     // stub or real implementation
 }
 

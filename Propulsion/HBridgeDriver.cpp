@@ -187,8 +187,6 @@ void HBridgeDriver::getDriverInfo(uint8_t ch, char* outStr) {
 	char dout1[5];
 	char dout2[5];
 	char dout3[5];
-	char dout4[5];
-	char dout5[5];
 	char dpin0[5];
 	char dpin1[5];
 	char dpin2[5];
@@ -207,8 +205,7 @@ void HBridgeDriver::getDriverInfo(uint8_t ch, char* outStr) {
 		itoa(ppwms[motorDrive[ch-1][0]]->pin, dout1, 10);
 	}
 	itoa(motorDrive[ch-1][1], dout3, 10);
-	itoa(motorDrive[ch-1][2], dout4, 10);
-	itoa(motorDrive[ch-1][3], dout5, 10);
+
 	if(pdigitals[0])
 		itoa(pdigitals[0]->pin, dpin0, 10);
 	else
@@ -250,11 +247,11 @@ void HBridgeDriver::getDriverInfo(uint8_t ch, char* outStr) {
 	else
 		itoa(0, dpin9, 10);
 	if( motorDrive[ch-1][0] == 255 ) {
-		sprintf(cout,"HB-PWM UNINITIALIZED Pin:%s, Mode:%s, Dir Pin:%s, Timer Prescale:%s, Timer Res.:%s\r\nDir Pins:0=%s,1=%s,2=%s,3=%s,4=%s,5=%s,6=%s,7=%s,8=%s,9=%s\0",
-		dout1, dout2, dout3, dout4, dout5, dpin0, dpin1, dpin2, dpin3, dpin4, dpin5, dpin6, dpin7, dpin8, dpin9);
+		sprintf(cout,"HB-PWM UNINITIALIZED Pin:%s, Mode:%s, Dir Pin:%s\r\nDir Pins:0=%s,1=%s,2=%s,3=%s,4=%s,5=%s,6=%s,7=%s,8=%s,9=%s\0",
+		dout1, dout2, dout3, dpin0, dpin1, dpin2, dpin3, dpin4, dpin5, dpin6, dpin7, dpin8, dpin9);
 	} else {
-		sprintf(cout,"HB-PWM Pin:%s, Mode:%s, Dir Pin:%s, Timer Prescale:%s, Timer Res.:%s\r\nDir Pins:0=%s,1=%s,2=%s,3=%s,4=%s,5=%s,6=%s,7=%s,8=%s,9=%s\0",
-		 dout1, dout2, dout3, dout4, dout5, dpin0, dpin1, dpin2, dpin3, dpin4, dpin5, dpin6, dpin7, dpin8, dpin9);
+		sprintf(cout,"HB-PWM Pin:%s, Mode:%s, Dir Pin:%s\r\nDir Pins:0=%s,1=%s,2=%s,3=%s,4=%s,5=%s,6=%s,7=%s,8=%s,9=%s\0",
+		 dout1, dout2, dout3, dpin0, dpin1, dpin2, dpin3, dpin4, dpin5, dpin6, dpin7, dpin8, dpin9);
 	}
 	
 	for(int i=0; i < OUT_BUFFER_SIZE; ++i){

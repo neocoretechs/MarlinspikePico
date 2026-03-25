@@ -34,12 +34,12 @@ protected:
 private:
 public:
 	DelayHBridgeDriver(int maxPower) : HBridgeDriver(maxPower){};
-	int commandMotorPower(uint8_t ch, int16_t p);
-	void getDriverInfo(uint8_t ch, char* outStr);
+	int commandMotorPower(uint8_t ch, int16_t p) override;
+	void getDriverInfo(uint8_t ch, char* outStr) override;
 protected:
 private:
-	DelayHBridgeDriver( const DelayHBridgeDriver &c );
-	DelayHBridgeDriver& operator=( const DelayHBridgeDriver &c );
+	DelayHBridgeDriver( const DelayHBridgeDriver &c ) = delete;
+	DelayHBridgeDriver& operator=( const DelayHBridgeDriver &c ) = delete;
 
 }; //DelayHBridgeDriver
 //extern DelayHBridgeDriver delayHBridgeDriver;

@@ -36,13 +36,13 @@ public:
 	SplitBridgeDriver(int maxPower) : HBridgeDriver(maxPower){};
 	int commandEmergencyStop(int status);
 	int createPWM(uint8_t channel, uint8_t pin_numberA, uint8_t pin_numberB, uint8_t enb_pin, uint8_t dir_default);
-	int commandMotorPower(uint8_t motorChannel, int16_t motorPower);
+	int commandMotorPower(uint8_t motorChannel, int16_t motorPower) override;
 	uint8_t getMotorPWMPinB(uint8_t channel) { return motorDriveB[channel-1][0]; }
-	void getDriverInfo(uint8_t ch, char* outStr);
+	void getDriverInfo(uint8_t ch, char* outStr) override;
 protected:
 private:
-	SplitBridgeDriver( const SplitBridgeDriver &c );
-	SplitBridgeDriver& operator=( const SplitBridgeDriver &c );
+	SplitBridgeDriver( const SplitBridgeDriver &c ) = delete;
+	SplitBridgeDriver& operator=( const SplitBridgeDriver &c ) = delete;
 
 }; //SplitBridgeDriver
 

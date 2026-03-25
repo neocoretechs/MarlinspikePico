@@ -17,13 +17,14 @@ class AbstractPWMMotorControl : public AbstractMotorControl
 public:
 	AbstractPWMMotorControl(int maxPower) : AbstractMotorControl(maxPower){}
 	virtual int commandMotorPower(uint8_t ch, int16_t p)=0;//make AbstractMotorControl not inst
-	void setMinMotorPower(uint8_t ch, uint32_t mpow) { 
+	void setMinMotorPower(uint8_t ch, int mpow) { 
 		if (ch >= 1 && ch <= getChannels())
-            minMotorPower[ch - 1] = abs((int)mpow) / 4;
+            minMotorPower[ch - 1] = mpow;
 	}
-	void setMaxMotorPower(int p) { MAXMOTORPOWER = std::abs(p)/4; }
-	void setMotorPowerScale(int p) { MOTORPOWERSCALE = std::abs(p)/4;}
+	void setMaxMotorPower(int p) override { MAXMOTORPOWER = p; }
+	void setMotorPowerScale(int p) override { MOTORPOWERSCALE = p;}
 	virtual void resetMaxMotorPower()=0;//set back to the maximum power, subclass sets
+	virtual int createPWM(uint8_t channel, uint8_t pin_number, uint8_t dir_pin, uint8_t dir_default)=0;
 
 }; //AbstractPWMMotorControl
 
