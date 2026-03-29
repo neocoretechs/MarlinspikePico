@@ -68,7 +68,7 @@ int HBridgeDriver::createPWM(uint8_t channel, uint8_t pin_number, uint8_t dir_pi
 	}
 	if( channel <= 0 || channel > 10)
 		return -99;
-		
+
 	if( getChannels() < channel ) 
 		setChannels(channel);
 	// Set up the digital direction pin
@@ -185,14 +185,15 @@ int HBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPower) {
 
 void HBridgeDriver::getDriverInfo(uint8_t ch, char* outStr) {
 	char cout[OUT_BUFFER_SIZE];
-	char dout1[5];
-	char dout3[5];
+	char dout1[10];
+	char dout3[10];
 	
 	if( motorDrive[ch-1][0] == 255 ) {
 		itoa(-1, dout1, 10);
 	} else {
 		itoa(ppwms[motorDrive[ch-1][0]]->pin, dout1, 10);
 	}
+	
 	itoa(motorDrive[ch-1][1], dout3, 10);
 
 	if( motorDrive[ch-1][0] == 255 ) {

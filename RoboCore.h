@@ -64,6 +64,7 @@
 #include "AbstractPWMControl.h"
 #include "VariablePWMDriver.h"
 #include "tusb.h"
+#include "pico/bootrom.h"
 void setup();
 void loop();
 void get_command();
@@ -73,7 +74,6 @@ void processMCode(int cval);
 void manage_inactivity();
 void FlushSerialRequestResend();
 void ClearToSend();
-void kill();
 void Stop();
 bool IsStopped();
 void refresh_cmd_timeout(void);

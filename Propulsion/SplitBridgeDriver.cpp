@@ -213,9 +213,9 @@ int SplitBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPowe
 
 void SplitBridgeDriver::getDriverInfo(uint8_t ch, char * outStr) {
 	char cout[OUT_BUFFER_SIZE];
-	char dout1[5];
-	char dout2[5];
-	char dout4[5];
+	char dout1[10];
+	char dout2[10];
+	char dout4[10];
 	
 	if( motorDrive[ch-1][0] == 255 ) {
 		itoa(-1, dout1, 10);
@@ -227,7 +227,7 @@ void SplitBridgeDriver::getDriverInfo(uint8_t ch, char * outStr) {
 	} else {
 		itoa(ppwms[motorDriveB[ch-1][0]]->pin, dout2, 10);
 	}
-	itoa(motorDrive[ch-1][1], dout4, 10);
+	itoa(motorDriveB[ch-1][1], dout4, 10);
 
 	if( motorDrive[ch-1][0] == 255 ) {
 		sprintf(cout,"SB-PWM CHANNEL UNITIALIZED PinA:%s, PWM PinB:%s, Enable Pin:%s\r\n\0", dout1, dout2, dout4);

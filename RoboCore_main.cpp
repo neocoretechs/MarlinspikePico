@@ -133,14 +133,6 @@ unsigned short crc16(char *data_p, unsigned short length) {
 	crc = (crc << 8) | (data >> 8 & 0xFF);
 	return (crc);
 }
-void setup_killpin()
-{
-  #if defined(KILL_PIN) && KILL_PIN > -1
-	Digital kp = new Digital(KILL_PIN);
-    kp.pinMode(INPUT);
-    kp.digitalWrite(HIGH);
-  #endif
-}
 
 void setup_photpin()
 {
@@ -150,29 +142,7 @@ void setup_photpin()
   #endif
 }
 
-void setup_powerhold()
-{
-  #if defined(SUICIDE_PIN) && SUICIDE_PIN > -1
-    SET_OUTPUT(SUICIDE_PIN);
-    WRITE(SUICIDE_PIN, HIGH);
-  #endif
-  #if defined(PS_ON_PIN) && PS_ON_PIN > -1
-    SET_OUTPUT(PS_ON_PIN);
-	#if defined(PS_DEFAULT_OFF)
-	  WRITE(PS_ON_PIN, PS_ON_ASLEEP);
-    #else
-	  WRITE(PS_ON_PIN, PS_ON_AWAKE);
-	#endif
-  #endif
-}
 
-void suicide()
-{
-  #if defined(SUICIDE_PIN) && SUICIDE_PIN > -1
-    SET_OUTPUT(SUICIDE_PIN);
-    WRITE(SUICIDE_PIN, LOW);
-  #endif
-}
 const char* itoa(int value) {
     static char buf[16];   // enough for -2147483648\0
     char tmp[16];
@@ -245,19 +215,6 @@ void manage_inactivity() {
   }// realtime output
 }
 
-void kill() {
-#if defined(PS_ON_PIN) && PS_ON_PIN > -1
-  Digital psoPin = new Digital(PS_ON_PIN);
-  psoPin.pinMode(PinMode::INPUT);
-#endif
-  for(int j = 0; j < 10; j++) {
-	motorControl[j]->commandEmergencyStop(-2);
-  }
-  //SERIAL_ERROR_START;
-  //SERIAL_ERRORLNPGM(MSG_ERR_KILLED);
-  suicide();
-  while(1) { /* Intentionally left empty */ } // Wait for reset
-}
 
 void Stop() {
   if(!Stopped) {
@@ -427,14 +384,11 @@ void printDigital(Digital* dpin, int target) {
 	}
 }
 
-
 /*--------------------------------------------------
 * Main setup routine, runs once at startup. Initializes the USB CDC serial connection and any other hardware setup needed
 */
 void setup()
 {
-  //setup_killpin();
-  //setup_powerhold();
   stdio_init_all();   // enables USB CDC
   tud_init(0);        // initialize TinyUSB
   //Config_PrintSettings();
@@ -2334,23 +2288,31 @@ void processMCode(int cval) {
 		}
 	 break;
 	 
-     case 80: // M80 - Turn on Power Supply
-	  #if defined(PS_ON_PIN) && PS_ON_PIN > -1
-        SET_OUTPUT(PS_ON_PIN); //GND
-        WRITE(PS_ON_PIN, PS_ON_AWAKE);
-        // If you have a switch on suicide pin, this is useful
-        #if defined(SUICIDE_PIN) && SUICIDE_PIN > -1
-            SET_OUTPUT(SUICIDE_PIN);
-            WRITE(SUICIDE_PIN, HIGH);
-        #endif
-      #endif
+     case 80: // M80 - Enter BOOTSEL
+		for(int k = 0; k < 10; k++) {
+				if(pwmControl[k]) {
+					if(pwmControl[k]->isConnected()) {
+						pwmControl[k]->commandEmergencyStop(81);
+					}
+				}
+		}
+		for(int k = 0; k < 10; k++) {
+			if(motorControl[k]) {
+				if(motorControl[k]->isConnected()) {
+					motorControl[k]->commandEmergencyStop(81);
+				}
+			}
+		}
 	  	tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 	  	tud_cdc_write("M80", strlen("M80"));
 	  	tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 	  	tud_cdc_write_flush();
+		sleep_ms(10);
+		// Now enter BOOTSEL mode, no other response possible past this point
+		reset_usb_boot(0,0);
 	  break;
 
-     case 81: // M81 [Z<slot>] X - Turn off Power Z shut down motorcontroller in slot, X shut down PWM, slot -1 do all
+     case 81: // M81 [Z<slot>] X - Turn off Power Z shut down motorcontroller in slot, X shut down PWM, slot not provided do all
 	  	scode = code_seen('Z') ? code_value() : -1;
 		if(scode == -1) {
 			if(code_seen('X')) {
@@ -2386,12 +2348,7 @@ void processMCode(int cval) {
 				}
 			}
 		}
-      #if defined(SUICIDE_PIN) && SUICIDE_PIN > -1
-        suicide();
-      #elif defined(PS_ON_PIN) && PS_ON_PIN > -1
-        SET_OUTPUT(PS_ON_PIN);
-        WRITE(PS_ON_PIN, PS_ON_ASLEEP);
-      #endif
+ 
 	    sleep_ms(1000); // Wait 1 sec before switch off
 		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 		tud_cdc_write("M81", strlen("M81"));
@@ -2413,7 +2370,7 @@ void processMCode(int cval) {
 	
     case 300: // M300 - emit ultrasonic pulse on given pin and return duration P<pin number>
       uspin = code_seen('P') ? code_value() : 0;
-      if (uspin > 0) {
+      if(uspin > 0) {
 		Ultrasonic* upin = new Ultrasonic(uspin);
 		pin_number = upin->getPin();
 		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
@@ -2808,20 +2765,20 @@ void processMCode(int cval) {
 			motorController = code_value();	
 			if(code_seen('X')) {
 				if(pwmControl[motorController]) {
-					for(int i = 0; i < pwmControl[motorController]->getChannels() ; i++ ) {
+					for(int i = 1; i <= pwmControl[motorController]->getChannels() ; i++ ) {
 						tud_cdc_write(" PWM Channel:", strlen(" PWM Channel:"));
-						tud_cdc_write(itoa(i+1), strlen(itoa(i+1)));
-						pwmControl[motorController]->getDriverInfo(i+1,outbuffer);
+						tud_cdc_write(itoa(i), strlen(itoa(i)));
+						pwmControl[motorController]->getDriverInfo(i,outbuffer);
 						tud_cdc_write(outbuffer,strlen(outbuffer));
 						tud_cdc_write_flush();
 					}
 				}
 			} else {
 				if( motorControl[motorController] && motorControl[motorController]->isConnected() ) {
-					for(int i = 0; i < motorControl[motorController]->getChannels() ; i++ ) {
+					for(int i = 1; i <= motorControl[motorController]->getChannels() ; i++ ) {
 						tud_cdc_write(" Motor Channel:", strlen(" Motor Channel:"));
-						tud_cdc_write(itoa(i+1), strlen(itoa(i+1)));
-						motorControl[motorController]->getDriverInfo(i+1, outbuffer);
+						tud_cdc_write(itoa(i), strlen(itoa(i)));
+						motorControl[motorController]->getDriverInfo(i, outbuffer);
 						tud_cdc_write(outbuffer, strlen(outbuffer));
 						tud_cdc_write_flush();
 					}
@@ -2837,10 +2794,10 @@ void processMCode(int cval) {
 						tud_cdc_write(" PWM Slot:", strlen(" PWM Slot:"));
 						tud_cdc_write(itoa(xslot), strlen(itoa(xslot)));
 						tud_cdc_write("\r\n", 2);
-						for(int i = 0; i < pwmControl[xslot]->getChannels() ; i++ ) {
+						for(int i = 1; i <= pwmControl[xslot]->getChannels() ; i++ ) {
 							tud_cdc_write(" PWM Channel:", strlen(" PWM Channel:"));
-							tud_cdc_write(itoa(i+1), strlen(itoa(i+1)));
-							pwmControl[xslot]->getDriverInfo(i+1,outbuffer);
+							tud_cdc_write(itoa(i), strlen(itoa(i)));
+							pwmControl[xslot]->getDriverInfo(i,outbuffer);
 							tud_cdc_write(outbuffer,strlen(outbuffer));
 							tud_cdc_write_flush();
 						}
@@ -2850,10 +2807,10 @@ void processMCode(int cval) {
 						tud_cdc_write(" Motor Slot:", strlen(" Motor Slot:"));
 						tud_cdc_write(itoa(xslot), strlen(itoa(xslot)));
 						tud_cdc_write("\r\n", 2);
-						for(int i = 0; i < motorControl[xslot]->getChannels() ; i++ ) {
+						for(int i = 1; i <= motorControl[xslot]->getChannels() ; i++ ) {
 							tud_cdc_write(" Motor Channel:", strlen(" Motor Channel:"));
-							tud_cdc_write(itoa(i+1), strlen(itoa(i+1)));
-							motorControl[xslot]->getDriverInfo(i+1, outbuffer);
+							tud_cdc_write(itoa(i), strlen(itoa(i)));
+							motorControl[xslot]->getDriverInfo(i, outbuffer);
 							tud_cdc_write(outbuffer, strlen(outbuffer));
 							tud_cdc_write_flush();
 						}
@@ -2867,43 +2824,16 @@ void processMCode(int cval) {
 		tud_cdc_write_flush();
 		break;	
 		
-	case 799: // M799 [Z<controller>][X] Reset controller, if no argument, reset all. If X, slot is PWM
+	case 799: // M799 [Z<controller>][X] 
 		if (code_seen('Z')) {
 			motorController = code_value();
 			if(code_seen('X')) {
-				if(pwmControl[motorController]) {
-					pwmControl[motorController]->commandEmergencyStop(799);
-					tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
-					tud_cdc_write("M799", strlen("M799"));
-					tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
-					tud_cdc_write_flush();
-				}
-			} else {
-				if(motorControl[motorController]) {
-					motorControl[motorController]->commandEmergencyStop(799);
-					tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
-					tud_cdc_write("M799", strlen("M799"));
-					tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
-					tud_cdc_write_flush();
-				}
-			}
-		} else { // no slot defined, do them all if present
-			for(int j = 0;j < 10; j++) {
-				if(code_seen('X')) {
-					if(pwmControl[j]) {
-						pwmControl[j]->commandEmergencyStop(-1);
-					}
-				} else {
-					if(motorControl[j]) {
-						motorControl[j]->commandEmergencyStop(-1);
-					}
-				}
-			}
-			tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
-			tud_cdc_write("M799", strlen("M799"));
-			tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
-			tud_cdc_write_flush();
-		}
+			} 
+		} 
+		tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
+		tud_cdc_write("M799", strlen("M799"));
+		tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
+		tud_cdc_write_flush();
 		break;
 
 	case 802: // Acquire analog pin data M802 Pnn Sxxx Mxxx P=Pin number, S=number readings, M=microseconds per reading. X - pullup.

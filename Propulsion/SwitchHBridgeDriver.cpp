@@ -118,8 +118,8 @@ int SwitchHBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPo
 
 void SwitchHBridgeDriver::getDriverInfo(uint8_t ch, char* outStr) {
 	char cout[OUT_BUFFER_SIZE];
-	char dout1[5];
-	char dout4[5];
+	char dout1[10];
+	char dout4[10];
 
 	if( motorDrive[ch-1][0] == 255 ) {
 		itoa(-1, dout1, 10);

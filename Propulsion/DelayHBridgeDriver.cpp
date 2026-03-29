@@ -114,8 +114,8 @@ int DelayHBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPow
 
 void DelayHBridgeDriver::getDriverInfo(uint8_t ch, char* outStr) {
 	char cout[OUT_BUFFER_SIZE];
-	char dout1[5];
-	char dout3[5];
+	char dout1[10];
+	char dout3[10];
 	
 	if( motorDrive[ch-1][0] == 255 ) {
 		itoa(-1, dout1, 10);
