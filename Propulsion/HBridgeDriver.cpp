@@ -98,7 +98,7 @@ int HBridgeDriver::createPWM(uint8_t channel, uint8_t pin_number, uint8_t dir_pi
 	PWM* ppin = new PWM(pin_number);
 	ppwms[pindex] = ppin;
 	ppwms[pindex]->init();
-	//ppwms[pindex]->setSafeShutdown(true, ppwms[pindex]->watchdogMax);
+	ppwms[pindex]->setSafeShutdown(true, ppwms[pindex]->watchdogMax);
 	return 0;
 }
 /*

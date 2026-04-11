@@ -26,10 +26,13 @@ PWM* PWM::instances[8] = {nullptr};
 	void PWM::init() {
 		gpio_set_function(this->pin, GPIO_FUNC_PWM);
 		this->slice = pwm_gpio_to_slice_num(pin);
+		PWM::instances[this->slice] = this; // register instance for IRQ dispatch
+
 		pwm_config config = pwm_get_default_config();
 		pwm_config_set_clkdiv(&config, 10.0f); // div
 		pwm_config_set_wrap(&config, 999); // top 0-1000
 		pwm_init(this->slice, &config, false);
+
 		// Clear any pending IRQ
     	pwm_clear_irq(this->slice);
     	// Enable IRQ for this slice
@@ -63,28 +66,32 @@ PWM* PWM::instances[8] = {nullptr};
 	* Because the RP2040 IRQ is per slice, not per pin, you need a static trampoline:
 	*/
 	void PWM::pwm_irq_handler() {
-		for (int xslice = 0; xslice < 8; xslice++) {
-			if (pwm_hw->intr & (1 << xslice)) {
-				pwm_clear_irq(xslice);
-				// Dispatch to instance if registered
-				if (PWM::instances[xslice] && PWM::instances[xslice]->interruptService) {
-					PWM::instances[xslice]->interruptService->service();
-				}
-			}
-			
-			if(PWM::instances[xslice]->safeShutdown) {
-				uint xslice = pwm_get_irq_status_mask();
-				pwm_clear_irq(xslice);
-				if(PWM::instances[xslice]->watchdog > 0) {
-					PWM::instances[xslice]->watchdog--;
-				} else {
-					pwm_set_enabled(xslice,false);
-					PWM::instances[xslice]->watchdog = PWM::instances[xslice]->watchdogMax;
-				}
-			}
-		}
+    	// Read mask of slices that triggered (one call)
+    	uint32_t mask = pwm_get_irq_status_mask();
+    	if (mask == 0) return;
+    	// Clear IRQs for those slices
+    	pwm_clear_irq(mask);
+    	// Iterate slices that fired
+    	for (int slice = 0; slice < 8; ++slice) {
+        	if (!(mask & (1u << slice))) continue;
+        	PWM* inst = PWM::instances[slice];
+        	if (!inst) continue; // safe: skip unregistered slices
+        	// Dispatch user ISR if present (must be IRQ-safe)
+        	if (inst->interruptService) {
+            	inst->interruptService->service(); // ensure service() is IRQ-safe
+        	}
+        	// Watchdog handling: only modify volatile counters/flags
+        	if(inst->safeShutdown) {
+            	if (inst->watchdog > 0) {
+                	--inst->watchdog;
+            	} else {
+                	// mark for shutdown; do not call hardware APIs here
+                	inst->shutdownRequested = true;
+                	inst->watchdog = inst->watchdogMax; // reset for next cycle
+            	}
+        	}
+    	}
 	}
-
 	void PWM::setSafeShutdown(bool enable, int max) {
 		safeShutdown = enable;
 		watchdogMax = max;

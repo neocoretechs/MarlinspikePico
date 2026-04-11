@@ -20,8 +20,10 @@ class PWM {
 	uint slice;
 	uint channel = 0;
 	volatile int watchdog = 0;
-	int watchdogMax = 1000000;
-	bool safeShutdown = false;
+	volatile int watchdogMax = 1000000;
+	volatile bool safeShutdown = false;
+	volatile bool shutdownRequested = false;
+	volatile bool shutdownLogged = false;
 	InterruptService* interruptService=NULL;
 	static PWM* instances[8];
 	PWM(uint spin);

@@ -101,6 +101,8 @@ int dir_pin, dir_default, enable_pin;
 int encode_pin = 0;
 uint8_t dir_face;
 uint32_t dist;
+uint32_t mask;
+char irqbuf[32];
 
 // &roboteqDevice, new HBridgeDriver, new SplitBridgeDriver...
 static AbstractMotorControl* motorControl[10]={0,0,0,0,0,0,0,0,0,0};
@@ -2557,7 +2559,13 @@ void processMCode(int cval) {
 	  }
 	  break;
 	
-    case 502: // M502 Revert to default settings
+    case 502: // M502 report IRQ satus
+		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+		tud_cdc_write("M502", strlen("M502"));
+		tud_cdc_write(MSG_DELIMIT, strlen(MSG_DELIMIT));
+	  	mask = pwm_get_irq_status_mask();
+		sprintf(irqbuf, "irq_mask=0x%08x",mask);
+		tud_cdc_write(irqbuf, strlen(irqbuf));
 		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 		tud_cdc_write("M502", strlen("M502"));
 		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
