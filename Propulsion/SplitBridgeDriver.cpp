@@ -117,9 +117,11 @@ int SplitBridgeDriver::createPWM(uint8_t channel, uint8_t pin_numberA, uint8_t p
 	PWM* ppinA = new PWM(pin_numberA);
 	ppwms[pindex] = ppinA;
 	ppwms[pindex]->init();
+	ppwms[pindex]->setSafeShutdown(true, ppwms[pindex]->watchdogMax);
 	PWM* ppinB = new PWM(pin_numberB);
 	ppwms[pindex+1] = ppinB;
 	ppwms[pindex+1]->init();
+	ppwms[pindex+1]->setSafeShutdown(true, ppwms[pindex+1]->watchdogMax);
 	return 0;
 }
 /*

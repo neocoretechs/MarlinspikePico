@@ -1,0 +1,20 @@
+void checkAndPerformShutdown() {
+    for (int s = 0; s < 8; ++s) {
+        PWM* inst = PWM::instances[s];
+        if (!inst) continue;
+        if (inst->shutdownRequested) {
+            // clear any pending IRQ for this slice
+            pwm_clear_irq(1u << inst->slice);
+
+            // disable the PWM output and its wrap interrupt (safe, non-IRQ)
+            pwm_set_enabled(inst->slice, false);
+            pwm_set_irq_enabled(inst->slice, false);
+
+            inst->shutdownRequested = false;
+            if (!inst->shutdownLogged) {
+                printf("SafeShutdown: slice %d disabled\n", inst->slice);
+                inst->shutdownLogged = true;
+            }
+        }
+    }
+}

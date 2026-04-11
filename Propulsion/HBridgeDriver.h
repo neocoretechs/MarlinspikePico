@@ -75,6 +75,7 @@ public:
 		}
 		return false;
 	}
+	int checkSafeShutdown(void) override;
 protected:
 private:
 	HBridgeDriver( const HBridgeDriver &c ) = delete;

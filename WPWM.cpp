@@ -11,6 +11,8 @@
 #include <hardware/clocks.h>
 #include <hardware/pwm.h>
 #include <hardware/irq.h>
+// 8 total "slices", each slice has 2 "channels" one interrupt server a slice, so 8 total interrupts possible. We will use the same interrupt handler for all slices and dispatch based on which slice fired.
+
 PWM* PWM::instances[8] = {nullptr};
 	/*
 	* Constructor 
@@ -85,9 +87,10 @@ PWM* PWM::instances[8] = {nullptr};
             	if (inst->watchdog > 0) {
                 	--inst->watchdog;
             	} else {
-                	// mark for shutdown; do not call hardware APIs here
-                	inst->shutdownRequested = true;
+                	// mark for shutdown
+					inst->shutdownRequested = true;
                 	inst->watchdog = inst->watchdogMax; // reset for next cycle
+					pwm_set_irq_enabled(inst->slice, false);
             	}
         	}
     	}
@@ -98,9 +101,15 @@ PWM* PWM::instances[8] = {nullptr};
 	}
 
 	void PWM::pwmWrite(bool enable, uint power) {
+		// clear any pending IRQ to avoid immediate timeout if we are enabling
+		pwm_clear_irq(1u << this->slice);
 		pwm_set_gpio_level(this->pin, power);
     	pwm_set_enabled(this->slice, enable);
+		// re-enable wrap IRQ for this slice to ensure we get the next cycle interrupt for watchdog handling
+		pwm_set_irq_enabled(this->slice, true);
 		watchdog = watchdogMax;
+		shutdownRequested = false;
+		shutdownLogged = false;
 	}		
 
 

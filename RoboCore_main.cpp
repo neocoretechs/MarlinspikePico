@@ -186,14 +186,15 @@ void FlushSerialRequestResend()
 * Arrive here at the end of each command processing iteration to check for status related events
 * ---------------------------------------------------
 */
+
 void manage_inactivity() {
-	//char tmpbuf[256];
 	// check motor controllers
-  for(int j =0; j < 10; j++) {
+  	for(int j = 0; j < 10; j++) {
 	  if(motorControl[j]) {
 		//sprintf(tmpbuf, "MI: j=%d ptr=%p vtable=%p\r\n\0", j, motorControl[j], *(void**)motorControl[j]);
 		//tud_cdc_write(tmpbuf,strlen(tmpbuf));
 		//tud_cdc_write_flush();
+		motorControl[j]->checkSafeShutdown();
 		if( motorControl[j]->isConnected() ) {
 			motorControl[j]->checkEncoderShutdown();
 			motorControl[j]->checkUltrasonicShutdown();
@@ -204,17 +205,16 @@ void manage_inactivity() {
 			}
 		}
 	  }
-  }
-  
-  if( realtime_output ) {		
-	// Check the ultrasonic ranging for all devices defined by successive M301 directives
-	for(int i = 0 ; i < 10; i++) {
-		if( psonics[i] ) {
-			printUltrasonic(psonics[i], i);
-			tud_cdc_write_flush();
-		}
-	}  
-  }// realtime output
+	}
+  	if( realtime_output ) {		
+		// Check the ultrasonic ranging for all devices defined by successive M301 directives
+		for(int i = 0 ; i < 10; i++) {
+			if( psonics[i] ) {
+				printUltrasonic(psonics[i], i);
+				tud_cdc_write_flush();
+			}
+		}  
+  	}// realtime output
 }
 
 

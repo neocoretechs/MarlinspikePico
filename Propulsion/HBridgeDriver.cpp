@@ -101,6 +101,19 @@ int HBridgeDriver::createPWM(uint8_t channel, uint8_t pin_number, uint8_t dir_pi
 	ppwms[pindex]->setSafeShutdown(true, ppwms[pindex]->watchdogMax);
 	return 0;
 }
+int HBridgeDriver::checkSafeShutdown(void) {
+	int fault_flag = 0;
+	for(int i = 1; i <= getChannels(); i++) {
+		int pindex = motorDrive[i-1][0];
+		if(pindex != 255 && ppwms[pindex] && ppwms[pindex]->safeShutdown && ppwms[pindex]->shutdownRequested) {
+			ppwms[pindex]->pwmOff();
+			ppwms[pindex]->shutdownRequested = false;
+			ppwms[pindex]->shutdownLogged = true;
+			fault_flag |= (1 << (i-1)); // set bit for this channel
+		}
+	}
+	return fault_flag;
+}
 /*
 * Command the bridge driver power level. Manage direction pin. If necessary limit min and max power and
 * scale to the MOTORPOWERSCALE if > 0. After calculation and saved values in the 0-1000 range scale it to 0-255 for 8 bit PWM.
