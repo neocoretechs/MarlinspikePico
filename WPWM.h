@@ -29,7 +29,7 @@ class PWM {
 	PWM(uint spin);
 	void init();
 	void pwmWrite(bool enable, uint power);
-	inline void pwmOff() { pwmWrite(0, 0); };
+	void pwmOff();
 	static void pwm_irq_handler();
 	void attachInterrupt(InterruptService* cins, bool overflow = false);
 	void detachInterrupt();

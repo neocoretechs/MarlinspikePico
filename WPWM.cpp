@@ -63,6 +63,19 @@ PWM* PWM::instances[8] = {nullptr};
     	//pwm_set_irq_enabled(this->channel, false);
 		this->interruptService = 0;
 	}
+
+	void PWM::pwmOff() {
+		uint slice = this->slice;
+		uint32_t mask = 1u << slice;
+		pwm_clear_irq(mask);
+		pwm_set_chan_level(slice, PWM_CHAN_A, 0);
+		pwm_set_chan_level(slice, PWM_CHAN_B, 0);
+		pwm_set_enabled(slice, false);
+		pwm_set_irq_enabled(slice, false);
+		watchdog = 0;
+		shutdownRequested = false;
+		shutdownLogged = true;		
+	}
 	/*
 	* Static IRQ handler that dispatches to the correct instance
 	* Because the RP2040 IRQ is per slice, not per pin, you need a static trampoline:
@@ -105,9 +118,9 @@ PWM* PWM::instances[8] = {nullptr};
 		pwm_clear_irq(1u << this->slice);
 		pwm_set_gpio_level(this->pin, power);
     	pwm_set_enabled(this->slice, enable);
-		// re-enable wrap IRQ for this slice to ensure we get the next cycle interrupt for watchdog handling
-		pwm_set_irq_enabled(this->slice, true);
-		watchdog = watchdogMax;
+		// possibly re-enable wrap IRQ for this slice to ensure we get the next cycle interrupt for watchdog handling
+		pwm_set_irq_enabled(this->slice, enable);
+		watchdog = enable ? watchdogMax : 0;
 		shutdownRequested = false;
 		shutdownLogged = false;
 	}		

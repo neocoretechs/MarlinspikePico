@@ -124,6 +124,26 @@ int SplitBridgeDriver::createPWM(uint8_t channel, uint8_t pin_numberA, uint8_t p
 	ppwms[pindex+1]->setSafeShutdown(true, ppwms[pindex+1]->watchdogMax);
 	return 0;
 }
+int SplitBridgeDriver::checkSafeShutdown(void) {
+	int fault_flag = 0;
+	for(int i = 1; i <= getChannels(); i++) {
+		int pindex = motorDrive[i-1][0];
+		if(pindex != 255 && ppwms[pindex] && ppwms[pindex]->safeShutdown && ppwms[pindex]->shutdownRequested) {
+			ppwms[pindex]->pwmOff();
+			ppwms[pindex]->shutdownRequested = false;
+			ppwms[pindex]->shutdownLogged = true;
+			fault_flag |= (1 << (i-1)); // set bit for this channel
+		}
+		pindex = motorDriveB[i-1][0];
+		if(pindex != 255 && ppwms[pindex] && ppwms[pindex]->safeShutdown && ppwms[pindex]->shutdownRequested) {
+			ppwms[pindex]->pwmOff();
+			ppwms[pindex]->shutdownRequested = false;
+			ppwms[pindex]->shutdownLogged = true;
+			fault_flag |= (1 << (i-1)); // set bit for this channel
+		}
+	}
+	return fault_flag;
+}
 /*
 * Command the bridge driver power level. Manage enable pin. If necessary limit min and max power and
 * scale to the MOTORPOWERSCALE if > 0. After calculation and saved values in the 0-1000 range scale it to 0-255 for 8 bit PWM.
