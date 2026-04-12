@@ -405,7 +405,6 @@ void loop() {
   if(!comment_mode) {
     process_commands();
   }
-  manage_inactivity();
 }
   
 void get_command() {
@@ -415,8 +414,10 @@ void get_command() {
 	bool eol = false;
 	do {
         tud_task();
-        if (!tud_cdc_available())
+        if (!tud_cdc_available()) {
+			manage_inactivity();
             continue;
+		}
         uint32_t n = tud_cdc_read(temp, sizeof(temp));
 		for(int i = 0; i < n; i++) {
         	char c = temp[i];
@@ -1294,7 +1295,7 @@ void processMCode(int cval) {
 							delete motorControl[motorController];
 							motorControl[motorController] = 0; // in case assignment below fails
 						}
-						motorControl[motorController] = new RoboteqDevice(MAXPOWER);
+						motorControl[motorController] = (AbstractMotorControl*) new RoboteqDevice(MAXPOWER);
 						tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 						tud_cdc_write("M10", strlen("M10"));
 						tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));

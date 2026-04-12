@@ -36,12 +36,13 @@ PWM* PWM::instances[8] = {nullptr};
 		pwm_init(this->slice, &config, false);
 
 		// Clear any pending IRQ
-    	pwm_clear_irq(this->slice);
+    	//pwm_clear_irq(this->slice);
     	// Enable IRQ for this slice
-    	pwm_set_irq_enabled(this->slice, true);
+    	//pwm_set_irq_enabled(this->slice, true);
 		// Register the handler (only once globally)
-		irq_set_exclusive_handler(PWM_IRQ_WRAP, pwm_irq_handler);
-		irq_set_enabled(PWM_IRQ_WRAP, true);
+		//irq_set_exclusive_handler(PWM_IRQ_WRAP, pwm_irq_handler);
+		//irq_set_priority(PWM_IRQ_WRAP, 0); // highest prio
+		//irq_set_enabled(PWM_IRQ_WRAP, true);
 	}
 
 	/*
@@ -63,7 +64,9 @@ PWM* PWM::instances[8] = {nullptr};
     	//pwm_set_irq_enabled(this->channel, false);
 		this->interruptService = 0;
 	}
-
+	uint16_t PWM::get_counter() {
+		return pwm_get_counter(this->slice);
+	}
 	void PWM::pwmOff() {
 		uint slice = this->slice;
 		uint32_t mask = 1u << slice;
@@ -71,10 +74,43 @@ PWM* PWM::instances[8] = {nullptr};
 		pwm_set_chan_level(slice, PWM_CHAN_A, 0);
 		pwm_set_chan_level(slice, PWM_CHAN_B, 0);
 		pwm_set_enabled(slice, false);
-		pwm_set_irq_enabled(slice, false);
+		//pwm_set_irq_enabled(slice, false);
 		watchdog = 0;
 		shutdownRequested = false;
 		shutdownLogged = true;		
+	}
+	void PWM::setup_hardware_safety() {
+		uint slice_num = this->slice;
+    	count_chan = dma_claim_unused_channel(true);
+    	dma_channel_config c = dma_channel_get_default_config(count_chan);
+    	channel_config_set_transfer_data_size(&c, DMA_SIZE_32);
+    	channel_config_set_read_increment(&c, true);
+    	channel_config_set_write_increment(&c, false);
+    	// Trigger DMA on every PWM Wrap
+    	channel_config_set_dreq(&c, DREQ_PWM_WRAP0+slice_num);
+    	// Prepare Channel
+    	dma_channel_configure(count_chan, &c,
+			&pwm_hw->slice[slice_num].cc, // Target: PWM Control Register
+        	&PWM_OFF_VAL,                  // Value: 0 (Off)
+        	1,                             // One write
+        	true                          // Don't start yet
+    	);
+    	// --- THE SNIFFER: Health Monitor ---
+    	// Calculates a CRC32 of the dummy data as it passes through the counter
+    	dma_sniffer_enable(count_chan, DMA_SNIFF_CTRL_CALC_VALUE_CRC32, true);
+    	// Start the counter chain
+    	dma_channel_configure(count_chan, &c, &dummy_dest, &dummy_src, watchdogMax, true);
+	}
+	void PWM::rearm_safety() {
+    	// 1. Temporarily stop PWM to avoid race conditions during re-arm
+    	pwm_set_enabled(this->slice, false);
+    	// 2. Abort both channels to ensure they are in a clean state
+    	dma_channel_abort(this->count_chan);
+    	// 4. Reset and restart the Counter Channel
+    	// This starts the chain reaction again
+    	dma_channel_set_trans_count(this->count_chan, this->watchdogMax, true);
+    	// 5. Turn PWM back on
+    	pwm_set_enabled(this->slice, true);
 	}
 	/*
 	* Static IRQ handler that dispatches to the correct instance
@@ -86,6 +122,7 @@ PWM* PWM::instances[8] = {nullptr};
     	if (mask == 0) return;
     	// Clear IRQs for those slices
     	pwm_clear_irq(mask);
+		(void)pwm_hw->intr;
     	// Iterate slices that fired
     	for (int slice = 0; slice < 8; ++slice) {
         	if (!(mask & (1u << slice))) continue;
@@ -102,8 +139,8 @@ PWM* PWM::instances[8] = {nullptr};
             	} else {
                 	// mark for shutdown
 					inst->shutdownRequested = true;
-                	inst->watchdog = inst->watchdogMax; // reset for next cycle
 					pwm_set_irq_enabled(inst->slice, false);
+					pwm_set_enabled(inst->slice, false);
             	}
         	}
     	}
@@ -111,18 +148,20 @@ PWM* PWM::instances[8] = {nullptr};
 	void PWM::setSafeShutdown(bool enable, int max) {
 		safeShutdown = enable;
 		watchdogMax = max;
+		//setup_hardware_safety();
 	}
 
 	void PWM::pwmWrite(bool enable, uint power) {
 		// clear any pending IRQ to avoid immediate timeout if we are enabling
-		pwm_clear_irq(1u << this->slice);
+		//pwm_clear_irq(1u << this->slice);
 		pwm_set_gpio_level(this->pin, power);
     	pwm_set_enabled(this->slice, enable);
 		// possibly re-enable wrap IRQ for this slice to ensure we get the next cycle interrupt for watchdog handling
-		pwm_set_irq_enabled(this->slice, enable);
+		//pwm_set_irq_enabled(this->slice, enable);
 		watchdog = enable ? watchdogMax : 0;
 		shutdownRequested = false;
 		shutdownLogged = false;
+		//rearm_safety();
 	}		
 
 

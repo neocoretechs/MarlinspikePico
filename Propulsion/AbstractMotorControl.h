@@ -115,7 +115,7 @@ public:
 	void setMotorRun(void) { commandEmergencyStop(0); MOTORSHUTDOWN = 0;}
 	uint8_t getMotorShutdown(void) { return MOTORSHUTDOWN; }
 	virtual void setMotorPowerScale(int p) { MOTORPOWERSCALE = p; }
-	virtual int checkSafeShutdown(void) { return 0;};
+	virtual int checkSafeShutdown(void)= 0;
 }; //AbstractMotorControl
 
 #endif //__ABSTRACTMOTORCONTROL_H__

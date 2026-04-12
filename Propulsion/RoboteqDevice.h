@@ -78,6 +78,7 @@ class RoboteqDevice : public AbstractMotorControl {
 		int commandReset(void);
 		int commandBrushlessCounter(void);
         void setMinMotorPower(uint8_t ch, int mpow) override;
+        int checkSafeShutdown(void) override { return 0;}
         //*********************************************************************
         // Query
         //*********************************************************************

@@ -53,6 +53,7 @@ public:
 	void getDriverInfo(uint8_t ch, char* outStr) override;
 	int queryFaultFlag(void) override { return fault_flag; }
 	int queryStatusFlag(void) override { return status_flag; }
+	int checkSafeShutdown(void) override { return 0; }
 protected:
 private:
 	SwitchBridgeDriver( const SwitchBridgeDriver &c ) = delete;

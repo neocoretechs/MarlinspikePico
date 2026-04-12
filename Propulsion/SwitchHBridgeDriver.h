@@ -34,6 +34,7 @@ class SwitchHBridgeDriver : public SwitchBridgeDriver {
 	int commandMotorPower(uint8_t channel, int16_t motorPower) override;
 	int commandEmergencyStop(int status) override;
 	void getDriverInfo(uint8_t ch, char* outStr) override;
+	int checkSafeShutdown(void) override { return 0; }
     private:
 	SwitchHBridgeDriver( const SwitchHBridgeDriver &c ) = delete;
 	SwitchHBridgeDriver& operator=( const SwitchHBridgeDriver &c ) = delete;

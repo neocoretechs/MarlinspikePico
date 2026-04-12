@@ -11,6 +11,9 @@
 #include <cstdint>
 #include <cstddef>
 #include "pico/stdlib.h"
+#include "hardware/dma.h"
+#include "hardware/regs/pwm.h"
+
 using namespace std;
 class PWM {
 	public:
@@ -24,6 +27,13 @@ class PWM {
 	volatile bool safeShutdown = false;
 	volatile bool shutdownRequested = false;
 	volatile bool shutdownLogged = false;
+	// Constants for the hardware fuse
+	const uint32_t PWM_OFF_VAL = 0x0; 
+	uint32_t dummy_dest;
+	const uint32_t dummy_src = 0xDEADBEEF;
+	// Channel handles for monitoring in main loop
+	int count_chan;
+	int kill_chan;
 	InterruptService* interruptService=NULL;
 	static PWM* instances[8];
 	PWM(uint spin);
@@ -34,6 +44,9 @@ class PWM {
 	void attachInterrupt(InterruptService* cins, bool overflow = false);
 	void detachInterrupt();
 	void setSafeShutdown(bool enable, int max);
+	void setup_hardware_safety();
+	void rearm_safety();
+	uint16_t get_counter();
 };
 
 
