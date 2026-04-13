@@ -23,7 +23,7 @@ class PWM {
 	uint slice;
 	uint channel = 0;
 	volatile int watchdog = 0;
-	volatile int watchdogMax = 1000;
+	volatile int watchdogMax = 10000;
 	volatile bool safeShutdown = false;
 	volatile bool shutdownRequested = false;
 	volatile bool shutdownLogged = false;
@@ -44,8 +44,6 @@ class PWM {
 	void attachInterrupt(InterruptService* cins, bool overflow = false);
 	void detachInterrupt();
 	void setSafeShutdown(bool enable, int max);
-	void setup_hardware_safety();
-	void rearm_safety();
 	uint16_t get_counter();
 };
 

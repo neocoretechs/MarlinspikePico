@@ -105,11 +105,9 @@ int HBridgeDriver::checkSafeShutdown(void) {
 	int fault_flag = 0;
 	for(int i = 1; i <= getChannels(); i++) {
 		int pindex = motorDrive[i-1][0];
-		if(pindex != 255 && ppwms[pindex] && ppwms[pindex]->safeShutdown && ppwms[pindex]->get_counter() > ppwms[pindex]->watchdogMax) {
+		if(pindex != 255 && ppwms[pindex] && ppwms[pindex]->safeShutdown && ppwms[pindex]->shutdownRequested) {
 				ppwms[pindex]->pwmOff();
 				fault_flag |= (1 << (i-1)); // set bit for this channel
-			ppwms[pindex]->pwmOff();
-			fault_flag |= (1 << (i-1)); // set bit for this channel
 		}
 	}
 	return fault_flag;
