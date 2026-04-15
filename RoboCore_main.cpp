@@ -90,7 +90,9 @@ static int digitalTarget[32];
 static Digital* pdigitals[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 // Dynamically defined PWM pins
 static PWM* ppwms[12]={0,0,0,0,0,0,0,0,0,0,0,0};
-
+// Shared status byte
+static volatile uint8_t active_mask_buffer = 0;
+static const uint8_t clear_val = 0;
 uint8_t channel;
 int slot = -1;
 int digitarg;
@@ -912,6 +914,7 @@ void processMCode(int cval) {
 		if(encode_pin) {
 			motorControl[motorController]->createEncoder(channel, encode_pin);
 		}
+		motorControl[motorController]->setSafeShutdown(&active_mask_buffer);
 		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 		tud_cdc_write("M3", strlen("M3"));
 		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
@@ -1009,6 +1012,7 @@ void processMCode(int cval) {
 		  		if(encode_pin) {
 					motorControl[motorController]->createEncoder(channel, encode_pin);
 		  		}
+				motorControl[motorController]->setSafeShutdown(&active_mask_buffer);
 		  		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 		  		tud_cdc_write("M4", strlen("M4"));
 		  		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
@@ -1346,8 +1350,7 @@ void processMCode(int cval) {
 										if(pMotor1 != 255 && ppwms[pMotor1]) {
 											delete ppwms[pMotor1];
 											ppwms[pMotor1] = 0;
-										}
-										
+										}									
 								}
 								delete motorControl[motorController];
 								motorControl[motorController] = 0; // in case assignment below fails
@@ -1640,67 +1643,67 @@ void processMCode(int cval) {
 			break;
 		}
 		break;
-		//  
-		// M15 [Z<slot>] C<channel> P<pin> S<pin state 0 low, 1 high> N<number of counts before interrupt generated>
-		// Create digital encoder for controller at slot and channel.
-		// Activate interrupt at S pin state.
-		// Detect range N times before interrupt
-		//
-		case 15:
-			int digitalState;
-			if(code_seen('Z')) {
-				motorController = (int) code_value();
-			} else {
-				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-				tud_cdc_write("M15 SLOT ERROR", strlen("M15 SLOT ERROR"));
-				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-				tud_cdc_write_flush();
-				break;
-			}
-			if( code_seen('C') ) {
-				channel = (int) code_value();
-				if(channel <= 0) {
+	//  
+	// M15 [Z<slot>] C<channel> P<pin> S<pin state 0 low, 1 high> N<number of counts before interrupt generated>
+	// Create digital encoder for controller at slot and channel.
+	// Activate interrupt at S pin state.
+	// Detect range N times before interrupt
+	//
+	case 15:
+		int digitalState;
+		if(code_seen('Z')) {
+			motorController = (int) code_value();
+		} else {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M15 SLOT ERROR", strlen("M15 SLOT ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+			break;
+		}
+		if( code_seen('C') ) {
+			channel = (int) code_value();
+			if(channel <= 0) {
 					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 					tud_cdc_write("M15 CHANNEL ERROR", strlen("M15 CHANNEL ERROR"));
 					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 					tud_cdc_write_flush();
 					break;
+			}
+			if(code_seen('P')) {
+				int pin = (int) code_value();
+				digitalState = (int) (code_seen('S') ? code_value() : 1);
+				counts = (int) (code_seen('N') ? code_value() : 1);
+				if( code_seen('I')) {
+					interrupt_pin = (int) code_value();
 				}
-				if(code_seen('P')) {
-					int pin = (int) code_value();
-					digitalState = (int) (code_seen('S') ? code_value() : 1);
-					counts = (int) (code_seen('N') ? code_value() : 1);
-					if( code_seen('I')) {
-						interrupt_pin = (int) code_value();
-					}
-					if(motorControl[motorController]) {
-						motorControl[motorController]->createEncoder(channel, pin);
-						// ((Encoder*)motorControl[motorController]->getEncoder(channel))->setDigital(digitalState, counts, interrupt_pin);
-			 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-			 			tud_cdc_write("M15", strlen("M15"));
-			 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-			 			tud_cdc_write_flush();
-					} else {
-						tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-						tud_cdc_write("M15 SLOT UNASSIGNED ERROR", strlen("M15 SLOT UNASSIGNED ERROR"));
-						tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-						tud_cdc_write_flush();
-						break;
-					}
+				if(motorControl[motorController]) {
+					motorControl[motorController]->createEncoder(channel, pin);
+					// ((Encoder*)motorControl[motorController]->getEncoder(channel))->setDigital(digitalState, counts, interrupt_pin);
+			 		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			 		tud_cdc_write("M15", strlen("M15"));
+			 		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			 		tud_cdc_write_flush();
 				} else {
 					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-					tud_cdc_write("M15 PIN ERROR", strlen("M15 PIN ERROR"));
+					tud_cdc_write("M15 SLOT UNASSIGNED ERROR", strlen("M15 SLOT UNASSIGNED ERROR"));
 					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 					tud_cdc_write_flush();
 					break;
 				}
 			} else {
 				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-				tud_cdc_write("M15 CHANNEL ERROR", strlen("M15 CHANNEL ERROR"));
+				tud_cdc_write("M15 PIN ERROR", strlen("M15 PIN ERROR"));
 				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 				tud_cdc_write_flush();
+				break;
 			}
-			break;
+		} else {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M15 CHANNEL ERROR", strlen("M15 CHANNEL ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+		}
+		break;
 		//
 		// M16 [Z<slot>] P<pin> C<channel> D<direction pin> E<default dir> [W<encoder pin>] 
 		// Set Delayed HBridge PWM motor driver, map pin to channel.
@@ -1790,6 +1793,7 @@ void processMCode(int cval) {
 			if(encode_pin != 0) {
 				motorControl[motorController]->createEncoder(channel, encode_pin);
 			}
+			motorControl[motorController]->setSafeShutdown(&active_mask_buffer);
 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 			tud_cdc_write("M16", strlen("M16"));
 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));

@@ -76,6 +76,7 @@ public:
 		return false;
 	}
 	int checkSafeShutdown(void) override;
+	void setSafeShutdown(volatile uint8_t* active_mask_buffer) override;
 protected:
 private:
 	HBridgeDriver( const HBridgeDriver &c ) = delete;

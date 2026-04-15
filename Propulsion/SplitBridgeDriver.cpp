@@ -117,11 +117,11 @@ int SplitBridgeDriver::createPWM(uint8_t channel, uint8_t pin_numberA, uint8_t p
 	PWM* ppinA = new PWM(pin_numberA);
 	ppwms[pindex] = ppinA;
 	ppwms[pindex]->init();
-	ppwms[pindex]->setSafeShutdown(true, ppwms[pindex]->watchdogMax);
+	//ppwms[pindex]->setSafeShutdown(true, ppwms[pindex]->watchdogMax);
 	PWM* ppinB = new PWM(pin_numberB);
 	ppwms[pindex+1] = ppinB;
 	ppwms[pindex+1]->init();
-	ppwms[pindex+1]->setSafeShutdown(true, ppwms[pindex+1]->watchdogMax);
+	//ppwms[pindex+1]->setSafeShutdown(true, ppwms[pindex+1]->watchdogMax);
 	return 0;
 }
 int SplitBridgeDriver::checkSafeShutdown(void) {
@@ -143,6 +143,20 @@ int SplitBridgeDriver::checkSafeShutdown(void) {
 		}
 	}
 	return fault_flag;
+}
+void SplitBridgeDriver::setSafeShutdown(volatile uint8_t* active_mask_buffer) {
+	for(int i = 1; i <= getChannels(); i++) {
+		int pindex = motorDrive[i-1][0];
+		if(pindex != 255 && ppwms[pindex]) {
+				ppwms[pindex]->setSafeShutdown(true, ppwms[pindex]->watchdogMax);
+				ppwms[pindex]->setup_slice_dma(active_mask_buffer);
+		}
+		pindex = motorDriveB[i-1][0];
+		if(pindex != 255 && ppwms[pindex] ) {
+				ppwms[pindex]->setSafeShutdown(true, ppwms[pindex]->watchdogMax);
+				ppwms[pindex]->setup_slice_dma(active_mask_buffer);
+		}
+	}
 }
 /*
 * Command the bridge driver power level. Manage enable pin. If necessary limit min and max power and

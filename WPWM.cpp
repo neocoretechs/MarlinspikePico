@@ -15,6 +15,7 @@
 
 PWM* PWM::instances[8] = {nullptr};
 static int8_t dma_chan_per_slice[8]={-1,-1,-1,-1,-1,-1,-1,-1};
+static const uint8_t slice_bits[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
 
 	/*
 	* Constructor 
@@ -72,8 +73,8 @@ static int8_t dma_chan_per_slice[8]={-1,-1,-1,-1,-1,-1,-1,-1};
 	}
 	void PWM::pwmOff() {
 		uint slice = this->slice;
-		uint32_t mask = 1u << slice;
-		pwm_clear_irq(mask);
+		//uint32_t mask = 1u << slice;
+		//pwm_clear_irq(mask);
 		pwm_set_chan_level(slice, PWM_CHAN_A, 0);
 		pwm_set_chan_level(slice, PWM_CHAN_B, 0);
 		pwm_set_enabled(slice, false);
@@ -120,7 +121,7 @@ static int8_t dma_chan_per_slice[8]={-1,-1,-1,-1,-1,-1,-1,-1};
 		safeShutdown = enable;
 		watchdogMax = max;
 	}
-	void PWM::setup_slice_dma(volatile uint8_t* active_mask_buffer, const uint8_t *slice_bits) {
+	void PWM::setup_slice_dma(volatile uint8_t* active_mask_buffer) {
  		int chan = dma_chan_per_slice[this->slice];
  		if (chan == -1) {
  			chan = dma_claim_unused_channel(true);
@@ -142,14 +143,12 @@ static int8_t dma_chan_per_slice[8]={-1,-1,-1,-1,-1,-1,-1,-1};
 	}
 	void PWM::pwmWrite(bool enable, uint power) {
 		// clear any pending IRQ to avoid immediate timeout if we are enabling
-		pwm_clear_irq(1u << this->slice);
+		//pwm_clear_irq(1u << this->slice);
 		pwm_set_gpio_level(this->pin, power);
     	pwm_set_enabled(this->slice, enable);
 		// possibly re-enable wrap IRQ for this slice to ensure we get the next cycle interrupt for watchdog handling
-		pwm_set_irq_enabled(this->slice, enable);
+		//pwm_set_irq_enabled(this->slice, enable);
 		watchdog = enable ? watchdogMax : 0;
 		shutdownRequested = false;
 		shutdownLogged = false;
-	}		
-
-
+	}

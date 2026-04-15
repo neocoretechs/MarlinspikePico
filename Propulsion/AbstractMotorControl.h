@@ -116,6 +116,7 @@ public:
 	uint8_t getMotorShutdown(void) { return MOTORSHUTDOWN; }
 	virtual void setMotorPowerScale(int p) { MOTORPOWERSCALE = p; }
 	virtual int checkSafeShutdown(void)= 0;
+	virtual void setSafeShutdown(volatile uint8_t* active_mask_buffer) = 0;
 }; //AbstractMotorControl
 
 #endif //__ABSTRACTMOTORCONTROL_H__
