@@ -14,6 +14,8 @@
 // 8 total "slices", each slice has 2 "channels" one interrupt server a slice, so 8 total interrupts possible. We will use the same interrupt handler for all slices and dispatch based on which slice fired.
 
 PWM* PWM::instances[8] = {nullptr};
+static int8_t dma_chan_per_slice[8]={-1,-1,-1,-1,-1,-1,-1,-1};
+
 	/*
 	* Constructor 
 	*/
@@ -28,21 +30,22 @@ PWM* PWM::instances[8] = {nullptr};
 	void PWM::init() {
 		gpio_set_function(this->pin, GPIO_FUNC_PWM);
 		this->slice = pwm_gpio_to_slice_num(pin);
-		PWM::instances[this->slice] = this; // register instance for IRQ dispatch
+		PWM::instances[this->slice] = this; // register instance for interrupt dispatch
 
 		pwm_config config = pwm_get_default_config();
 		pwm_config_set_clkdiv(&config, 10.0f); // div
 		pwm_config_set_wrap(&config, 999); // top 0-1000
+		//pwm_config_set_phase_correct(&config, true); // up/down counting for symmetric waveforms
 		pwm_init(this->slice, &config, false);
-
+		//pwm_set_phase_correct(this->slice, true);
 		// Clear any pending IRQ
-    	pwm_clear_irq(this->slice);
+    	//pwm_clear_irq(this->slice);
     	// Enable IRQ for this slice
-    	pwm_set_irq_enabled(this->slice, true);
+    	//pwm_set_irq_enabled(this->slice, true);
 		// Register the handler (only once globally)
-		irq_set_exclusive_handler(PWM_IRQ_WRAP, pwm_irq_handler);
-		irq_set_priority(PWM_IRQ_WRAP, 0); // highest prio
-		irq_set_enabled(PWM_IRQ_WRAP, true);
+		//irq_set_exclusive_handler(PWM_IRQ_WRAP, pwm_irq_handler);
+		//irq_set_priority(PWM_IRQ_WRAP, 0); // highest prio
+		//irq_set_enabled(PWM_IRQ_WRAP, true);
 	}
 
 	/*
@@ -117,7 +120,26 @@ PWM* PWM::instances[8] = {nullptr};
 		safeShutdown = enable;
 		watchdogMax = max;
 	}
-
+	void PWM::setup_slice_dma(volatile uint8_t* active_mask_buffer, const uint8_t *slice_bits) {
+ 		int chan = dma_chan_per_slice[this->slice];
+ 		if (chan == -1) {
+ 			chan = dma_claim_unused_channel(true);
+ 			dma_chan_per_slice[this->slice] = chan;
+ 		} else
+			return; // already set up
+    	dma_channel_config c = dma_channel_get_default_config(chan);
+    	channel_config_set_transfer_data_size(&c, DMA_SIZE_8);
+    	channel_config_set_read_increment(&c, false);
+    	channel_config_set_write_increment(&c, false);
+    	channel_config_set_dreq(&c, DREQ_PWM_WRAP0 + this->slice);
+    	dma_channel_configure(
+        	chan, &c,
+        	(void*)&active_mask_buffer, // Target buffer
+        	&slice_bits[this->slice],   // Source: this slice's ID bit
+        	0xFFFFFFFF,                 // Run forever
+        	true                        // Start now
+    	);
+	}
 	void PWM::pwmWrite(bool enable, uint power) {
 		// clear any pending IRQ to avoid immediate timeout if we are enabling
 		pwm_clear_irq(1u << this->slice);
