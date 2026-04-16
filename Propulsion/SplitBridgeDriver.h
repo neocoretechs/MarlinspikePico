@@ -39,7 +39,7 @@ public:
 	int commandMotorPower(uint8_t motorChannel, int16_t motorPower) override;
 	uint8_t getMotorPWMPinB(uint8_t channel) { return motorDriveB[channel-1][0]; }
 	void getDriverInfo(uint8_t ch, char* outStr) override;
-	int checkSafeShutdown(void) override;
+	int checkSafeShutdown(uint slice) override;
 	void setSafeShutdown(volatile uint8_t* active_mask_buffer) override;
 protected:
 private:

@@ -49,7 +49,7 @@ int SplitBridgeDriver::commandEmergencyStop(int status)
 		}
 		pindex = motorDriveB[j][0];
 		if(pindex != 255) {
-			ppwms[pindex]->init();
+			//ppwms[pindex]->init();
 			ppwms[pindex]->pwmOff();
 		}
 	}
@@ -124,20 +124,22 @@ int SplitBridgeDriver::createPWM(uint8_t channel, uint8_t pin_numberA, uint8_t p
 	//ppwms[pindex+1]->setSafeShutdown(true, ppwms[pindex+1]->watchdogMax);
 	return 0;
 }
-int SplitBridgeDriver::checkSafeShutdown(void) {
+int SplitBridgeDriver::checkSafeShutdown(uint slice) {
 	int fault_flag = 0;
 	for(int i = 1; i <= getChannels(); i++) {
 		int pindex = motorDrive[i-1][0];
-		if(pindex != 255 && ppwms[pindex] && ppwms[pindex]->safeShutdown && ppwms[pindex]->get_counter() > ppwms[pindex]->watchdogMax) {
-				ppwms[pindex]->pwmOff();
-				fault_flag |= (1 << (i-1)); // set bit for this channel
+		if(pindex != 255 && ppwms[pindex] && ppwms[pindex]->safeShutdown && 
+			ppwms[pindex]->get_slice() == slice && ppwms[pindex]->get_on_time_us() > ppwms[pindex]->watchdogMax) {
+			ppwms[pindex]->pwmOff();
+			fault_flag |= (1 << (i-1)); // set bit for this channel
 			ppwms[pindex]->pwmOff();
 			fault_flag |= (1 << (i-1)); // set bit for this channel
 		}
 		pindex = motorDriveB[i-1][0];
-		if(pindex != 255 && ppwms[pindex] && ppwms[pindex]->safeShutdown && ppwms[pindex]->get_counter() > ppwms[pindex]->watchdogMax) {
-				ppwms[pindex]->pwmOff();
-				fault_flag |= (1 << (i-1)); // set bit for this channel
+		if(pindex != 255 && ppwms[pindex] && ppwms[pindex]->safeShutdown && 
+			ppwms[pindex]->get_slice() == slice && ppwms[pindex]->get_on_time_us() > ppwms[pindex]->watchdogMax) {
+			ppwms[pindex]->pwmOff();
+			fault_flag |= (1 << (i-1)); // set bit for this channel
 			ppwms[pindex]->pwmOff();
 			fault_flag |= (1 << (i-1)); // set bit for this channel
 		}

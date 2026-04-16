@@ -75,7 +75,7 @@ public:
 		}
 		return false;
 	}
-	int checkSafeShutdown(void) override;
+	int checkSafeShutdown(uint slice) override;
 	void setSafeShutdown(volatile uint8_t* active_mask_buffer) override;
 protected:
 private:

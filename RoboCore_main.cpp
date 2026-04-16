@@ -91,7 +91,7 @@ static Digital* pdigitals[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 // Dynamically defined PWM pins
 static PWM* ppwms[12]={0,0,0,0,0,0,0,0,0,0,0,0};
 // Shared status byte
-static volatile uint8_t active_mask_buffer = 0;
+static volatile uint8_t active_mask_buffer[8] = {0,0,0,0,0,0,0,0};
 static const uint8_t clear_val = 0;
 uint8_t channel;
 int slot = -1;
@@ -106,7 +106,6 @@ uint32_t dist;
 uint32_t mask;
 char irqbuf[32];
 
-// &roboteqDevice, new HBridgeDriver, new SplitBridgeDriver...
 static AbstractMotorControl* motorControl[10]={0,0,0,0,0,0,0,0,0,0};
 static AbstractPWMControl* pwmControl[10]={0,0,0,0,0,0,0,0,0,0};
 	
@@ -914,7 +913,7 @@ void processMCode(int cval) {
 		if(encode_pin) {
 			motorControl[motorController]->createEncoder(channel, encode_pin);
 		}
-		motorControl[motorController]->setSafeShutdown(&active_mask_buffer);
+		motorControl[motorController]->setSafeShutdown(active_mask_buffer);
 		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 		tud_cdc_write("M3", strlen("M3"));
 		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
@@ -1012,7 +1011,7 @@ void processMCode(int cval) {
 		  		if(encode_pin) {
 					motorControl[motorController]->createEncoder(channel, encode_pin);
 		  		}
-				motorControl[motorController]->setSafeShutdown(&active_mask_buffer);
+				motorControl[motorController]->setSafeShutdown(active_mask_buffer);
 		  		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 		  		tud_cdc_write("M4", strlen("M4"));
 		  		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
@@ -1793,7 +1792,7 @@ void processMCode(int cval) {
 			if(encode_pin != 0) {
 				motorControl[motorController]->createEncoder(channel, encode_pin);
 			}
-			motorControl[motorController]->setSafeShutdown(&active_mask_buffer);
+			motorControl[motorController]->setSafeShutdown(active_mask_buffer);
 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 			tud_cdc_write("M16", strlen("M16"));
 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));

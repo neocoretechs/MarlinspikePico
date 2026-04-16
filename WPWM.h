@@ -23,17 +23,12 @@ class PWM {
 	uint slice;
 	uint channel = 0;
 	volatile int watchdog = 0;
-	volatile int watchdogMax = 10000;
+	volatile int watchdogMax = 1000000;
 	volatile bool safeShutdown = false;
 	volatile bool shutdownRequested = false;
 	volatile bool shutdownLogged = false;
 	// Constants for the hardware fuse
 	const uint32_t PWM_OFF_VAL = 0x0; 
-	uint32_t dummy_dest;
-	const uint32_t dummy_src = 0xDEADBEEF;
-	// Channel handles for monitoring in main loop
-	int count_chan;
-	int kill_chan;
 	InterruptService* interruptService=NULL;
 	static PWM* instances[8];
 	PWM(uint spin);
@@ -46,6 +41,8 @@ class PWM {
 	void setSafeShutdown(bool enable, int max);
 	void setup_slice_dma(volatile uint8_t* active_mask_buffer);
 	uint16_t get_counter();
+	int64_t get_on_time_us();
+	uint get_slice() { return this->slice;}
 };
 
 

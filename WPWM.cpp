@@ -16,6 +16,7 @@
 PWM* PWM::instances[8] = {nullptr};
 static int8_t dma_chan_per_slice[8]={-1,-1,-1,-1,-1,-1,-1,-1};
 static const uint8_t slice_bits[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
+static absolute_time_t last_command_time[8] = {0,0,0,0,0,0,0,0};
 
 	/*
 	* Constructor 
@@ -81,9 +82,14 @@ static const uint8_t slice_bits[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 
 		//pwm_set_irq_enabled(slice, false);
 		watchdog = 0;
 		shutdownRequested = false;
-		shutdownLogged = true;		
+		shutdownLogged = true;
+		last_command_time[slice] = 0;
 	}
-	
+	int64_t PWM::get_on_time_us() {
+		if(last_command_time[this->slice] == 0)
+			return 0;
+		return absolute_time_diff_us(get_absolute_time(),last_command_time[this->slice]);
+	}
 	/*
 	* Static IRQ handler that dispatches to the correct instance
 	* Because the RP2040 IRQ is per slice, not per pin, you need a static trampoline:
@@ -133,13 +139,18 @@ static const uint8_t slice_bits[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 
     	channel_config_set_read_increment(&c, false);
     	channel_config_set_write_increment(&c, false);
     	channel_config_set_dreq(&c, DREQ_PWM_WRAP0 + this->slice);
+		// clear pending IRQ to avoid immediate triggering
+		dma_hw->ints0 = (1u << chan);
+		dma_hw->ints1 = (1u << chan);
     	dma_channel_configure(
         	chan, &c,
-        	(void*)&active_mask_buffer, // Target buffer
+        	(void*)(active_mask_buffer+slice), // Target buffer
         	&slice_bits[this->slice],   // Source: this slice's ID bit
         	0xFFFFFFFF,                 // Run forever
         	true                        // Start now
     	);
+		dma_channel_set_irq0_enabled(chan, false);
+		irq_set_enabled(DMA_IRQ_0, false); // Disable global DMA IRQ if not already
 	}
 	void PWM::pwmWrite(bool enable, uint power) {
 		// clear any pending IRQ to avoid immediate timeout if we are enabling
@@ -151,4 +162,5 @@ static const uint8_t slice_bits[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 
 		watchdog = enable ? watchdogMax : 0;
 		shutdownRequested = false;
 		shutdownLogged = false;
+		last_command_time[this->slice] = get_absolute_time();
 	}
