@@ -187,6 +187,8 @@ volatile bool runaway_detected = false;
 
 /*---------------------------------------------------
 * Arrive here at the end of each command processing iteration to check for status related events
+* like inactivity, ultrasonic shutdown, encoder shutdown, and publish any realtime data if enabled.
+* If any of the safety shutdowns are triggered, an emergency stop command is issued to the motor controllers.
 * ---------------------------------------------------
 */
 void manage_inactivity() {
@@ -196,6 +198,11 @@ void manage_inactivity() {
 		//sprintf(tmpbuf, "MI: j=%d ptr=%p vtable=%p\r\n\0", j, motorControl[j], *(void**)motorControl[j]);
 		//tud_cdc_write(tmpbuf,strlen(tmpbuf));
 		//tud_cdc_write_flush();
+		for(int s = 0; s < 8; s++) {
+			if( active_mask_buffer[s] != 0 && motorControl[j]->checkSafeShutdown(s)) {
+				active_mask_buffer[s] = 0; // clear the bit for this slice
+			}
+		}
 		if( motorControl[j]->isConnected() ) {
 			motorControl[j]->checkEncoderShutdown();
 			motorControl[j]->checkUltrasonicShutdown();

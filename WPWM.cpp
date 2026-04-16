@@ -88,7 +88,7 @@ static absolute_time_t last_command_time[8] = {0,0,0,0,0,0,0,0};
 	int64_t PWM::get_on_time_us() {
 		if(last_command_time[this->slice] == 0)
 			return 0;
-		return absolute_time_diff_us(get_absolute_time(),last_command_time[this->slice]);
+		return absolute_time_diff_us(last_command_time[this->slice],get_absolute_time());
 	}
 	/*
 	* Static IRQ handler that dispatches to the correct instance
