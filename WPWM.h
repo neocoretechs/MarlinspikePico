@@ -16,7 +16,7 @@
 #include "hardware/regs/pwm.h"
 
 using namespace std;
-static int dma_chan_per_slice[8]={-1,-1,-1,-1,-1,-1,-1,-1};
+extern int dma_chan_per_slice[8];
 static const uint8_t slice_bits[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80}; // bit mask for each slice for DMA source	
 static uint32_t now_us;
 static volatile absolute_time_t last_command_time[8] = {0,0,0,0,0,0,0,0};
@@ -44,7 +44,7 @@ class PWM {
 	void attachInterrupt(InterruptService* cins, bool overflow = false);
 	void detachInterrupt();
 	void setSafeShutdown(bool enable, int max);
-	void setup_slice_dma(volatile uint8_t* active_mask_buffer);
+	int setup_slice_dma(volatile uint8_t* active_mask_buffer);
 	uint16_t get_counter();
 	int64_t get_on_time_us();
 	uint get_slice() { return this->slice;}

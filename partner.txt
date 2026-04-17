@@ -1,0 +1,18 @@
+#include "hardware/pwm.h"
+#include "hardware/gpio.h"
+#include <stdbool.h>
+
+// Search range 0..29 or adjust for your board
+bool find_partner_for_pin(int pin, int *out_partner_pin) {
+    int slice = pwm_gpio_to_slice_num(pin);
+    if (slice < 0) return false;
+    int ch = pwm_gpio_to_channel(pin);
+    for (int p = 0; p < 30; ++p) {
+        if (p == pin) continue;
+        if (pwm_gpio_to_slice_num(p) == slice && pwm_gpio_to_channel(p) != ch) {
+            *out_partner_pin = p;
+            return true;
+        }
+    }
+    return false;
+}

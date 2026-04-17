@@ -12,6 +12,7 @@
 #include <hardware/pwm.h>
 #include <hardware/irq.h>
 	PWM* PWM::instances[8] = {nullptr};
+	int dma_chan_per_slice[8]={-1,-1,-1,-1,-1,-1,-1,-1};
 	/*
 	* Constructor 
 	*/
@@ -121,13 +122,16 @@
 		safeShutdown = enable;
 		watchdogMax = max;
 	}
-	void PWM::setup_slice_dma(volatile uint8_t* active_mask_buffer) {
+	int PWM::setup_slice_dma(volatile uint8_t* active_mask_buffer) {
  		int chan = dma_chan_per_slice[this->slice];
  		if (chan == -1) {
- 			chan = dma_claim_unused_channel(true);
+ 			chan = dma_claim_unused_channel(false);
  			dma_chan_per_slice[this->slice] = chan;
+			if(chan == -1) {
+				return -1; // no DMA channels available
+			}	
  		} else
-			return; // already set up
+			return 0; // already set up
     	dma_channel_config c = dma_channel_get_default_config(chan);
     	channel_config_set_transfer_data_size(&c, DMA_SIZE_8);
     	channel_config_set_read_increment(&c, false);
@@ -149,6 +153,7 @@
 		//while(dma_channel_is_busy(chan)); // wait for first transfer to complete to ensure we have the current time latched in the buffer
 		dma_channel_set_irq0_enabled(chan, false);
 		irq_set_enabled(DMA_IRQ_0, false); // Disable global DMA IRQ if not already
+		return 0;
 	}
 	void PWM::pwmWrite(bool enable, uint power) {
 		// clear any pending IRQ to avoid immediate timeout if we are enabling

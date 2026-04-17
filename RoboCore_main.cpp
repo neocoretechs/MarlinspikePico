@@ -103,7 +103,7 @@ int encode_pin = 0;
 uint8_t dir_face;
 uint32_t dist;
 uint32_t mask;
-char irqbuf[64];
+char irqbuf[128];
 
 static AbstractMotorControl* motorControl[10]={0,0,0,0,0,0,0,0,0,0};
 static AbstractPWMControl* pwmControl[10]={0,0,0,0,0,0,0,0,0,0};
@@ -919,7 +919,15 @@ void processMCode(int cval) {
 		if(encode_pin) {
 			motorControl[motorController]->createEncoder(channel, encode_pin);
 		}
-		motorControl[motorController]->setSafeShutdown(active_mask_buffer);
+		if(motorControl[motorController]->setSafeShutdown(active_mask_buffer) == -1) {
+			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+			tud_cdc_write("M3 SAFE SHUTDOWN ERROR", strlen("M3 SAFE SHUTDOWN ERROR"));
+			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+			delete motorControl[motorController];
+			motorControl[motorController] = 0;
+			break;
+		}
 		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 		tud_cdc_write("M3", strlen("M3"));
 		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
@@ -961,6 +969,8 @@ void processMCode(int cval) {
 				tud_cdc_write("M4 PIN ERROR", strlen("M4 PIN ERROR"));
 				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 				tud_cdc_write_flush();
+				delete motorControl[motorController];
+				motorControl[motorController] = 0;
 				break;
 	  		}
 	  		if(code_seen('Q')) {
@@ -970,8 +980,33 @@ void processMCode(int cval) {
 				tud_cdc_write("M4 PIN ERROR", strlen("M4 PIN ERROR"));
 				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 				tud_cdc_write_flush();
+				delete motorControl[motorController];
+				motorControl[motorController] = 0;
 				break;
 			}
+			// make sure they share a slice
+			int slice = pwm_gpio_to_slice_num(pin_number);
+    		if (slice < 0) {
+				tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
+				tud_cdc_write("BAD PIN NUMBER ERROR", strlen("BAD PIN NUMBER ERROR"));
+				tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
+				delete motorControl[motorController];
+				motorControl[motorController] = 0;
+				break;
+			}
+    		int ch = pwm_gpio_to_channel(pin_number);
+        	if (pwm_gpio_to_slice_num(pin_numberB) != slice || pwm_gpio_to_channel(pin_numberB) == ch) {
+					tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
+					tud_cdc_write("CHECK M800 ", strlen(" CHECK M800 "));
+					tud_cdc_write(itoa(pin_numberB), strlen(itoa(pin_numberB)));
+					tud_cdc_write(" BAD PIN NUMBER ERROR", strlen(" BAD PIN NUMBER ERROR"));
+					tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
+					tud_cdc_write_flush();
+					delete motorControl[motorController];
+					motorControl[motorController] = 0;
+					break;
+        	}
 			if(code_seen('C')) {
 		  		channel = code_value();
 		  		if(channel <= 0) {
@@ -979,6 +1014,8 @@ void processMCode(int cval) {
 					tud_cdc_write("M4 CHANNEL ERROR", strlen("M4 CHANNEL ERROR"));
 					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 					tud_cdc_write_flush();
+					delete motorControl[motorController];
+					motorControl[motorController] = 0;
 					break;
 				}
 		  		if( code_seen('D')) {
@@ -988,6 +1025,8 @@ void processMCode(int cval) {
 					tud_cdc_write("M4 ENABLE PIN ERROR", strlen("M4 ENABLE PIN ERROR"));
 					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 					tud_cdc_write_flush();
+					delete motorControl[motorController];
+					motorControl[motorController] = 0;
 					break;
 		  		}
 		  		if( code_seen('E')) {
@@ -997,6 +1036,8 @@ void processMCode(int cval) {
 					tud_cdc_write("M4 DEFAULT DIRECTION ERROR", strlen("M4 DEFAULT DIRECTION ERROR"));
 					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 					tud_cdc_write_flush();
+					delete motorControl[motorController];
+					motorControl[motorController] = 0;
 					break;
 		  		}
 		  		if( code_seen('W')) {
@@ -1017,7 +1058,15 @@ void processMCode(int cval) {
 		  		if(encode_pin) {
 					motorControl[motorController]->createEncoder(channel, encode_pin);
 		  		}
-				motorControl[motorController]->setSafeShutdown(active_mask_buffer);
+				if(motorControl[motorController]->setSafeShutdown(active_mask_buffer) == -1) {
+					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+					tud_cdc_write("M4 SAFE SHUTDOWN ERROR", strlen("M4 SAFE SHUTDOWN ERROR"));
+					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+					tud_cdc_write_flush();
+					delete motorControl[motorController];
+					motorControl[motorController] = 0;
+					break;
+				}
 		  		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 		  		tud_cdc_write("M4", strlen("M4"));
 		  		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
@@ -1798,7 +1847,15 @@ void processMCode(int cval) {
 			if(encode_pin != 0) {
 				motorControl[motorController]->createEncoder(channel, encode_pin);
 			}
-			motorControl[motorController]->setSafeShutdown(active_mask_buffer);
+			if(motorControl[motorController]->setSafeShutdown(active_mask_buffer) == -1) {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("M16 SAFE SHUTDOWN ERROR", strlen("M16 SAFE SHUTDOWN ERROR"));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
+				delete motorControl[motorController];
+				motorControl[motorController] = 0;
+				break;
+			}
 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 			tud_cdc_write("M16", strlen("M16"));
 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
@@ -2849,8 +2906,16 @@ void processMCode(int cval) {
 		tud_cdc_write_flush();
 	 	for(int j = 0; j < 10; j++) {
 	  	  if(motorControl[j]) {
-			int ch = motorControl[j]->getChannels();
+			int chs = motorControl[j]->getChannels();
+			for(int ch = 1; ch <= chs; ch++) {
 			int dmach = motorControl[j]->get_dma_chan(ch);
+			if(dmach == -1) {
+				tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
+				tud_cdc_write("M799 MOTOR DMA ERROR", strlen("M799 MOTOR DMA ERROR"));
+				tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
+				continue;
+			}
 			sprintf(irqbuf,"DMA ch=%d ctrl_trig=0x%08x count=%u read=0x%08x write=0x%08x ints0=0x%08x busy=%d\n\0",
        		dmach,
        		(unsigned)dma_hw->ch[dmach].ctrl_trig,
@@ -2861,7 +2926,14 @@ void processMCode(int cval) {
        		dma_channel_is_busy(dmach));
 			tud_cdc_write(irqbuf, strlen(irqbuf));
 			tud_cdc_write_flush();
-			uint slice = motorControl[j]->get_slice(ch);
+			int slice = motorControl[j]->get_slice(ch);
+			if(slice == -1) {
+				tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
+				tud_cdc_write("M799 MOTOR SLICE ERROR", strlen("M799 MOTOR SLICE ERROR"));
+				tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
+				continue;
+			}
 			sprintf(irqbuf,"buf_addr=%p  buf_low=0x%02x\n\0",
         		(void*)&active_mask_buffer[slice],(unsigned)((uintptr_t)&active_mask_buffer[slice] & 0xF));
 			tud_cdc_write(irqbuf, strlen(irqbuf));
@@ -2874,10 +2946,50 @@ void processMCode(int cval) {
        		(unsigned)pwm_hw->slice[slice].cc);
 			tud_cdc_write(irqbuf, strlen(irqbuf));
 			tud_cdc_write_flush();
+			}
 		  }
 		}
 		tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
 		tud_cdc_write(dmaStatusHdr, strlen(dmaStatusHdr));
+		tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
+		tud_cdc_write_flush();
+		break;
+
+	case 800: // M800 P<pin> find partner for pin
+		tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
+		tud_cdc_write("M800", strlen("M800"));
+		tud_cdc_write(MSG_DELIMIT, strlen(MSG_DELIMIT));
+		tud_cdc_write_flush();
+		if(code_seen('P')) {
+        	pin_number = code_value();
+			int slice = pwm_gpio_to_slice_num(pin_number);
+    		if (slice < 0) {
+				tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
+				tud_cdc_write("BAD PIN NUMBER ERROR", strlen("BAD PIN NUMBER ERROR"));
+				tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
+				break;
+			}
+    		int ch = pwm_gpio_to_channel(pin_number);
+    		for (int p = 1; p < 30; ++p) {
+        		if (p == pin_number) continue;
+        		if (pwm_gpio_to_slice_num(p) == slice && pwm_gpio_to_channel(p) != ch) {
+					tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
+					tud_cdc_write(itoa(p), strlen(itoa(p)));
+					tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
+					tud_cdc_write_flush();
+					break;
+        		}
+    		}
+		} else {
+			tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
+			tud_cdc_write("M800 PIN ERROR", strlen("M800 PIN ERROR"));
+			tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
+			break;
+		}
+		tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
+		tud_cdc_write("M800", strlen("M800"));
 		tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
 		tud_cdc_write_flush();
 		break;

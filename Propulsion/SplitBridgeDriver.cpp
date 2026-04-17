@@ -162,19 +162,24 @@ int SplitBridgeDriver::checkSafeShutdown(uint slice) {
 	}
 	return fault_flag;
 }
-void SplitBridgeDriver::setSafeShutdown(volatile uint8_t* active_mask_buffer) {
+int SplitBridgeDriver::setSafeShutdown(volatile uint8_t* active_mask_buffer) {
 	for(int i = 1; i <= getChannels(); i++) {
 		int pindex = motorDrive[i-1][0];
 		if(pindex != 255 && ppwms[pindex]) {
 				ppwms[pindex]->setSafeShutdown(true, ppwms[pindex]->watchdogMax);
-				ppwms[pindex]->setup_slice_dma(active_mask_buffer);
+				if(ppwms[pindex]->setup_slice_dma(active_mask_buffer) == -1) {
+					return -1; // failed to set up DMA
+				}
 		}
 		pindex = motorDriveB[i-1][0];
 		if(pindex != 255 && ppwms[pindex] ) {
 				ppwms[pindex]->setSafeShutdown(true, ppwms[pindex]->watchdogMax);
-				ppwms[pindex]->setup_slice_dma(active_mask_buffer);
+				if(ppwms[pindex]->setup_slice_dma(active_mask_buffer) == -1) {
+					return -1; // failed to set up DMA
+				}
 		}
 	}
+	return 0;
 }
 /*
 * Command the bridge driver power level. Manage enable pin. If necessary limit min and max power and

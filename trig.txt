@@ -1,0 +1,6 @@
+<dma>DMA ch=0 ctrl_trig=0x010f8001 count=4294967295 read=0x10017a2f write=0x200017f3 ints0=0x00000000 busy=1
+                                                                                                            buf_addr=2
+00017F3  buf_low=0x03
+                     PWM slice=7 CSR=0x00000000 TOP=999 CTR=0 CC=0
+                                                                  <dma/>
+

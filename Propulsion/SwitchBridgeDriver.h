@@ -54,9 +54,9 @@ public:
 	int queryFaultFlag(void) override { return fault_flag; }
 	int queryStatusFlag(void) override { return status_flag; }
 	int checkSafeShutdown(uint slice) override { return 0; }
-	void setSafeShutdown(volatile uint8_t* active_mask_buffer) override { return; }
+	int setSafeShutdown(volatile uint8_t* active_mask_buffer) override { return 0; }
 	int get_dma_chan(uint8_t channel) override { return -1; }
-	uint get_slice(uint8_t channel) override { return 0; }
+	int get_slice(uint8_t channel) override { return 0; }
 protected:
 private:
 	SwitchBridgeDriver( const SwitchBridgeDriver &c ) = delete;

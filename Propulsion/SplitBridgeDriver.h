@@ -1,6 +1,10 @@
 /* 
 * SplitBridgeDriver.h
 * This is a driver for an H bridge that has separate M1 and M2 inputs.
+* But crucially, we assume they are on the same slice, and 2 different channels of 
+* the same PWM array, so that they can be used together as a ganged half bridge for higher current applications.
+* The driver can be configured to drive 2 motors in a forward direction, 
+* one motor in a forward or backward direction, or the two channels can be ganged together to deliver twice the current
 * Structure:
 * 1) Top level, a master list of pins in either the PWM or digitals arrays. Slots to which physical pins are assigned.
 * these are ppwms and pdigitals here, which hold pointers to these top level arrays.
@@ -40,9 +44,9 @@ public:
 	uint8_t getMotorPWMPinB(uint8_t channel) { return motorDriveB[channel-1][0]; }
 	void getDriverInfo(uint8_t ch, char* outStr) override;
 	int checkSafeShutdown(uint slice) override;
-	void setSafeShutdown(volatile uint8_t* active_mask_buffer) override;
+	int setSafeShutdown(volatile uint8_t* active_mask_buffer) override;
 	int get_dma_chan(uint8_t channel) override { return HBridgeDriver::get_dma_chan(channel); }
-	uint get_slice(uint8_t channel) override { return HBridgeDriver::get_slice(channel); };
+	int get_slice(uint8_t channel) override { return HBridgeDriver::get_slice(channel); };
 protected:
 private:
 	SplitBridgeDriver( const SplitBridgeDriver &c ) = delete;
