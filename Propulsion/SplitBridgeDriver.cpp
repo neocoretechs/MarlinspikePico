@@ -162,7 +162,7 @@ int SplitBridgeDriver::checkSafeShutdown(uint slice) {
 	}
 	return fault_flag;
 }
-void SplitBridgeDriver::setSafeShutdown(volatile uint32_t* active_mask_buffer) {
+void SplitBridgeDriver::setSafeShutdown(volatile uint8_t* active_mask_buffer) {
 	for(int i = 1; i <= getChannels(); i++) {
 		int pindex = motorDrive[i-1][0];
 		if(pindex != 255 && ppwms[pindex]) {

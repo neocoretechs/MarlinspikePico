@@ -40,7 +40,9 @@ public:
 	uint8_t getMotorPWMPinB(uint8_t channel) { return motorDriveB[channel-1][0]; }
 	void getDriverInfo(uint8_t ch, char* outStr) override;
 	int checkSafeShutdown(uint slice) override;
-	void setSafeShutdown(volatile uint32_t* active_mask_buffer) override;
+	void setSafeShutdown(volatile uint8_t* active_mask_buffer) override;
+	int get_dma_chan(uint8_t channel) override { return HBridgeDriver::get_dma_chan(channel); }
+	uint get_slice(uint8_t channel) override { return HBridgeDriver::get_slice(channel); };
 protected:
 private:
 	SplitBridgeDriver( const SplitBridgeDriver &c ) = delete;

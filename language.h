@@ -43,7 +43,7 @@
 	#define pwmControlSettingHdr "pwmcontrolsetting"
 	#define pinSettingHdr "assignedpins"
 	#define controllerStatusHdr "controllerstatus"
-	#define eepromHdr "eeprom"
+	#define dmaStatusHdr "dma"
 		
 	// Message delimiters, quasi XML
 	#define MSG_BEGIN "<"

@@ -49,6 +49,7 @@ public:
 	void getDriverInfo(uint8_t ch, char* outStr) override;
 	int queryFaultFlag(void) override { return fault_flag; }
 	int queryStatusFlag(void) override { return status_flag; }
+	
 	Digital** pdigitals;
 	bool usesPWM(uint8_t pin) override {
 		for(int i = 0; i < 10; i++) {

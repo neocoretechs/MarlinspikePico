@@ -11,13 +11,7 @@
 #include <hardware/clocks.h>
 #include <hardware/pwm.h>
 #include <hardware/irq.h>
-// 8 total "slices", each slice has 2 "channels" one interrupt server a slice, so 8 total interrupts possible. We will use the same interrupt handler for all slices and dispatch based on which slice fired.
-
-PWM* PWM::instances[8] = {nullptr};
-static int dma_chan_per_slice[8]={-1,-1,-1,-1,-1,-1,-1,-1};
-static const uint32_t slice_bits[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
-static volatile absolute_time_t last_command_time[8] = {0,0,0,0,0,0,0,0};
-
+	PWM* PWM::instances[8] = {nullptr};
 	/*
 	* Constructor 
 	*/
@@ -127,7 +121,7 @@ static volatile absolute_time_t last_command_time[8] = {0,0,0,0,0,0,0,0};
 		safeShutdown = enable;
 		watchdogMax = max;
 	}
-	void PWM::setup_slice_dma(volatile uint32_t* active_mask_buffer) {
+	void PWM::setup_slice_dma(volatile uint8_t* active_mask_buffer) {
  		int chan = dma_chan_per_slice[this->slice];
  		if (chan == -1) {
  			chan = dma_claim_unused_channel(true);
@@ -135,7 +129,7 @@ static volatile absolute_time_t last_command_time[8] = {0,0,0,0,0,0,0,0};
  		} else
 			return; // already set up
     	dma_channel_config c = dma_channel_get_default_config(chan);
-    	channel_config_set_transfer_data_size(&c, DMA_SIZE_32);
+    	channel_config_set_transfer_data_size(&c, DMA_SIZE_8);
     	channel_config_set_read_increment(&c, false);
     	channel_config_set_write_increment(&c, false);
     	channel_config_set_dreq(&c, DREQ_PWM_WRAP0 + this->slice);
@@ -143,15 +137,16 @@ static volatile absolute_time_t last_command_time[8] = {0,0,0,0,0,0,0,0};
 		dma_hw->ints0 = (1u << chan);
 		dma_hw->ints1 = (1u << chan);
 		absolute_time_t t = get_absolute_time();
-		uint32_t now_us = (uint32_t)to_us_since_boot(t);
+		now_us = (uint32_t)to_us_since_boot(t);
     	dma_channel_configure(
         	chan, &c,
         	(void*)(active_mask_buffer+slice), // Target buffer
-        	//&slice_bits[this->slice],   // Source: this slice's ID bit
-			&now_us, // source: current time in microseconds
+        	&slice_bits[this->slice],   // Source: this slice's ID bit
+			//&now_us, // source: current time in microseconds
         	0xFFFFFFFF,                 // Run forever
         	true                        // Start now
     	);
+		//while(dma_channel_is_busy(chan)); // wait for first transfer to complete to ensure we have the current time latched in the buffer
 		dma_channel_set_irq0_enabled(chan, false);
 		irq_set_enabled(DMA_IRQ_0, false); // Disable global DMA IRQ if not already
 	}

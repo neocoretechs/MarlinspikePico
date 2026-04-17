@@ -37,7 +37,12 @@ public:
 	int commandMotorPower(uint8_t ch, int16_t p) override;
 	void getDriverInfo(uint8_t ch, char* outStr) override;
 	int checkSafeShutdown(uint slice) override { return HBridgeDriver::checkSafeShutdown(slice); }
-	void setSafeShutdown(volatile uint32_t* active_mask_buffer) override { HBridgeDriver::setSafeShutdown(active_mask_buffer); }
+	void setSafeShutdown(volatile uint8_t* active_mask_buffer) override { HBridgeDriver::setSafeShutdown(active_mask_buffer); }
+	int get_dma_chan(uint8_t channel) override;
+	uint get_slice(uint8_t channel) override { return HBridgeDriver::get_slice(channel); };
+	int commandEmergencyStop(int status) override { return HBridgeDriver::commandEmergencyStop(status); }
+	int queryFaultFlag(void) override { return HBridgeDriver::queryFaultFlag(); }
+	int queryStatusFlag(void) override { return HBridgeDriver::queryStatusFlag(); }	
 protected:
 private:
 	DelayHBridgeDriver( const DelayHBridgeDriver &c ) = delete;

@@ -90,7 +90,7 @@ static Digital* pdigitals[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 // Dynamically defined PWM pins
 static PWM* ppwms[12]={0,0,0,0,0,0,0,0,0,0,0,0};
 // Shared status byte
-static volatile uint32_t active_mask_buffer[8] = {0,0,0,0,0,0,0,0};
+static volatile uint8_t active_mask_buffer[8] = {0,0,0,0,0,0,0,0};
 static const uint8_t clear_val = 0;
 uint8_t channel;
 int slot = -1;
@@ -103,7 +103,7 @@ int encode_pin = 0;
 uint8_t dir_face;
 uint32_t dist;
 uint32_t mask;
-char irqbuf[32];
+char irqbuf[64];
 
 static AbstractMotorControl* motorControl[10]={0,0,0,0,0,0,0,0,0,0};
 static AbstractPWMControl* pwmControl[10]={0,0,0,0,0,0,0,0,0,0};
@@ -2842,14 +2842,42 @@ void processMCode(int cval) {
 		tud_cdc_write_flush();
 		break;	
 		
-	case 799: // M799 [Z<controller>][X] 
-		if (code_seen('Z')) {
-			motorController = code_value();
-			if(code_seen('X')) {
-			} 
-		} 
+	case 799: // M799
 		tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
-		tud_cdc_write("M799", strlen("M799"));
+		tud_cdc_write(dmaStatusHdr, strlen(dmaStatusHdr));
+		tud_cdc_write(MSG_DELIMIT, strlen(MSG_DELIMIT));
+		tud_cdc_write_flush();
+	 	for(int j = 0; j < 10; j++) {
+	  	  if(motorControl[j]) {
+			int ch = motorControl[j]->getChannels();
+			int dmach = motorControl[j]->get_dma_chan(ch);
+			sprintf(irqbuf,"DMA ch=%d ctrl_trig=0x%08x count=%u read=0x%08x write=0x%08x ints0=0x%08x busy=%d\n\0",
+       		dmach,
+       		(unsigned)dma_hw->ch[dmach].ctrl_trig,
+       		(unsigned)dma_hw->ch[dmach].transfer_count,
+       		(unsigned)dma_hw->ch[dmach].read_addr,
+       		(unsigned)dma_hw->ch[dmach].write_addr,
+       		(unsigned)dma_hw->ints0,
+       		dma_channel_is_busy(dmach));
+			tud_cdc_write(irqbuf, strlen(irqbuf));
+			tud_cdc_write_flush();
+			uint slice = motorControl[j]->get_slice(ch);
+			sprintf(irqbuf,"buf_addr=%p  buf_low=0x%02x\n\0",
+        		(void*)&active_mask_buffer[slice],(unsigned)((uintptr_t)&active_mask_buffer[slice] & 0xF));
+			tud_cdc_write(irqbuf, strlen(irqbuf));
+			tud_cdc_write_flush();
+			sprintf(irqbuf,"PWM slice=%d CSR=0x%08x TOP=%u CTR=%u CC=%u\n\0",
+       		slice,
+       		(unsigned)pwm_hw->slice[slice].csr,
+       		(unsigned)pwm_hw->slice[slice].top,
+       		(unsigned)pwm_hw->slice[slice].ctr,
+       		(unsigned)pwm_hw->slice[slice].cc);
+			tud_cdc_write(irqbuf, strlen(irqbuf));
+			tud_cdc_write_flush();
+		  }
+		}
+		tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
+		tud_cdc_write(dmaStatusHdr, strlen(dmaStatusHdr));
 		tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
 		tud_cdc_write_flush();
 		break;

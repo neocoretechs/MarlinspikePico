@@ -13,7 +13,7 @@
 * 1) Top level, a master list of pins in either the PWM or digitals arrays. Slots to which physical pins are assigned.
 * these are ppwms and pdigitals here, which hold pointers to these top level arrays.
 * 2) In each class and subclass, a sublist of pins. Multidimensional arrays which hold the index to the top level pins.
-* these are indexed by channel. PWMDrive here. All PWM has a pin, a prescale, and a resolution. We standardize the resolution to 8 bits typically.
+* these are indexed by channel. PWMDrive here. All PWM has a pin
 * 3) A PWM level indexed by channel. The current power or level value of the PWM timer. Standardized to reflect the control applied.
 * for instance, if the PS3 controller delivers -1000 to 1000 thats the range. If the controller is using the button that has -1 off and a max of 1000
 * then the range is 0 to 2000 to reflect the fact that no reverse operation is going to be in effect for something like a LED or pump.
@@ -26,8 +26,6 @@
 * Hbridge split into separate outputs, or a motor driver attached to an LED array, etc.
 * pin_number - the index in the PWM array defined in 'setPWM', this is the next blank slot available
 * enable_pin - the enable pin for this channel. Assumed that low is disabled, high is enable.
-* timer_pre - timer prescale default 1 = no prescale
-* timer_res - timer resolution in bits - default 8
 * Created: 10/29/2020 9:54:23 AM
 * Author: Groff
 */
@@ -47,12 +45,10 @@ protected:
 	PWM** ppwms;
 	//Digital** pdigitals;
 	// 10 possible drive channels, index is by channel-1.
-	// pwmDrive[channel] [[PWM array index][dir pin][timer prescale][timer resolution]
+	// pwmDrive[channel] [[PWM array index][dir pin]
 	// PWM params array by channel:
 	// 0-pin index to pwm array(default 255)
 	// 1-enable pin
-	// 2-timer prescale (1-none)
-	// 3-timer resolution (8 bit)
 	uint8_t pwmDrive[10][4]={{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8}};
 	int32_t maxPWMDuration[10] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1}; // number of milliseconds operation before auto shutdown
 	// 10 channels of last PWM value

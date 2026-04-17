@@ -76,7 +76,21 @@ public:
 		return false;
 	}
 	int checkSafeShutdown(uint slice) override;
-	void setSafeShutdown(volatile uint32_t* active_mask_buffer) override;
+	void setSafeShutdown(volatile uint8_t* active_mask_buffer) override;
+		int get_dma_chan(uint8_t channel) override {
+		int pindex = motorDrive[channel-1][0];
+		if(pindex != 255 && ppwms[pindex]) {
+			return ppwms[pindex]->get_dma_chan();
+		}
+		return -1;
+	}
+	uint get_slice(uint8_t channel) override {
+		int pindex = motorDrive[channel-1][0];
+		if(pindex != 255 && ppwms[pindex]) {
+			return ppwms[pindex]->get_slice();
+		}
+		return -1;
+	}
 protected:
 private:
 	HBridgeDriver( const HBridgeDriver &c ) = delete;
