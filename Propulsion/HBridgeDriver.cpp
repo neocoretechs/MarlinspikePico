@@ -113,7 +113,7 @@ int HBridgeDriver::checkSafeShutdown(uint slice) {
 	}
 	return fault_flag;
 }
-void HBridgeDriver::setSafeShutdown(std::atomic<uint32_t>* active_mask_buffer) {
+void HBridgeDriver::setSafeShutdown(volatile uint32_t* active_mask_buffer) {
 	for(int i = 1; i <= getChannels(); i++) {
 		int pindex = motorDrive[i-1][0];
 		if(pindex != 255 && ppwms[pindex]) {

@@ -90,7 +90,7 @@ static Digital* pdigitals[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 // Dynamically defined PWM pins
 static PWM* ppwms[12]={0,0,0,0,0,0,0,0,0,0,0,0};
 // Shared status byte
-static std::atomic<uint32_t> active_mask_buffer[8] = {0,0,0,0,0,0,0,0};
+static volatile uint32_t active_mask_buffer[8] = {0,0,0,0,0,0,0,0};
 static const uint8_t clear_val = 0;
 uint8_t channel;
 int slot = -1;
@@ -198,9 +198,9 @@ void manage_inactivity() {
 		//tud_cdc_write(tmpbuf,strlen(tmpbuf));
 		//tud_cdc_write_flush();
 		for(int s = 0; s < 8; s++) {
-			if( active_mask_buffer[s] != 0 && motorControl[j]->checkSafeShutdown(s)) {
-				atomic_exchange_explicit(&active_mask_buffer[s], 0, memory_order_acq_rel); // clear the bit for this slice
-			}
+			//if( active_mask_buffer[s] != 0 && motorControl[j]->checkSafeShutdown(s)) {
+				//atomic_exchange_explicit(&active_mask_buffer[s], 0, memory_order_acq_rel); // clear the bit for this slice
+			//}
 		}
 		if( motorControl[j]->isConnected() ) {
 			motorControl[j]->checkEncoderShutdown();

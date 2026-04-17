@@ -127,7 +127,7 @@ static volatile absolute_time_t last_command_time[8] = {0,0,0,0,0,0,0,0};
 		safeShutdown = enable;
 		watchdogMax = max;
 	}
-	void PWM::setup_slice_dma(std::atomic<uint32_t>* active_mask_buffer) {
+	void PWM::setup_slice_dma(volatile uint32_t* active_mask_buffer) {
  		int chan = dma_chan_per_slice[this->slice];
  		if (chan == -1) {
  			chan = dma_claim_unused_channel(true);
@@ -135,17 +135,20 @@ static volatile absolute_time_t last_command_time[8] = {0,0,0,0,0,0,0,0};
  		} else
 			return; // already set up
     	dma_channel_config c = dma_channel_get_default_config(chan);
-    	channel_config_set_transfer_data_size(&c, DMA_SIZE_8);
+    	channel_config_set_transfer_data_size(&c, DMA_SIZE_32);
     	channel_config_set_read_increment(&c, false);
     	channel_config_set_write_increment(&c, false);
     	channel_config_set_dreq(&c, DREQ_PWM_WRAP0 + this->slice);
 		// clear pending IRQ to avoid immediate triggering
 		dma_hw->ints0 = (1u << chan);
 		dma_hw->ints1 = (1u << chan);
+		absolute_time_t t = get_absolute_time();
+		uint32_t now_us = (uint32_t)to_us_since_boot(t);
     	dma_channel_configure(
         	chan, &c,
         	(void*)(active_mask_buffer+slice), // Target buffer
-        	&slice_bits[this->slice],   // Source: this slice's ID bit
+        	//&slice_bits[this->slice],   // Source: this slice's ID bit
+			&now_us, // source: current time in microseconds
         	0xFFFFFFFF,                 // Run forever
         	true                        // Start now
     	);

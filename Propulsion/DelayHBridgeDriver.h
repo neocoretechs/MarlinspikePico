@@ -37,7 +37,7 @@ public:
 	int commandMotorPower(uint8_t ch, int16_t p) override;
 	void getDriverInfo(uint8_t ch, char* outStr) override;
 	int checkSafeShutdown(uint slice) override { return HBridgeDriver::checkSafeShutdown(slice); }
-	void setSafeShutdown(std::atomic<uint32_t>* active_mask_buffer) override { HBridgeDriver::setSafeShutdown(active_mask_buffer); }
+	void setSafeShutdown(volatile uint32_t* active_mask_buffer) override { HBridgeDriver::setSafeShutdown(active_mask_buffer); }
 protected:
 private:
 	DelayHBridgeDriver( const DelayHBridgeDriver &c ) = delete;
