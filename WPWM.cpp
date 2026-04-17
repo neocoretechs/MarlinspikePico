@@ -14,9 +14,9 @@
 // 8 total "slices", each slice has 2 "channels" one interrupt server a slice, so 8 total interrupts possible. We will use the same interrupt handler for all slices and dispatch based on which slice fired.
 
 PWM* PWM::instances[8] = {nullptr};
-static int8_t dma_chan_per_slice[8]={-1,-1,-1,-1,-1,-1,-1,-1};
-static const uint8_t slice_bits[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
-static absolute_time_t last_command_time[8] = {0,0,0,0,0,0,0,0};
+static int dma_chan_per_slice[8]={-1,-1,-1,-1,-1,-1,-1,-1};
+static const uint32_t slice_bits[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
+static volatile absolute_time_t last_command_time[8] = {0,0,0,0,0,0,0,0};
 
 	/*
 	* Constructor 
@@ -127,7 +127,7 @@ static absolute_time_t last_command_time[8] = {0,0,0,0,0,0,0,0};
 		safeShutdown = enable;
 		watchdogMax = max;
 	}
-	void PWM::setup_slice_dma(volatile uint8_t* active_mask_buffer) {
+	void PWM::setup_slice_dma(std::atomic<uint32_t>* active_mask_buffer) {
  		int chan = dma_chan_per_slice[this->slice];
  		if (chan == -1) {
  			chan = dma_claim_unused_channel(true);

@@ -128,25 +128,41 @@ int SplitBridgeDriver::checkSafeShutdown(uint slice) {
 	int fault_flag = 0;
 	for(int i = 1; i <= getChannels(); i++) {
 		int pindex = motorDrive[i-1][0];
-		if(pindex != 255 && ppwms[pindex] && ppwms[pindex]->safeShutdown && 
-			ppwms[pindex]->get_slice() == slice && ppwms[pindex]->get_on_time_us() > ppwms[pindex]->watchdogMax) {
-			ppwms[pindex]->pwmOff();
-			fault_flag |= (1 << (i-1)); // set bit for this channel
+		if(pindex == 255)
+			continue;
+		auto *p = ppwms[pindex];
+		if(!p)
+			continue;
+		bool safe = p->safeShutdown;
+		bool slice_ok = (p->get_slice() == slice);
+		int64_t on_time = p->get_on_time_us();
+		int64_t watchdog = (int64_t)p->watchdogMax;
+		//if(pindex != 255 && ppwms[pindex] && ppwms[pindex]->safeShutdown && 
+		//	ppwms[pindex]->get_slice() == slice && ppwms[pindex]->get_on_time_us() > ppwms[pindex]->watchdogMax) {
+		if( safe && slice_ok && on_time > watchdog) {
 			ppwms[pindex]->pwmOff();
 			fault_flag |= (1 << (i-1)); // set bit for this channel
 		}
 		pindex = motorDriveB[i-1][0];
-		if(pindex != 255 && ppwms[pindex] && ppwms[pindex]->safeShutdown && 
-			ppwms[pindex]->get_slice() == slice && ppwms[pindex]->get_on_time_us() > ppwms[pindex]->watchdogMax) {
-			ppwms[pindex]->pwmOff();
-			fault_flag |= (1 << (i-1)); // set bit for this channel
+		if(pindex == 255)
+			continue;
+		p = ppwms[pindex];
+		if(!p)
+			continue;
+		safe = p->safeShutdown;
+		slice_ok = (p->get_slice() == slice);
+		on_time = p->get_on_time_us();
+		watchdog = (int64_t)p->watchdogMax;
+		//if(pindex != 255 && ppwms[pindex] && ppwms[pindex]->safeShutdown && 
+		//	ppwms[pindex]->get_slice() == slice && ppwms[pindex]->get_on_time_us() > ppwms[pindex]->watchdogMax) {
+		if( safe && slice_ok && on_time > watchdog) {
 			ppwms[pindex]->pwmOff();
 			fault_flag |= (1 << (i-1)); // set bit for this channel
 		}
 	}
 	return fault_flag;
 }
-void SplitBridgeDriver::setSafeShutdown(volatile uint8_t* active_mask_buffer) {
+void SplitBridgeDriver::setSafeShutdown(std::atomic<uint32_t>* active_mask_buffer) {
 	for(int i = 1; i <= getChannels(); i++) {
 		int pindex = motorDrive[i-1][0];
 		if(pindex != 255 && ppwms[pindex]) {

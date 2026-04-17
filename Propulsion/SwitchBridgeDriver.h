@@ -54,7 +54,7 @@ public:
 	int queryFaultFlag(void) override { return fault_flag; }
 	int queryStatusFlag(void) override { return status_flag; }
 	int checkSafeShutdown(uint slice) override { return 0; }
-	void setSafeShutdown(volatile uint8_t* active_mask_buffer) override { return; }
+	void setSafeShutdown(std::atomic<uint32_t>* active_mask_buffer) override { return; }
 protected:
 private:
 	SwitchBridgeDriver( const SwitchBridgeDriver &c ) = delete;

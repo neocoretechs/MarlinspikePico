@@ -44,6 +44,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
+#include <atomic>
 
 #include "Configuration.h"
 #include "stdlib.h"

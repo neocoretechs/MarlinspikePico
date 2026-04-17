@@ -79,7 +79,7 @@ class RoboteqDevice : public AbstractMotorControl {
 		int commandBrushlessCounter(void);
         void setMinMotorPower(uint8_t ch, int mpow) override;
         int checkSafeShutdown(uint slice) override { return 0;}
-        void setSafeShutdown(volatile uint8_t* active_mask_buffer) override {return;}
+        void setSafeShutdown(std::atomic<uint32_t>* active_mask_buffer) override {return;}
         //*********************************************************************
         // Query
         //*********************************************************************

@@ -47,6 +47,7 @@
 #ifndef __ABSTRACTMOTORCONTROL_H__
 #define __ABSTRACTMOTORCONTROL_H__
 
+#include <atomic>
 #include "../Ultrasonic.h"
 #include "../CounterInterruptService.h"
 #include "../Configuration_adv.h"
@@ -116,7 +117,7 @@ public:
 	uint8_t getMotorShutdown(void) { return MOTORSHUTDOWN; }
 	virtual void setMotorPowerScale(int p) { MOTORPOWERSCALE = p; }
 	virtual int checkSafeShutdown(uint slice)= 0;
-	virtual void setSafeShutdown(volatile uint8_t* active_mask_buffer) = 0;
+	virtual void setSafeShutdown(std::atomic<uint32_t>* active_mask_buffer) = 0;
 }; //AbstractMotorControl
 
 #endif //__ABSTRACTMOTORCONTROL_H__

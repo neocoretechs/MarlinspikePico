@@ -76,7 +76,7 @@ public:
 		return false;
 	}
 	int checkSafeShutdown(uint slice) override;
-	void setSafeShutdown(volatile uint8_t* active_mask_buffer) override;
+	void setSafeShutdown(std::atomic<uint32_t>* active_mask_buffer) override;
 protected:
 private:
 	HBridgeDriver( const HBridgeDriver &c ) = delete;
