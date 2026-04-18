@@ -2916,7 +2916,7 @@ void processMCode(int cval) {
 				tud_cdc_write_flush();
 				continue;
 			}
-			sprintf(irqbuf,"DMA ch=%d ctrl_trig=0x%08x count=%u read=0x%08x write=0x%08x ints0=0x%08x busy=%d\n\0",
+			sprintf(irqbuf,"DMA ch=%d ctrl_trig=0x%08x count=%u read=0x%08x write=0x%08x ints0=0x%08x busy=%d\r\n\0",
        		dmach,
        		(unsigned)dma_hw->ch[dmach].ctrl_trig,
        		(unsigned)dma_hw->ch[dmach].transfer_count,
@@ -2938,7 +2938,7 @@ void processMCode(int cval) {
         		(void*)&active_mask_buffer[slice],(unsigned)((uintptr_t)&active_mask_buffer[slice] & 0xF));
 			tud_cdc_write(irqbuf, strlen(irqbuf));
 			tud_cdc_write_flush();
-			sprintf(irqbuf,"PWM slice=%d CSR=0x%08x TOP=%u CTR=%u CC=%u\n\0",
+			sprintf(irqbuf,"PWM slice=%d CSR=0x%08x TOP=%u CTR=%u CC=%u\r\n\0",
        		slice,
        		(unsigned)pwm_hw->slice[slice].csr,
        		(unsigned)pwm_hw->slice[slice].top,

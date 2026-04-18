@@ -73,7 +73,7 @@ protected:
 	CounterInterruptService* wheelEncoderService[10] = {0,0,0,0,0,0,0,0,0,0}; // encoder service
 	int MOTORPOWERSCALE = 0; // Motor scale, divisor for motor power to reduce 0-1000 scale if non zero
 	uint MOTORSHUTDOWN = 0; // Override of motor controls, puts it up on blocks
-	int MAXMOTORPOWER = 255; // Max motor power in PWM final timer units
+	int MAXMOTORPOWER = 1000; // Max motor power in PWM final timer units
 	int fault_flag = 0;
 public:
   	AbstractMotorControl(int maxPower) : MAXMOTORPOWER(maxPower) {}

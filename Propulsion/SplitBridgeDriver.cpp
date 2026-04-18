@@ -243,25 +243,15 @@ int SplitBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPowe
 		// find the PWM pin and get the object we set up in M3 to write to power level
 		// element 0 of motorDrive has index to PWM array
 		int pindex = motorDrive[motorChannel-1][0];
+		int pindexB = motorDriveB[motorChannel-1][0];
 		// writing power 0 sets mode 0 and timer turnoff
+		motorSpeed[motorChannel-1] = motorPower; //why? +/-
 		if(motorPower > 0) {
-			ppwms[pindex]->init();
-			//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
 			ppwms[pindex]->pwmWrite(true, motorPower);
-			motorSpeed[motorChannel-1] = motorPower; //why? +/-
-			pindex = motorDriveB[motorChannel-1][1];
-			ppwms[pindex]->init();
-			//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
-			ppwms[pindex]->pwmWrite(false, motorPower);
+			ppwms[pindexB]->pwmWrite(false, motorPower);
 		} else { // motorPower < 0
-			ppwms[pindex]->init();
-			//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
 			ppwms[pindex]->pwmWrite(false, motorPower);
-			motorSpeed[motorChannel-1] = motorPower; //why? +/-
-			pindex = motorDriveB[motorChannel-1][1];
-			ppwms[pindex]->init();
-			//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
-			ppwms[pindex]->pwmWrite(true, motorPower);
+			ppwms[pindexB]->pwmWrite(true, motorPower);
 		}
 		fault_flag = 0;
 		return fault_flag;
