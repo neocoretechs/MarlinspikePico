@@ -45,7 +45,6 @@ int DelayHBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPow
 							//pdigitals[i]->setPin(motorDrive[motorChannel-1][1]);
 							ppwms[motorDrive[motorChannel-1][0]]->pwmOff(); // turn off PWM to allow motor to stop before changing direction
 							sleep_ms(200); // delay to allow motor to stop before reversing direction
-							pdigitals[i]->pinMode(PinMode::OUTPUT);
 							// default is 0 (LOW), if we changed the direction to reverse wheel rotation call the opposite dir change signal
 							defaultDirection[motorChannel-1] ? pdigitals[i]->digitalWrite(HIGH) : pdigitals[i]->digitalWrite(LOW);
 							currentDirection[motorChannel-1] = 0; // set new direction value
@@ -65,7 +64,6 @@ int DelayHBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPow
 						//pdigitals[i]->setPin(motorDrive[motorChannel-1][1]);
 						ppwms[motorDrive[motorChannel-1][0]]->pwmOff(); // turn off PWM to allow motor to stop before changing direction
 						sleep_ms(200); // delay to allow motor to stop before changing direction
-						pdigitals[i]->pinMode(PinMode::OUTPUT);
 						// default is 0 (HIGH), if we changed the direction to reverse wheel rotation call the opposite dir change signal
 						defaultDirection[motorChannel-1] ? pdigitals[i]->digitalWrite(LOW) : pdigitals[i]->digitalWrite(HIGH);
 						currentDirection[motorChannel-1] = 1;
