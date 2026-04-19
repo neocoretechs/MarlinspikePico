@@ -2934,7 +2934,7 @@ void processMCode(int cval) {
 				tud_cdc_write_flush();
 				continue;
 			}
-			sprintf(irqbuf,"buf_addr=%p  buf_low=0x%02x\n\0",
+			sprintf(irqbuf,"buf_addr=%p  buf_low=0x%02x\r\n\0",
         		(void*)&active_mask_buffer[slice],(unsigned)((uintptr_t)&active_mask_buffer[slice] & 0xF));
 			tud_cdc_write(irqbuf, strlen(irqbuf));
 			tud_cdc_write_flush();

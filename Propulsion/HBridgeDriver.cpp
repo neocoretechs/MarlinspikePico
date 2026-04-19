@@ -190,22 +190,15 @@ int HBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPower) {
 		//
 		// Reset encoders on new speed setting
 		resetEncoders();
-		// If we have a linked distance sensor. check range and possibly skip
-		// If we are setting power 0, we are stopping anyway
-		if( !checkUltrasonicShutdown()) {
-			// find the PWM pin and get the object we set up in M3 to write to power level
-			//int timer_mode = 2;
-			//int timer_pre = motorDrive[motorChannel-1][2]; // prescale from M3
-			//int timer_res = motorDrive[motorChannel-1][3]; // timer resolution in bits from M3
-			// element 0 of motorDrive has index to PWM array
+		if(motorDrive[motorChannel-1][0] != 255 && ppwms[motorDrive[motorChannel-1][0]]) {
 			int pindex = motorDrive[motorChannel-1][0];
-			// writing power 0 sets mode 0 and timer turnoff
-			ppwms[pindex]->init();
 			//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
 			ppwms[pindex]->pwmWrite(true,motorPower);
+			fault_flag = 0;
+		} else {
+			fault_flag = 16;
 		}
-		fault_flag = 0;
-		return 0;
+		return fault_flag;
 }
 
 void HBridgeDriver::getDriverInfo(uint8_t ch, char* outStr) {

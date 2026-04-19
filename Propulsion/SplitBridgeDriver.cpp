@@ -237,27 +237,26 @@ int SplitBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPowe
 	//
 	// Reset encoders on new speed setting
 	resetEncoders();
-	// If we have a linked distance sensor. check range and possibly skip
-	// If we are setting power 0, we are stopping anyway
-	if( !checkUltrasonicShutdown()) {
-		// find the PWM pin and get the object we set up in M3 to write to power level
-		// element 0 of motorDrive has index to PWM array
-		int pindex = motorDrive[motorChannel-1][0];
-		int pindexB = motorDriveB[motorChannel-1][0];
-		// writing power 0 sets mode 0 and timer turnoff
-		motorSpeed[motorChannel-1] = motorPower; //why? +/-
-		if(motorPower > 0) {
-			ppwms[pindex]->pwmWrite(true, motorPower);
-			ppwms[pindexB]->pwmWrite(false, motorPower);
-		} else { // motorPower < 0
-			ppwms[pindex]->pwmWrite(false, motorPower);
-			ppwms[pindexB]->pwmWrite(true, motorPower);
-		}
-		fault_flag = 0;
-		return fault_flag;
+	// find the PWM pin and get the object we set up in M3 to write to power level
+	// element 0 of motorDrive has index to PWM array
+	int pindex = motorDrive[motorChannel-1][0];
+	int pindexB = motorDriveB[motorChannel-1][0];
+	// writing power 0 sets mode 0 and timer turnoff
+	motorSpeed[motorChannel-1] = motorPower; //why? +/-
+	if(motorDriveB[motorChannel-1][1]) { // if dir change signal is 1, send to PWM pin+1
+		int temp = pindex;
+		pindex = pindexB;
+		pindexB = temp;
 	}
-	fault_flag = 16;
-	return 0;
+	if(motorPower > 0) {
+		ppwms[pindex]->pwmWrite(true, motorPower);
+		ppwms[pindexB]->pwmWrite(false, motorPower);
+	} else { // motorPower < 0
+		ppwms[pindex]->pwmWrite(false, motorPower);
+		ppwms[pindexB]->pwmWrite(true, motorPower);
+	}
+	fault_flag = 0;
+	return fault_flag;
 }
 
 void SplitBridgeDriver::getDriverInfo(uint8_t ch, char * outStr) {

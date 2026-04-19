@@ -65,12 +65,6 @@ void AbstractMotorControl::linkDistanceSensor(Ultrasonic **us, uint8_t upin, uin
 bool AbstractMotorControl::checkUltrasonicShutdown()
 {
 	bool shutdown = false;
-	for (int i = 0; i < 10; i++)
-		if (motorSpeed[i] != 0) {
-			break;
-		}
-	if (shutdown)
-		return shutdown;
 	// If we have a linked distance sensor. check range and possibly skip
 	// ultrasonicIndex corresponds to ultrasonic object pointer array, element 0 points to Ultrasonic array element
 	for (int i = 0; i < 10; i++)

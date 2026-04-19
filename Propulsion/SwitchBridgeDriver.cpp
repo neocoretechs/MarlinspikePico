@@ -149,17 +149,25 @@ int SwitchBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPow
 	resetEncoders();
 	// If we have a linked distance sensor. check range and possibly skip
 	// If we are setting power 0, we are stopping anyway
-	if( !checkUltrasonicShutdown()) {
-		// element 0 of motorDrive has index to PWM array
-		int pindex = motorDrive[motorChannel-1][0];
-		// add the offset to the input pin, which will be 0 or 1 depending on above logic
-		pindex += motorDriveB[motorChannel-1][1];
-		// turn off all pins
-		pdigitals[pindex]->digitalWrite(LOW);
-		fault_flag = 16;
-		return fault_flag;
+	int pindex = motorDrive[motorChannel-1][0];
+	int pindexB = motorDriveB[motorChannel-1][0];
+	if(motorDriveB[motorChannel-1][1]) { // if dir change signal is 1, send to PWM pin+1
+		int temp = pindex;
+		pindex = pindexB;
+		pindexB = temp;
 	}
-	fault_flag = 16;
+	if(motorPower > 0) {
+		pdigitals[pindex]->pinMode(PinMode::OUTPUT);
+		pdigitals[pindexB]->pinMode(PinMode::OUTPUT);
+		pdigitals[pindex]->digitalWrite(true);
+		pdigitals[pindexB]->digitalWrite(false);
+	} else { // motorPower < 0
+		pdigitals[pindex]->pinMode(PinMode::OUTPUT);
+		pdigitals[pindexB]->pinMode(PinMode::OUTPUT);
+		pdigitals[pindex]->digitalWrite(false);
+		pdigitals[pindexB]->digitalWrite(true);
+	}
+	fault_flag = 0;
 	return 0;
 }
 

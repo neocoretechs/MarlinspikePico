@@ -82,8 +82,7 @@ int DelayHBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPow
 		if(!foundPin) {
 			return commandEmergencyStop(2);
 		}	
-		// scale motor power from 0-1000 to our 0-255 8 bit timer val
-		motorPower /= 4;
+
 		if( motorPower != 0 && motorPower < minMotorPower[motorChannel-1])
 				motorPower = minMotorPower[motorChannel-1];
 		if( motorPower > MAXMOTORPOWER ) // cap it at max
@@ -96,18 +95,10 @@ int DelayHBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPow
 		resetEncoders();
 		// If we have a linked distance sensor. check range and possibly skip
 		// If we are setting power 0, we are stopping anyway
-		if( !checkUltrasonicShutdown()) {
-			// find the PWM pin and get the object we set up in M3 to write to power level
-			//int timer_mode = 2;
-			//int timer_pre = motorDrive[motorChannel-1][2]; // prescale from M3
-			//int timer_res = motorDrive[motorChannel-1][3]; // timer resolution in bits from M3
-			// element 0 of motorDrive has index to PWM array
-			int pindex = motorDrive[motorChannel-1][0];
-			// writing power 0 sets mode 0 and timer turnoff
-			ppwms[pindex]->init();
-			//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
-			ppwms[pindex]->pwmWrite(true,motorPower);
-		}
+		// element 0 of motorDrive has index to PWM array
+		int pindex = motorDrive[motorChannel-1][0];
+		//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
+		ppwms[pindex]->pwmWrite(true,motorPower);
 		fault_flag = 0;
 		return 0;
 }

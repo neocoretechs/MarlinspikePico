@@ -34,6 +34,7 @@
 		pwm_config_set_wrap(&config, 999); // top 0-1000
 		//pwm_config_set_phase_correct(&config, true); // up/down counting for symmetric waveforms
 		pwm_init(this->slice, &config, false);
+		pwm_set_enabled(this->slice, true);
 		//pwm_set_phase_correct(this->slice, true);
 		// Clear any pending IRQ
     	//pwm_clear_irq(this->slice);
@@ -71,11 +72,10 @@
 		uint slice = this->slice;
 		//uint32_t mask = 1u << slice;
 		//pwm_clear_irq(mask);
-		pwm_set_chan_level(slice, PWM_CHAN_A, 0);
-		pwm_set_chan_level(slice, PWM_CHAN_B, 0);
-		pwm_set_enabled(slice, false);
+		//pwm_set_chan_level(slice, PWM_CHAN_A, 0);
+		//pwm_set_chan_level(slice, PWM_CHAN_B, 0);
 		//pwm_set_irq_enabled(slice, false);
-		watchdog = 0;
+		pwm_set_gpio_level(this->pin, 0);
 		shutdownRequested = false;
 		shutdownLogged = true;
 		last_command_time[slice] = 0;
@@ -158,8 +158,12 @@
 	void PWM::pwmWrite(bool enable, uint power) {
 		// clear any pending IRQ to avoid immediate timeout if we are enabling
 		//pwm_clear_irq(1u << this->slice);
+		if(!enable) {
+			pwmOff();
+			return;
+		}
 		pwm_set_gpio_level(this->pin, power);
-    	pwm_set_enabled(this->slice, enable);
+    	//pwm_set_enabled(this->slice, enable);
 		// possibly re-enable wrap IRQ for this slice to ensure we get the next cycle interrupt for watchdog handling
 		//pwm_set_irq_enabled(this->slice, enable);
 		watchdog = enable ? watchdogMax : 0;
