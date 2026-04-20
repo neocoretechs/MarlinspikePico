@@ -89,9 +89,7 @@ static int digitalTarget[32];
 static Digital* pdigitals[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 // Dynamically defined PWM pins
 static PWM* ppwms[12]={0,0,0,0,0,0,0,0,0,0,0,0};
-// Shared status byte
-static volatile uint8_t active_mask_buffer[8] = {0,0,0,0,0,0,0,0};
-static const uint8_t clear_val = 0;
+
 uint8_t channel;
 int slot = -1;
 int digitarg;
@@ -915,7 +913,7 @@ void processMCode(int cval) {
 		if(encode_pin) {
 			motorControl[motorController]->createEncoder(channel, encode_pin);
 		}
-		if(motorControl[motorController]->setSafeShutdown(active_mask_buffer) == -1) {
+		if(motorControl[motorController]->setSafeShutdown() == -1) {
 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 			tud_cdc_write("M3 SAFE SHUTDOWN ERROR", strlen("M3 SAFE SHUTDOWN ERROR"));
 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
@@ -1054,7 +1052,7 @@ void processMCode(int cval) {
 		  		if(encode_pin) {
 					motorControl[motorController]->createEncoder(channel, encode_pin);
 		  		}
-				if(motorControl[motorController]->setSafeShutdown(active_mask_buffer) == -1) {
+				if(motorControl[motorController]->setSafeShutdown() == -1) {
 					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 					tud_cdc_write("M4 SAFE SHUTDOWN ERROR", strlen("M4 SAFE SHUTDOWN ERROR"));
 					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
@@ -1843,7 +1841,7 @@ void processMCode(int cval) {
 			if(encode_pin != 0) {
 				motorControl[motorController]->createEncoder(channel, encode_pin);
 			}
-			if(motorControl[motorController]->setSafeShutdown(active_mask_buffer) == -1) {
+			if(motorControl[motorController]->setSafeShutdown() == -1) {
 				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 				tud_cdc_write("M16 SAFE SHUTDOWN ERROR", strlen("M16 SAFE SHUTDOWN ERROR"));
 				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
@@ -2930,10 +2928,6 @@ void processMCode(int cval) {
 				tud_cdc_write_flush();
 				continue;
 			}
-			sprintf(irqbuf,"buf_addr=%p  buf_low=0x%02x\r\n\0",
-        		(void*)&active_mask_buffer[slice],(unsigned)((uintptr_t)&active_mask_buffer[slice] & 0xF));
-			tud_cdc_write(irqbuf, strlen(irqbuf));
-			tud_cdc_write_flush();
 			sprintf(irqbuf,"PWM slice=%d CSR=0x%08x TOP=%u CTR=%u CC=%u\r\n\0",
        		slice,
        		(unsigned)pwm_hw->slice[slice].csr,

@@ -151,19 +151,19 @@ int SplitBridgeDriver::checkSafeShutdown() {
 	}
 	return fault_flag;
 }
-int SplitBridgeDriver::setSafeShutdown(volatile uint8_t* active_mask_buffer) {
+int SplitBridgeDriver::setSafeShutdown() {
 	for(int i = 1; i <= getChannels(); i++) {
 		int pindex = motorDrive[i-1][0];
 		if(pindex != 255 && ppwms[pindex]) {
 				ppwms[pindex]->setSafeShutdown(true, ppwms[pindex]->watchdogMax);
-				if(ppwms[pindex]->setup_slice_dma(active_mask_buffer) == -1) {
+				if(ppwms[pindex]->setup_slice_dma() == -1) {
 					return -1; // failed to set up DMA
 				}
 		}
 		pindex = motorDriveB[i-1][0];
 		if(pindex != 255 && ppwms[pindex] ) {
 				ppwms[pindex]->setSafeShutdown(true, ppwms[pindex]->watchdogMax);
-				if(ppwms[pindex]->setup_slice_dma(active_mask_buffer) == -1) {
+				if(ppwms[pindex]->setup_slice_dma() == -1) {
 					return -1; // failed to set up DMA
 				}
 		}

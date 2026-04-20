@@ -44,7 +44,7 @@ class PWM {
 	void attachInterrupt(InterruptService* cins, bool overflow = false);
 	void detachInterrupt();
 	void setSafeShutdown(bool enable, int max);
-	int setup_slice_dma(volatile uint8_t* active_mask_buffer);
+	int setup_slice_dma(void);
 	uint16_t get_counter();
 	int64_t get_on_time_us();
 	uint get_slice() { return this->slice;}

@@ -13,6 +13,8 @@
 #include <hardware/irq.h>
 	PWM* PWM::instances[8] = {nullptr};
 	int dma_chan_per_slice[8]={-1,-1,-1,-1,-1,-1,-1,-1};
+	uint8_t src_buf[1] __attribute__((aligned(4)));
+	uint8_t dst_buf[1] __attribute__((aligned(4)));
 	/*
 	* Constructor 
 	*/
@@ -124,7 +126,7 @@
 		safeShutdown = enable;
 		watchdogMax = max;
 	}
-	int PWM::setup_slice_dma(volatile uint8_t* active_mask_buffer) {
+	int PWM::setup_slice_dma() {
  		int chan = dma_chan_per_slice[this->slice];
  		if (chan == -1) {
  			chan = dma_claim_unused_channel(false);
@@ -142,12 +144,12 @@
 		// clear pending IRQ to avoid immediate triggering
 		dma_hw->ints0 = (1u << chan);
 		dma_hw->ints1 = (1u << chan);
-		absolute_time_t t = get_absolute_time();
-		now_us = (uint32_t)to_us_since_boot(t);
+		//absolute_time_t t = get_absolute_time();
+		//now_us = (uint32_t)to_us_since_boot(t);
     	dma_channel_configure(
         	chan, &c,
-        	(void*)(active_mask_buffer+slice), // Target buffer
-        	&slice_bits[this->slice],   // Source: this slice's ID bit
+        	(void*)&src_buf, // Target buffer
+        	(void*)&dst_buf,   // Source: this slice's ID bit
         	watchdogMax,				// numberof transfers
         	false                        // Start now
     	);
