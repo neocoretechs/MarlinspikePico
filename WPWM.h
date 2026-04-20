@@ -28,7 +28,7 @@ class PWM {
 	uint slice;
 	uint channel = 0;
 	volatile int watchdog = 0;
-	volatile int watchdogMax = 1000000;
+	volatile int watchdogMax = 10000;
 	volatile bool safeShutdown = false;
 	volatile bool shutdownRequested = false;
 	volatile bool shutdownLogged = false;

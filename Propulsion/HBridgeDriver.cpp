@@ -101,12 +101,12 @@ int HBridgeDriver::createPWM(uint8_t channel, uint8_t pin_number, uint8_t dir_pi
 	//ppwms[pindex]->setSafeShutdown(true, ppwms[pindex]->watchdogMax);
 	return 0;
 }
-int HBridgeDriver::checkSafeShutdown(uint slice) {
+int HBridgeDriver::checkSafeShutdown() {
 	int fault_flag = 0;
 	for(int i = 1; i <= getChannels(); i++) {
 		int pindex = motorDrive[i-1][0];
 		if(pindex != 255 && ppwms[pindex] && ppwms[pindex]->safeShutdown && 
-			ppwms[pindex]->get_slice() == slice && ppwms[pindex]->get_on_time_us() > ppwms[pindex]->watchdogMax) {
+			get_dma_chan(i) != -1 && !dma_channel_is_busy(get_dma_chan(i))) {
 				ppwms[pindex]->pwmOff();
 				fault_flag |= (1 << (i-1)); // set bit for this channel
 		}

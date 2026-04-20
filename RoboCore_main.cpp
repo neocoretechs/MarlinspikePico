@@ -197,12 +197,8 @@ void manage_inactivity() {
 		//sprintf(tmpbuf, "MI: j=%d ptr=%p vtable=%p\r\n\0", j, motorControl[j], *(void**)motorControl[j]);
 		//tud_cdc_write(tmpbuf,strlen(tmpbuf));
 		//tud_cdc_write_flush();
-		for(int s = 0; s < 8; s++) {
-			//if( active_mask_buffer[s] != 0 && motorControl[j]->checkSafeShutdown(s)) {
-				//atomic_exchange_explicit(&active_mask_buffer[s], 0, memory_order_acq_rel); // clear the bit for this slice
-			//}
-		}
 		if( motorControl[j]->isConnected() ) {
+			motorControl[j]->checkSafeShutdown();
 			motorControl[j]->checkEncoderShutdown();
 			motorControl[j]->checkUltrasonicShutdown();
 			if( motorControl[j]->queryFaultFlag() != fault ) {

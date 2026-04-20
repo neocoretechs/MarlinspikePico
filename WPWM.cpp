@@ -146,9 +146,8 @@
         	chan, &c,
         	(void*)(active_mask_buffer+slice), // Target buffer
         	&slice_bits[this->slice],   // Source: this slice's ID bit
-			//&now_us, // source: current time in microseconds
-        	0xFFFFFFFF,                 // Run forever
-        	true                        // Start now
+        	watchdogMax,				// numberof transfers
+        	false                        // Start now
     	);
 		//while(dma_channel_is_busy(chan)); // wait for first transfer to complete to ensure we have the current time latched in the buffer
 		dma_channel_set_irq0_enabled(chan, false);
@@ -169,5 +168,8 @@
 		watchdog = enable ? watchdogMax : 0;
 		shutdownRequested = false;
 		shutdownLogged = false;
+		if(dma_chan_per_slice[this->slice] != -1) {
+			dma_channel_set_trans_count(dma_chan_per_slice[this->slice], watchdogMax, true);
+		}
 		last_command_time[this->slice] = get_absolute_time();
 	}

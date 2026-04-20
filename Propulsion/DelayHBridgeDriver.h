@@ -36,7 +36,7 @@ public:
 	DelayHBridgeDriver(int maxPower) : HBridgeDriver(maxPower){};
 	int commandMotorPower(uint8_t ch, int16_t p) override;
 	void getDriverInfo(uint8_t ch, char* outStr) override;
-	int checkSafeShutdown(uint slice) override { return HBridgeDriver::checkSafeShutdown(slice); }
+	int checkSafeShutdown() override { return HBridgeDriver::checkSafeShutdown(); }
 	int setSafeShutdown(volatile uint8_t* active_mask_buffer) override { return HBridgeDriver::setSafeShutdown(active_mask_buffer); }
 	int get_slice(uint8_t channel) override { return HBridgeDriver::get_slice(channel); };
 	int commandEmergencyStop(int status) override { return HBridgeDriver::commandEmergencyStop(status); }

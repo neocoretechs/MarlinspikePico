@@ -116,7 +116,7 @@ public:
 	void setMotorRun(void) { commandEmergencyStop(0); MOTORSHUTDOWN = 0;}
 	uint8_t getMotorShutdown(void) { return MOTORSHUTDOWN; }
 	virtual void setMotorPowerScale(int p) { MOTORPOWERSCALE = p; }
-	virtual int checkSafeShutdown(uint slice)= 0;
+	virtual int checkSafeShutdown()= 0;
 	virtual int setSafeShutdown(volatile uint8_t* active_mask_buffer) = 0;
 	virtual int get_dma_chan(uint8_t channel)=0;
 	virtual int get_slice(uint8_t channel)=0;
