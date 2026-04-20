@@ -8,7 +8,7 @@
 	#define LANGUAGE_CHOICE 1  // Pick your language from the list above
 #endif
 
-#define PROTOCOL_VERSION "1.1"
+#define PROTOCOL_VERSION "2.0"
 
 #define MACHINE_NAME "RoboCore"
 #define FIRMWARE_URL "http://www.neocoretechs.com"
@@ -17,7 +17,7 @@
    #define MACHINE_UUID "08d85ec1-651a-4a2f-a1a7-4afb154bcc81"
 #endif
 
-#define VERSION_STRING  "1.3.0"
+#define VERSION_STRING  "2.3.0"
 
 #define STRINGIFY_(n) #n
 #define STRINGIFY(n) STRINGIFY_(n)
