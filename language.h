@@ -17,7 +17,7 @@
    #define MACHINE_UUID "08d85ec1-651a-4a2f-a1a7-4afb154bcc81"
 #endif
 
-#define VERSION_STRING  "2.3.0"
+#define VERSION_STRING  " 2.3.0"
 
 #define STRINGIFY_(n) #n
 #define STRINGIFY(n) STRINGIFY_(n)

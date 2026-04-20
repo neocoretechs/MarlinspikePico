@@ -255,23 +255,29 @@ void SplitBridgeDriver::getDriverInfo(uint8_t ch, char * outStr) {
 	char dout1[10];
 	char dout2[10];
 	char dout4[10];
+	char dout5[10];
+	char dout7[10];
+	char dout9[10];
 	
 	if( motorDrive[ch-1][0] == 255 ) {
 		itoa(-1, dout1, 10);
 	} else {
 		itoa(ppwms[motorDrive[ch-1][0]]->pin, dout1, 10);
+		itoa(get_slice(ch), dout5, 10);
+		itoa(ppwms[motorDrive[ch-1][0]]->get_pwm_channel(), dout7, 10);
 	}
 	if( motorDriveB[ch-1][0] == 255 ) {
 		itoa(-1, dout2, 10);
 	} else {
 		itoa(ppwms[motorDriveB[ch-1][0]]->pin, dout2, 10);
+		itoa(ppwms[motorDriveB[ch-1][0]]->get_pwm_channel(), dout9, 10);
 	}
 	itoa(motorDriveB[ch-1][1], dout4, 10);
 
 	if( motorDrive[ch-1][0] == 255 ) {
 		sprintf(cout,"SB-PWM CHANNEL UNITIALIZED PinA:%s, PWM PinB:%s, Enable Pin:%s\r\n\0", dout1, dout2, dout4);
 	} else {
-		sprintf(cout,"SB-PWM PinA:%s, PWM PinB:%s, Enable Pin:%s\r\n\0", dout1, dout2, dout4);
+		sprintf(cout,"SB-PWM PinA:%s, PWM PinB:%s, Enable Pin:%s Slice:%s PinA channel:%s PinB channel:%s\r\n\0", dout1, dout2, dout4, dout5, dout7, dout9);
 	}
 	for(int i=0; i < OUT_BUFFER_SIZE; ++i){
 		 outStr[i] = cout[i];

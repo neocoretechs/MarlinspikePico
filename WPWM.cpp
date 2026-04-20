@@ -45,7 +45,9 @@
 		//irq_set_priority(PWM_IRQ_WRAP, 0); // highest prio
 		//irq_set_enabled(PWM_IRQ_WRAP, true);
 	}
-
+	uint PWM::get_pwm_channel() { 
+		return pwm_gpio_to_channel(this->pin); 
+	}
 	/*
 	* Sets up the PWM pin for interrupt service with a counter or its subclass.
 	* Sets the counter to 0, attaches the interrupt to be serviced each cycle.

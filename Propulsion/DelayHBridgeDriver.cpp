@@ -105,18 +105,22 @@ void DelayHBridgeDriver::getDriverInfo(uint8_t ch, char* outStr) {
 	char cout[OUT_BUFFER_SIZE];
 	char dout1[10];
 	char dout3[10];
+	char dout5[10];
+	char dout7[10];
 	
 	if( motorDrive[ch-1][0] == 255 ) {
 		itoa(-1, dout1, 10);
 	} else {
 		itoa(ppwms[motorDrive[ch-1][0]]->pin, dout1, 10);
+		itoa(get_slice(ch), dout5, 10);
+		itoa(ppwms[motorDrive[ch-1][0]]->get_pwm_channel(), dout7, 10);
 	}
 	itoa(motorDrive[ch-1][1], dout3, 10);
 
 	if( motorDrive[ch-1][0] == 255 ) {
 		sprintf(cout,"DelayHB-PWM UNINITIALIZED Pin:%s, Dir Pin:%s\r\n\0", dout1, dout3);
 	} else {
-		sprintf(cout,"DelayHB-PWM Pin:%s, Dir Pin:%s\r\n\0", dout1, dout3);
+		sprintf(cout,"DelayHB-PWM Pin:%s, Dir Pin:%s, Slice:%s, PWM Channel:%s\r\n\0", dout1, dout3, dout5, dout7);
 	}
 	
 	for(int i=0; i < OUT_BUFFER_SIZE; ++i){

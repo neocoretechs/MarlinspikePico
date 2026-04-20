@@ -49,6 +49,7 @@ class PWM {
 	int64_t get_on_time_us();
 	uint get_slice() { return this->slice;}
 	int get_dma_chan() { return dma_chan_per_slice[this->slice]; }
+	uint get_pwm_channel();
 };
 
 
