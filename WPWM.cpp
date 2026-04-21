@@ -13,8 +13,6 @@
 #include <hardware/irq.h>
 	PWM* PWM::instances[8] = {nullptr};
 	int dma_chan_per_slice[8]={-1,-1,-1,-1,-1,-1,-1,-1};
-	uint8_t src_buf[1] __attribute__((aligned(4)));
-	uint8_t dst_buf[1] __attribute__((aligned(4)));
 	/*
 	* Constructor 
 	*/
