@@ -39,8 +39,6 @@ protected:
 	// PWM params array by channel:
 	// 0-pin index to pwm array(default 255)
 	// 1-direction pin
-	// 2-timer prescale (1-none) 
-	// 3-timer resolution (8 bit)
 	uint8_t motorDrive[10][4]={{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8}};
 	int status_flag = 0;
 //functions

@@ -136,6 +136,7 @@
 			}	
  		} else
 			return 0; // already set up
+		pwm_set_enabled(this->slice, true); // ensure slice is enabled for DMA to work
     	dma_channel_config c = dma_channel_get_default_config(chan);
     	channel_config_set_transfer_data_size(&c, DMA_SIZE_8);
     	channel_config_set_read_increment(&c, false);
@@ -148,8 +149,8 @@
 		//now_us = (uint32_t)to_us_since_boot(t);
     	dma_channel_configure(
         	chan, &c,
-        	(void*)&src_buf, // Target buffer
-        	(void*)&dst_buf,   // Source: this slice's ID bit
+        	(void*)&dst_buf, // Target buffer
+        	(void*)&src_buf,   // Source: this slice's ID bit
         	watchdogMax,				// numberof transfers
         	false                        // Start now
     	);
@@ -165,11 +166,12 @@
 			pwmOff();
 			return;
 		}
-		pwm_set_gpio_level(this->pin, power);
+		uint chan = get_pwm_channel();
+		pwm_set_chan_level(this->slice, chan, power);
     	//pwm_set_enabled(this->slice, enable);
 		// possibly re-enable wrap IRQ for this slice to ensure we get the next cycle interrupt for watchdog handling
 		//pwm_set_irq_enabled(this->slice, enable);
-		watchdog = enable ? watchdogMax : 0;
+		watchdog = watchdogMax;
 		shutdownRequested = false;
 		shutdownLogged = false;
 		if(dma_chan_per_slice[this->slice] != -1) {

@@ -139,13 +139,17 @@ int SplitBridgeDriver::checkSafeShutdown() {
 		bool safe = p->safeShutdown;
 		if(pindex != 255 && safe && 
 			get_dma_chan(i) != -1 && !dma_channel_is_busy(get_dma_chan(i))) {
-			ppwms[pindex]->pwmOff();
+			//ppwms[pindex]->pwmOff();
+			pwm_set_enabled(get_slice(i), false); // disable the slice to stop the PWM
+			pwm_set_chan_level(get_slice(i), ppwms[pindex]->get_pwm_channel(), 0); // set level to 0 to ensure it is off
 			pindex = motorDriveB[i-1][0];
 			if(pindex != 255) {
 				if(ppwms[pindex]) {
-					ppwms[pindex]->pwmOff();
+					//ppwms[pindex]->pwmOff();
+					pwm_set_chan_level(get_slice(i), ppwms[pindex]->get_pwm_channel(), 0); // set level to 0 to ensure it is off
 				}
 			}
+			pwm_set_enabled(get_slice(i), true); // re-enable the slice so that it can be used again
 			fault_flag |= (1 << (i-1)); // set bit for this channel
 		}
 	}
