@@ -2824,7 +2824,40 @@ void processMCode(int cval) {
 		tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
 		tud_cdc_write_flush();
 		break;
-		
+
+	case 797: // M797 Report global controller status
+		tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
+		tud_cdc_write(controllerStatusHdr, strlen(controllerStatusHdr));
+		tud_cdc_write(MSG_DELIMIT, strlen(MSG_DELIMIT));
+		for(int xslot = 0; xslot < 10; xslot++) {
+			if( motorControl[xslot] && motorControl[xslot]->isConnected() ) {
+				tud_cdc_write("SLOT:", strlen("SLOT:"));
+				tud_cdc_write(itoa(xslot), strlen(itoa(xslot)));
+				digitarg = motorControl[xslot]->getChannels();
+				tud_cdc_write(" CHANNELS:", strlen(" CHANNELS:"));
+				tud_cdc_write(itoa(digitarg), strlen(itoa(digitarg)));
+				digitarg = motorControl[xslot]->getMaxMotorPower();
+				tud_cdc_write(" MAXPOWER:", strlen(" MAXPOWER:"));
+				tud_cdc_write(itoa(digitarg), strlen(itoa(digitarg)));
+				digitarg = motorControl[xslot]->getMotorPowerScale();
+				tud_cdc_write(" POWER SCALE:", strlen(" POWER SCALE:"));
+				tud_cdc_write(itoa(digitarg), strlen(itoa(digitarg)));
+				digitarg = motorControl[xslot]->queryFaultFlag();
+				tud_cdc_write(" FAULT FLAG:", strlen(" FAULT FLAG:"));
+				tud_cdc_write(itoa(digitarg), strlen(itoa(digitarg)));
+				digitarg = motorControl[xslot]->getMotorShutdown();
+				tud_cdc_write(" MOTOR SHUTDOWN:", strlen(" MOTOR SHUTDOWN:"));
+				tud_cdc_write(itoa(digitarg), strlen(itoa(digitarg)));
+				tud_cdc_write("\r\n", 2);
+				tud_cdc_write_flush();
+			}
+		}
+		tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
+		tud_cdc_write(controllerStatusHdr, strlen(controllerStatusHdr));
+		tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
+		tud_cdc_write_flush();
+		break;	
+			
 	case 798: // M798 Z<motor control> [X] Report controller status for given controller. If X, slot is PWM
 		char* buf;
 		tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));

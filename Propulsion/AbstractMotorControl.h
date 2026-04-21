@@ -103,6 +103,7 @@ public:
 	int getMaxMotorDuration(uint8_t ch) { return maxMotorDuration[ch-1]; }
 	int getMinMotorPower(uint8_t ch) { return minMotorPower[ch-1] ; }
 	virtual void setMaxMotorPower(int p) { MAXMOTORPOWER = p; }
+	int getMaxMotorPower() { return MAXMOTORPOWER; }
 	int getMotorSpeed(uint8_t ch) { return motorSpeed[ch-1]; }
 	uint8_t getCurrentDirection(uint8_t ch) { return currentDirection[ch-1]; }
 	uint8_t getDefaultDirection(uint8_t ch) { return defaultDirection[ch-1]; }
@@ -116,6 +117,7 @@ public:
 	void setMotorRun(void) { commandEmergencyStop(0); MOTORSHUTDOWN = 0;}
 	uint8_t getMotorShutdown(void) { return MOTORSHUTDOWN; }
 	virtual void setMotorPowerScale(int p) { MOTORPOWERSCALE = p; }
+	int getMotorPowerScale() { return MOTORPOWERSCALE; }
 	virtual int checkSafeShutdown()= 0;
 	virtual int setSafeShutdown() = 0;
 	virtual int get_dma_chan(uint8_t channel)=0;
