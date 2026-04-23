@@ -96,37 +96,21 @@ int HBridgeDriver::createPWM(uint8_t channel, uint8_t pin_number, uint8_t dir_pi
 	PWM* ppin = new PWM(pin_number);
 	ppwms[pindex] = ppin;
 	ppwms[pindex]->init();
-	//ppwms[pindex]->setSafeShutdown(true, ppwms[pindex]->watchdogMax);
 	return 0;
 }
 int HBridgeDriver::checkSafeShutdown() {
 	int fault_flag = 0;
-	for(int i = 1; i <= getChannels(); i++) {
-		int pindex = motorDrive[i-1][0];
-		if(pindex != 255 && ppwms[pindex] && ppwms[pindex]->safeShutdown && 
-			get_dma_chan(i) != -1 && !dma_channel_is_busy(get_dma_chan(i))) {
-				//ppwms[pindex]->pwmOff();
-				pwm_set_enabled(get_slice(i), false); // disable the slice to stop the PWM
-				pwm_set_chan_level(get_slice(i), ppwms[pindex]->get_pwm_channel(), 0); // set level to 0 to ensure it is off
-				pwm_set_enabled(get_slice(i), true); // re-enable the slice so that it can be used again
+	if(get_on_time_us() > watchdogMax) {
+		for(int i = 1; i <= getChannels(); i++) {
+			int pindex = motorDrive[i-1][0];
+			if(pindex != 255 && ppwms[pindex]) {
+				ppwms[pindex]->pwmOff();
 				fault_flag |= (1 << (i-1)); // set bit for this channel
+			}
 		}
 	}
 	return fault_flag;
 }
-int HBridgeDriver::setSafeShutdown() {
-	for(int i = 1; i <= getChannels(); i++) {
-		int pindex = motorDrive[i-1][0];
-		if(pindex != 255 && ppwms[pindex]) {
-				ppwms[pindex]->setSafeShutdown(true, ppwms[pindex]->watchdogMax);
-				if(ppwms[pindex]->setup_slice_dma() == -1) {
-					return -1; // failed to set up DMA
-				}
-		}
-	}
-	return 0;
-}
-
 /*
 * Command the bridge driver power level. Manage direction pin. If necessary limit min and max power and
 * scale to the MOTORPOWERSCALE if > 0. After calculation and saved values in the 0-1000 range scale it to 0-255 for 8 bit PWM.
@@ -199,6 +183,10 @@ int HBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPower) {
 		} else {
 			fault_flag = 16;
 		}
+		watchdog = watchdogMax;
+		shutdownRequested = false;
+		shutdownLogged = false;
+		last_command_time = (motorPower == 0 ? 0 : time_us_64());
 		return fault_flag;
 }
 

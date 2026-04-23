@@ -57,6 +57,14 @@ void AbstractMotorControl::linkDistanceSensor(Ultrasonic **us, uint8_t upin, uin
 	}
 }
 /*
+* Returns the time the PWM signal has been on in microseconds
+*/
+int64_t AbstractMotorControl::get_on_time_us() {
+	if(last_command_time == 0 ) 
+		return 0;
+	return time_us_64() - last_command_time;
+}
+/*
  * check all linked ultrasonic sensors, if something is in minimum range, and it is in the direction
  * of current travel as defined by the currentDirection array and the direction the sensor is facing, shut down all channels.
  * First check to see if any channels are active.
@@ -142,5 +150,9 @@ void AbstractMotorControl::resetSpeeds(void)
 {
 	for (int i = 0; i < 10; i++)
 		motorSpeed[i] = 0; // all channels down
+	watchdog = watchdogMax;
+	shutdownRequested = false;
+	shutdownLogged = false;
+	last_command_time = 0;
 }
 //AbstractMotorControl::~AbstractMotorControl() {}

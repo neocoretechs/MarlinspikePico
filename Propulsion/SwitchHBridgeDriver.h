@@ -35,7 +35,6 @@ class SwitchHBridgeDriver : public SwitchBridgeDriver {
 	int commandEmergencyStop(int status) override;
 	void getDriverInfo(uint8_t ch, char* outStr) override;
 	int checkSafeShutdown() override { return 0; }
-	int setSafeShutdown() override { return 0; }
 	int get_dma_chan(uint8_t channel) override { return -1; }
 	int get_slice(uint8_t channel) override { return 0; }
     private:

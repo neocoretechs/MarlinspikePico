@@ -913,15 +913,6 @@ void processMCode(int cval) {
 		if(encode_pin) {
 			motorControl[motorController]->createEncoder(channel, encode_pin);
 		}
-		if(motorControl[motorController]->setSafeShutdown() == -1) {
-			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-			tud_cdc_write("M3 SAFE SHUTDOWN ERROR", strlen("M3 SAFE SHUTDOWN ERROR"));
-			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-			tud_cdc_write_flush();
-			delete motorControl[motorController];
-			motorControl[motorController] = 0;
-			break;
-		}
 		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 		tud_cdc_write("M3", strlen("M3"));
 		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
@@ -1052,15 +1043,7 @@ void processMCode(int cval) {
 		  		if(encode_pin) {
 					motorControl[motorController]->createEncoder(channel, encode_pin);
 		  		}
-				if(motorControl[motorController]->setSafeShutdown() == -1) {
-					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-					tud_cdc_write("M4 SAFE SHUTDOWN ERROR", strlen("M4 SAFE SHUTDOWN ERROR"));
-					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-					tud_cdc_write_flush();
-					delete motorControl[motorController];
-					motorControl[motorController] = 0;
-					break;
-				}
+
 		  		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 		  		tud_cdc_write("M4", strlen("M4"));
 		  		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
@@ -1841,15 +1824,7 @@ void processMCode(int cval) {
 			if(encode_pin != 0) {
 				motorControl[motorController]->createEncoder(channel, encode_pin);
 			}
-			if(motorControl[motorController]->setSafeShutdown() == -1) {
-				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-				tud_cdc_write("M16 SAFE SHUTDOWN ERROR", strlen("M16 SAFE SHUTDOWN ERROR"));
-				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-				tud_cdc_write_flush();
-				delete motorControl[motorController];
-				motorControl[motorController] = 0;
-				break;
-			}
+
 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 			tud_cdc_write("M16", strlen("M16"));
 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));

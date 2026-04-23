@@ -17,8 +17,7 @@
 
 using namespace std;
 extern int dma_chan_per_slice[8];
-static uint32_t now_us;
-static volatile absolute_time_t last_command_time[8] = {0,0,0,0,0,0,0,0};
+
 class PWM {
 	public:
 	//const uint MAX_PWM_LEVEL = 65535;
@@ -26,13 +25,6 @@ class PWM {
 	uint pin;
 	uint slice;
 	uint channel = 0;
-	volatile int watchdog = 0;
-	volatile int watchdogMax = 10000;
-	volatile bool safeShutdown = false;
-	volatile bool shutdownRequested = false;
-	volatile bool shutdownLogged = false;
-	uint8_t src_buf[1] __attribute__((aligned(4)));
-	uint8_t dst_buf[1] __attribute__((aligned(4)));
 	// Constants for the hardware fuse
 	const uint32_t PWM_OFF_VAL = 0x0; 
 	InterruptService* interruptService=NULL;
@@ -44,14 +36,11 @@ class PWM {
 	static void pwm_irq_handler();
 	void attachInterrupt(InterruptService* cins, bool overflow = false);
 	void detachInterrupt();
-	void setSafeShutdown(bool enable, int max);
 	int setup_slice_dma(void);
 	uint16_t get_counter();
-	int64_t get_on_time_us();
 	uint get_slice() { return this->slice;}
-	int get_dma_chan() { return dma_chan_per_slice[this->slice]; }
+	int get_dma_chan() { return dma_chan_per_slice[this->slice];}
 	uint get_pwm_channel();
 };
-
 
 #endif /* WPWM_H_ */

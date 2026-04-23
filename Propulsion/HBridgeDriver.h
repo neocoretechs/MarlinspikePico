@@ -74,7 +74,6 @@ public:
 		return false;
 	}
 	int checkSafeShutdown() override;
-	int setSafeShutdown() override;
 	int get_dma_chan(uint8_t channel) override {
 		int pindex = motorDrive[channel-1][0];
 		if(pindex != 255 && ppwms[pindex]) {

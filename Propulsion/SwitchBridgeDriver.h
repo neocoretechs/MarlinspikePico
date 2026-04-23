@@ -54,7 +54,6 @@ public:
 	int queryFaultFlag(void) override { return fault_flag; }
 	int queryStatusFlag(void) override { return status_flag; }
 	int checkSafeShutdown() override { return 0; }
-	int setSafeShutdown() override { return 0; }
 	int get_dma_chan(uint8_t channel) override { return -1; }
 	int get_slice(uint8_t channel) override { return 0; }
 protected:

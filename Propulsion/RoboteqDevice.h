@@ -79,7 +79,6 @@ class RoboteqDevice : public AbstractMotorControl {
 		int commandBrushlessCounter(void);
         void setMinMotorPower(uint8_t ch, int mpow) override;
         int checkSafeShutdown() override { return 0;}
-        int setSafeShutdown() override {return 0;}
         int get_dma_chan(uint8_t channel) override { return -1; }
         int get_slice(uint8_t channel) override { return 0; }
         //*********************************************************************

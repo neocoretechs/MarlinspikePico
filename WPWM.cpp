@@ -13,6 +13,8 @@
 #include <hardware/irq.h>
 	PWM* PWM::instances[8] = {nullptr};
 	int dma_chan_per_slice[8]={-1,-1,-1,-1,-1,-1,-1,-1};
+	static uint8_t src_buf[8] __attribute__((aligned(4)));
+	static uint8_t dst_buf[8] __attribute__((aligned(4)));
 	/*
 	* Constructor 
 	*/
@@ -78,15 +80,8 @@
 		//pwm_set_chan_level(slice, PWM_CHAN_B, 0);
 		//pwm_set_irq_enabled(slice, false);
 		pwm_set_gpio_level(this->pin, 0);
-		shutdownRequested = false;
-		shutdownLogged = true;
-		last_command_time[slice] = 0;
 	}
-	int64_t PWM::get_on_time_us() {
-		if(last_command_time[this->slice] == 0)
-			return 0;
-		return absolute_time_diff_us(last_command_time[this->slice],get_absolute_time());
-	}
+
 	/*
 	* Static IRQ handler that dispatches to the correct instance
 	* Because the RP2040 IRQ is per slice, not per pin, you need a static trampoline:
@@ -108,32 +103,24 @@
             	inst->interruptService->service(); // ensure service() is IRQ-safe
         	}
         	// Watchdog handling: only modify volatile counters/flags
-        	if(inst->safeShutdown) {
-            	if (inst->watchdog > 0) {
-                	--inst->watchdog;
-            	} else {
-                	// mark for shutdown
-					inst->shutdownRequested = true;
-					pwm_set_irq_enabled(inst->slice, false);
-					pwm_set_enabled(inst->slice, false);
-            	}
-        	}
+            // mark for shutdown
+
+			pwm_set_irq_enabled(inst->slice, false);
+			pwm_set_enabled(inst->slice, false);
     	}
 	}
-	void PWM::setSafeShutdown(bool enable, int max) {
-		safeShutdown = enable;
-		watchdogMax = max;
-	}
+
 	int PWM::setup_slice_dma() {
- 		int chan = dma_chan_per_slice[this->slice];
- 		if (chan == -1) {
- 			chan = dma_claim_unused_channel(false);
- 			dma_chan_per_slice[this->slice] = chan;
-			if(chan == -1) {
-				return -1; // no DMA channels available
-			}	
- 		} else
+		for(int i = 0; i < 8; i++) {
+			if(!dma_channel_is_claimed(i)) {
+				dma_channel_claim(i);
+			}
+		}
+		if(dma_chan_per_slice[this->slice] == -1) 
+			dma_chan_per_slice[this->slice] = this->slice;//marker
+		else
 			return 0; // already set up
+ 		int chan = dma_chan_per_slice[this->slice];
 		pwm_set_enabled(this->slice, true); // ensure slice is enabled for DMA to work
     	dma_channel_config c = dma_channel_get_default_config(chan);
     	channel_config_set_transfer_data_size(&c, DMA_SIZE_8);
@@ -147,9 +134,9 @@
 		//now_us = (uint32_t)to_us_since_boot(t);
     	dma_channel_configure(
         	chan, &c,
-        	(void*)&dst_buf, // Target buffer
-        	(void*)&src_buf,   // Source: this slice's ID bit
-        	watchdogMax,				// numberof transfers
+        	(void*)(&dst_buf[this->slice]), // Target buffer
+        	(void*)(&src_buf[this->slice]),   // Source: this slice's ID bit
+        	1,				// numberof transfers
         	false                        // Start now
     	);
 		//while(dma_channel_is_busy(chan)); // wait for first transfer to complete to ensure we have the current time latched in the buffer
@@ -169,11 +156,7 @@
     	//pwm_set_enabled(this->slice, enable);
 		// possibly re-enable wrap IRQ for this slice to ensure we get the next cycle interrupt for watchdog handling
 		//pwm_set_irq_enabled(this->slice, enable);
-		watchdog = watchdogMax;
-		shutdownRequested = false;
-		shutdownLogged = false;
-		if(dma_chan_per_slice[this->slice] != -1) {
-			dma_channel_set_trans_count(dma_chan_per_slice[this->slice], watchdogMax, true);
-		}
-		last_command_time[this->slice] = get_absolute_time();
+		//if(dma_chan_per_slice[this->slice] != -1) {
+		//	dma_channel_set_trans_count(dma_chan_per_slice[this->slice], watchdogMax, true);
+		//}
 	}

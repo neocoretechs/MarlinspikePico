@@ -120,15 +120,15 @@ int SplitBridgeDriver::createPWM(uint8_t channel, uint8_t pin_numberA, uint8_t p
 	PWM* ppinA = new PWM(pin_numberA);
 	ppwms[pindex] = ppinA;
 	ppwms[pindex]->init();
-	//ppwms[pindex]->setSafeShutdown(true, ppwms[pindex]->watchdogMax);
 	PWM* ppinB = new PWM(pin_numberB);
 	ppwms[pindex+1] = ppinB;
 	ppwms[pindex+1]->init();
-	//ppwms[pindex+1]->setSafeShutdown(true, ppwms[pindex+1]->watchdogMax);
 	return 0;
 }
 int SplitBridgeDriver::checkSafeShutdown() {
 	int fault_flag = 0;
+	if(get_on_time_us() < watchdogMax) 
+		return 0;
 	for(int i = 1; i <= getChannels(); i++) {
 		int pindex = motorDrive[i-1][0];
 		if(pindex == 255)
@@ -136,44 +136,23 @@ int SplitBridgeDriver::checkSafeShutdown() {
 		auto *p = ppwms[pindex];
 		if(!p)
 			continue;
-		bool safe = p->safeShutdown;
-		if(pindex != 255 && safe && 
-			get_dma_chan(i) != -1 && !dma_channel_is_busy(get_dma_chan(i))) {
-			//ppwms[pindex]->pwmOff();
-			pwm_set_enabled(get_slice(i), false); // disable the slice to stop the PWM
-			pwm_set_chan_level(get_slice(i), ppwms[pindex]->get_pwm_channel(), 0); // set level to 0 to ensure it is off
+		if(pindex != 255 ){
+			//get_dma_chan(i) != -1 && !dma_channel_is_busy(get_dma_chan(i))) {
+			ppwms[pindex]->pwmOff();
+			//pwm_set_enabled(get_slice(i), false); // disable the slice to stop the PWM
+			//pwm_set_chan_level(get_slice(i), ppwms[pindex]->get_pwm_channel(), 0); // set level to 0 to ensure it is off
 			pindex = motorDriveB[i-1][0];
-			if(pindex != 255) {
-				if(ppwms[pindex]) {
-					//ppwms[pindex]->pwmOff();
-					pwm_set_chan_level(get_slice(i), ppwms[pindex]->get_pwm_channel(), 0); // set level to 0 to ensure it is off
-				}
+			if(pindex != 255 && ppwms[pindex]) {
+				ppwms[pindex]->pwmOff();
+				//pwm_set_chan_level(get_slice(i), ppwms[pindex]->get_pwm_channel(), 0); // set level to 0 to ensure it is off
 			}
-			pwm_set_enabled(get_slice(i), true); // re-enable the slice so that it can be used again
+			//pwm_set_enabled(get_slice(i), true); // re-enable the slice so that it can be used again
 			fault_flag |= (1 << (i-1)); // set bit for this channel
 		}
 	}
 	return fault_flag;
 }
-int SplitBridgeDriver::setSafeShutdown() {
-	for(int i = 1; i <= getChannels(); i++) {
-		int pindex = motorDrive[i-1][0];
-		if(pindex != 255 && ppwms[pindex]) {
-				ppwms[pindex]->setSafeShutdown(true, ppwms[pindex]->watchdogMax);
-				if(ppwms[pindex]->setup_slice_dma() == -1) {
-					return -1; // failed to set up DMA
-				}
-		}
-		pindex = motorDriveB[i-1][0];
-		if(pindex != 255 && ppwms[pindex] ) {
-				ppwms[pindex]->setSafeShutdown(true, ppwms[pindex]->watchdogMax);
-				if(ppwms[pindex]->setup_slice_dma() == -1) {
-					return -1; // failed to set up DMA
-				}
-		}
-	}
-	return 0;
-}
+
 /*
 * Command the bridge driver power level. Manage enable pin. If necessary limit min and max power and
 * scale to the MOTORPOWERSCALE if > 0. After calculation and saved values in the 0-1000 range scale it to 0-255 for 8 bit PWM.
@@ -251,6 +230,10 @@ int SplitBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPowe
 		ppwms[pindexB]->pwmWrite(true, motorPower);
 	}
 	fault_flag = 0;
+	watchdog = watchdogMax;
+	shutdownRequested = false;
+	shutdownLogged = false;
+	last_command_time = (motorPower == 0 ? 0 : time_us_64());
 	return fault_flag;
 }
 
@@ -262,6 +245,7 @@ void SplitBridgeDriver::getDriverInfo(uint8_t ch, char * outStr) {
 	char dout5[10];
 	char dout7[10];
 	char dout9[10];
+	char dout10[20];
 	
 	if( motorDrive[ch-1][0] == 255 ) {
 		itoa(-1, dout1, 10);
@@ -269,6 +253,7 @@ void SplitBridgeDriver::getDriverInfo(uint8_t ch, char * outStr) {
 		itoa(ppwms[motorDrive[ch-1][0]]->pin, dout1, 10);
 		itoa(get_slice(ch), dout5, 10);
 		itoa(ppwms[motorDrive[ch-1][0]]->get_pwm_channel(), dout7, 10);
+		itoa(get_on_time_us(), dout10, 20);
 	}
 	if( motorDriveB[ch-1][0] == 255 ) {
 		itoa(-1, dout2, 10);
@@ -281,7 +266,7 @@ void SplitBridgeDriver::getDriverInfo(uint8_t ch, char * outStr) {
 	if( motorDrive[ch-1][0] == 255 ) {
 		sprintf(cout,"SB-PWM CHANNEL UNITIALIZED PinA:%s, PWM PinB:%s, Enable Pin:%s\r\n\0", dout1, dout2, dout4);
 	} else {
-		sprintf(cout,"SB-PWM PinA:%s, PWM PinB:%s, Enable Pin:%s Slice:%s PinA channel:%s PinB channel:%s\r\n\0", dout1, dout2, dout4, dout5, dout7, dout9);
+		sprintf(cout,"SB-PWM PinA:%s, PWM PinB:%s, Enable Pin:%s Slice:%s PinA channel:%s PinB channel:%s OnuS:%s\r\n\0", dout1, dout2, dout4, dout5, dout7, dout9, dout10);
 	}
 	for(int i=0; i < OUT_BUFFER_SIZE; ++i){
 		 outStr[i] = cout[i];
