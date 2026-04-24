@@ -29,7 +29,7 @@ AbstractPWMControl::AbstractPWMControl() {}
 void AbstractPWMControl::resetLevels(void) {
 	for(int i = 0; i < 10; i++) pwmLevel[i] = 0; // all channels down
 }
-int AbstractPWMControl::commandPWMLevel(uint8_t, int16_t) { return 0; }
+int AbstractPWMControl::commandPWMLevel(int16_t pwmLevel[10]) { return 0; }
 int AbstractPWMControl::commandEmergencyStop(int) { return 0; }
 int AbstractPWMControl::isConnected(void) { return 0; }
 int AbstractPWMControl::queryFaultFlag(void) { return 0; }

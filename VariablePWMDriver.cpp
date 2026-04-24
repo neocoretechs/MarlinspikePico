@@ -71,8 +71,7 @@ int VariablePWMDriver::createPWM(uint8_t channel, uint8_t pin_number, uint8_t en
 	}
 	if(!foundPin) {
 		return -1; // slots full...
-	}
-		
+	}	
 	// find slot for new PWM pin and init
 	int pindex;
 	for(pindex = 0; pindex < 10; pindex++) {
@@ -98,13 +97,21 @@ int VariablePWMDriver::createPWM(uint8_t channel, uint8_t pin_number, uint8_t en
 * as 0, in the case of a trigger, the output is from -1 to 1 with no output being -1, so it will function as desired and expected.
 * Each channel is a PWM driven device.
 */
-int VariablePWMDriver::commandPWMLevel(uint8_t pwmChannel, int16_t pwmPower) {
+int VariablePWMDriver::commandPWMLevel(int16_t p[10]) {
 	// check shutdown override
 	if( PWMSHUTDOWN )
 		return 0;
 	int foundPin = 0;
-	pwmPower += 1000;
-	pwmLevel[pwmChannel-1] = pwmPower;
+  for(int pwmChannel = 1; pwmChannel <= getChannels(); pwmChannel++) {
+	int motorPower = p[pwmChannel-1];
+	int pwmPower = p[pwmChannel-1] + 1000;
+	if( pwmPower != 0 && pwmPower < minPWMLevel[pwmChannel-1])
+		pwmPower = minPWMLevel[pwmChannel-1];
+	if( pwmPower > MAXPWMLEVEL ) // cap it at max
+		pwmPower = MAXPWMLEVEL;
+	// Scale motor power if necessary and save it in channel speed array with proper sign for later use
+	if( PWMPOWERSCALE != 0 )
+		pwmPower /= PWMPOWERSCALE;
 	// get mapping of channel to pin
 	for(int i = 0; i < 10; i++) {
 		if(pdigitals[i] && pdigitals[i]->pin ==  pwmDrive[pwmChannel-1][1]) {
@@ -117,9 +124,7 @@ int VariablePWMDriver::commandPWMLevel(uint8_t pwmChannel, int16_t pwmPower) {
 	}
 	if(!foundPin) {
 		return commandEmergencyStop(7);
-	}                                                                                                                                                     
-	// scale motor power from 0-2000 to our 0-255 8 bit timer val
-	pwmPower /= 8;
+	}
 	//
 	if( pwmPower != 0 && pwmPower < minPWMLevel[pwmChannel-1])
 		pwmPower = minPWMLevel[pwmChannel-1];
@@ -139,6 +144,7 @@ int VariablePWMDriver::commandPWMLevel(uint8_t pwmChannel, int16_t pwmPower) {
 	ppwms[pindex]->init();
 	//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
 	ppwms[pindex]->pwmWrite(true, pwmPower);
+  }
 	fault_flag = 0;
 	return 0;
 }

@@ -59,10 +59,10 @@ void AbstractMotorControl::linkDistanceSensor(Ultrasonic **us, uint8_t upin, uin
 /*
 * Returns the time the PWM signal has been on in microseconds
 */
-int64_t AbstractMotorControl::get_on_time_us() {
-	if(last_command_time == 0 ) 
+int64_t AbstractMotorControl::get_on_time_us(int ch) {
+	if(last_command_time[ch-1] == 0 ) 
 		return 0;
-	return time_us_64() - last_command_time;
+	return time_us_64() - last_command_time[ch-1];
 }
 /*
  * check all linked ultrasonic sensors, if something is in minimum range, and it is in the direction
@@ -148,11 +148,13 @@ void AbstractMotorControl::resetEncoders(void)
 
 void AbstractMotorControl::resetSpeeds(void)
 {
-	for (int i = 0; i < 10; i++)
+	for (int i = 0; i < 10; i++) {
 		motorSpeed[i] = 0; // all channels down
+		last_command_time[i] = 0;
+	}
 	watchdog = watchdogMax;
 	shutdownRequested = false;
 	shutdownLogged = false;
-	last_command_time = 0;
+
 }
 //AbstractMotorControl::~AbstractMotorControl() {}

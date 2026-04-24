@@ -29,11 +29,13 @@
 * scale to the MOTORPOWERSCALE if > 0. After calculation and saved values in the 0-1000 range scale it to 0-255 for 8 bit PWM.
 * Each channel is an axle/motor
 */
-int DelayHBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPower) {
-		// check shutdown override
-		if( MOTORSHUTDOWN )
-			return 0;
-		int foundPin = 0;
+int DelayHBridgeDriver::commandMotorPower(int16_t p[10]) {
+	// check shutdown override
+	if( MOTORSHUTDOWN )
+		return 0;
+	int foundPin = 0;
+	for(int motorChannel = 1; motorChannel <= getChannels(); motorChannel++) {
+		int motorPower = p[motorChannel-1];
 		motorSpeed[motorChannel-1] = motorPower;
 		// get mapping of channel to pin
 		// see if we need to make a direction change, check array of [PWM pin][dir pin][dir]
@@ -97,8 +99,10 @@ int DelayHBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPow
 		int pindex = motorDrive[motorChannel-1][0];
 		//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
 		ppwms[pindex]->pwmWrite(true,motorPower);
-		fault_flag = 0;
-		return 0;
+		last_command_time[motorChannel-1] = (motorPower == 0 ? 0 : time_us_64());
+	}
+	fault_flag = 0;
+	return 0;
 }
 
 void DelayHBridgeDriver::getDriverInfo(uint8_t ch, char* outStr) {

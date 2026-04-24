@@ -79,10 +79,10 @@ protected:
 	volatile int watchdogMax = 500000;
 	volatile bool shutdownRequested = false;
 	volatile bool shutdownLogged = false;
-	volatile uint64_t last_command_time;
+	volatile uint64_t last_command_time[10] = {0,0,0,0,0,0,0,0,0,0};
 public:
   	AbstractMotorControl(int maxPower) : MAXMOTORPOWER(maxPower) {}
-	virtual int commandMotorPower(uint8_t ch, int16_t p)=0;//make AbstractMotorControl not instantiable
+	virtual int commandMotorPower(int16_t p[10])=0;//make AbstractMotorControl not instantiable
 	virtual int commandEmergencyStop(int status)=0;
 	virtual int isConnected(void)=0;
 	virtual void getDriverInfo(uint8_t ch, char* outStr) = 0;
@@ -126,7 +126,7 @@ public:
 	virtual int checkSafeShutdown()= 0;
 	virtual int get_dma_chan(uint8_t channel)=0;
 	virtual int get_slice(uint8_t channel)=0;
-	int64_t get_on_time_us();
+	int64_t get_on_time_us(int ch);
 }; //AbstractMotorControl
 
 #endif //__ABSTRACTMOTORCONTROL_H__

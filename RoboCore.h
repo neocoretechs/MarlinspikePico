@@ -46,6 +46,9 @@
 #include <inttypes.h>
 #include <atomic>
 
+#include "pico/stdlib.h"
+#include "pico/util/queue.h"
+#include "pico/multicore.h"
 #include "Configuration.h"
 #include "stdlib.h"
 #include "Ultrasonic.h"

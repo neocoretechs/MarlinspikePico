@@ -63,11 +63,10 @@ class RoboteqDevice : public AbstractMotorControl {
         /*
          * send motor power command (!G)
          *
-         * @param ch channel
-         * @param p power level (-1000, 1000)
+         * @param ch channel array with param p power level (-1000, 1000)
          * @return ROBOTEQ_OK if successful 
          */
-        int commandMotorPower(uint8_t ch, int16_t p) override;
+        int commandMotorPower(int16_t p[10]) override;
         /*
          * send emergency stop command (!EX)
          * note: you have to reset the controller after this sending command

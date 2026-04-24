@@ -46,7 +46,7 @@ private:
 public:
 	HBridgeDriver(int maxPower) : AbstractPWMMotorControl(maxPower){};
 	void resetMaxMotorPower() override { MAXMOTORPOWER = 1000; }
-	int commandMotorPower(uint8_t ch, int16_t p) override;
+	int commandMotorPower(int16_t motorPower[10]) override;
 	int commandEmergencyStop(int status) override;
 	int isConnected(void) override { return true; }
 	void setMotors(PWM** pwm) { ppwms = pwm; }

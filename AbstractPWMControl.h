@@ -62,7 +62,7 @@ protected:
 	AbstractPWMControl();
 	void setDuration(uint ch, uint32_t durx) { maxPWMDuration[ch-1] = durx; }
 	void setMinPWMLevel(uint ch, uint32_t mpow) { minPWMLevel[ch-1] = mpow;}
-	virtual int commandPWMLevel(uint8_t ch, int16_t p)=0;
+	virtual int commandPWMLevel(int16_t pwmLevel[10])=0;
 	virtual int commandEmergencyStop(int status)=0;
 	virtual int isConnected(void)=0;
 	virtual void getDriverInfo(uint8_t ch, char* outStr);

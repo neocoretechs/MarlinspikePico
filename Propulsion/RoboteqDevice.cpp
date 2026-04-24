@@ -37,56 +37,46 @@ int RoboteqDevice::isConnected() {
 }
 /*
 * Command the motor to spin. May reset current direction. Encoders reset regardless if present. Checks for ultrasonic shutdown if present.
-* ch - channel. max is controller dependent
-* p - power level -1000 to 10000
+* ch - channel. array max is controller dependent per channel power level -1000 to 10000
 */
-int RoboteqDevice::commandMotorPower(uint8_t ch, int16_t p) {
+int RoboteqDevice::commandMotorPower(int16_t p[10]) {
 	// check shutdown override
-	if( MOTORSHUTDOWN )
-		return ROBOTEQ_OK;
-	if( ch < 1 || ch > getChannels() )
-		return ROBOTEQ_BAD_COMMAND;
-	// add offset for min power, 0 is default if not set by M5
-	//if( p != 0 )
-	//	p += minMotorPower[ch-1];
-	//if( p > MAXMOTORPOWER ) // cap it at max
-	//	p = MAXMOTORPOWER;
-	//if( MOTORPOWERSCALE != 0 )
-	//	p /= MOTORPOWERSCALE;
-	motorSpeed[ch-1] = p;
-		
-	if( p < 0 )  // and we want to go backward
+	if( MOTORSHUTDOWN || checkUltrasonicShutdown() )
+			return ROBOTEQ_OK;
+	for(int ch = 1; ch <= getChannels(); ch++) {
+		int motorPower = p[ch-1];
+		if( motorPower < 0 )  // and we want to go backward
 			currentDirection[ch-1] = 0; // set new direction value
-	else // dir is 1 forward
+		else // dir is 1 forward
 			currentDirection[ch-1] = 1;		
-	// New command resets encoder count
-	resetEncoders();
-	// if power 0, we are stopping anyway
-	if( checkUltrasonicShutdown() )
-		return ROBOTEQ_OK;
-	// If this wheel is mirrored, invert power
-	if( defaultDirection[ch-1] )
-		p = -p;
-	if( p != 0 && abs(p) < motorSpeed[ch-1]) {
-		if(p > 0 )
-			p = minMotorPower[ch-1];
-		else
-			p = -minMotorPower[ch-1];
+		// New command resets encoder count
+		resetEncoders();
+		// if power 0, we are stopping anyway
+		// If this wheel is mirrored, invert power
+		if( defaultDirection[ch-1] )
+			motorPower = -motorPower;
+		if( motorPower != 0 && abs(motorPower) < motorSpeed[ch-1]) {
+			if(motorPower > 0 )
+				motorPower = minMotorPower[ch-1];
+			else
+				motorPower = -minMotorPower[ch-1];
+		}
+		if( abs(motorPower) > MAXMOTORPOWER ) { // cap it at max
+			if(motorPower > 0)
+				motorPower = MAXMOTORPOWER;
+			else
+				motorPower = -MAXMOTORPOWER;
+		}
+		// Scale motor power if necessary and save it in channel speed array with proper sign for later use
+		if( MOTORPOWERSCALE != 0 ) {
+			motorPower /= MOTORPOWERSCALE;
+		}
+		motorSpeed[ch-1] = motorPower;
+		last_command_time[ch-1] = (motorPower == 0 ? 0 : time_us_64());
+		sprintf(command, "!G %02d %d\r", ch, motorPower);
+		fault_flag |= this->sendCommand(command);
 	}
-	if( abs(p) > MAXMOTORPOWER ) { // cap it at max
-		if(p > 0)
-			p = MAXMOTORPOWER;
-		else
-			p = -MAXMOTORPOWER;
-	}
-	// Scale motor power if necessary and save it in channel speed array with proper sign for later use
-	if( MOTORPOWERSCALE != 0 ) {
-		p /= MOTORPOWERSCALE;
-	}
-	sprintf(command, "!G %02d %d\r", ch, p);
-	fault_flag = 0;
-	return this->sendCommand(command);
-
+	return fault_flag;
 }
 /*
 * Institute an all-channels stop

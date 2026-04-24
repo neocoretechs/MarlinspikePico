@@ -127,9 +127,9 @@ int SplitBridgeDriver::createPWM(uint8_t channel, uint8_t pin_numberA, uint8_t p
 }
 int SplitBridgeDriver::checkSafeShutdown() {
 	int fault_flag = 0;
-	if(get_on_time_us() < watchdogMax) 
-		return 0;
 	for(int i = 1; i <= getChannels(); i++) {
+		if(get_on_time_us(i) < watchdogMax) 
+			return 0;
 		int pindex = motorDrive[i-1][0];
 		if(pindex == 255)
 			continue;
@@ -157,21 +157,25 @@ int SplitBridgeDriver::checkSafeShutdown() {
 * Command the bridge driver power level. Manage enable pin. If necessary limit min and max power and
 * scale to the MOTORPOWERSCALE if > 0. After calculation and saved values in the 0-1000 range scale it to 0-255 for 8 bit PWM.
 */
-int SplitBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPower) {
+int SplitBridgeDriver::commandMotorPower(int16_t p[10]) {
 	// check shutdown override
-	if( MOTORSHUTDOWN )
+  if( MOTORSHUTDOWN )
 		return 0;
-	int foundPin = 0;
-
+  int foundPin = 0;
+  for(int motorChannel = 1; motorChannel <= getChannels(); motorChannel++) {
+	int motorPower = p[motorChannel-1];
 	// set enable pin
 	for(int i = 0; i < 32; i++) {
-			if(pdigitals[i] && pdigitals[i]->pin == motorDrive[motorChannel-1][1]) {
-				//pdigitals[i]->setPin(motorDrive[motorChannel-1][1]);
-				pdigitals[i]->pinMode(PinMode::OUTPUT);
-				pdigitals[i]->digitalWrite(HIGH);
-				foundPin = 1;
-				break;
-			}
+		if(pdigitals[i] && pdigitals[i]->pin == motorDrive[motorChannel-1][1]) {
+			//pdigitals[i]->setPin(motorDrive[motorChannel-1][1]);
+			pdigitals[i]->pinMode(PinMode::OUTPUT);
+			pdigitals[i]->digitalWrite(HIGH);
+			foundPin = 1;
+			break;
+		}
+	}
+	if(!foundPin) {
+		return commandEmergencyStop(4);
 	}
 	// get mapping of channel to pin
 	// see if we need to make a direction change, check array of [PWM pin][dir pin][dir]
@@ -195,9 +199,6 @@ int SplitBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPowe
 			// If less than 0 take absolute value, if zero dont play with sign
 			if( motorPower ) motorPower = -motorPower;
 		}
-	}
-	if(!foundPin) {
-		return commandEmergencyStop(4);
 	}
 	if( motorPower != 0 && motorPower < minMotorPower[motorChannel-1])
 		motorPower = minMotorPower[motorChannel-1];
@@ -228,13 +229,14 @@ int SplitBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPowe
 		ppwms[pindex]->pwmWrite(false, 0);
 		sleep_ms(200); // delay to allow motor to stop before reversing direction
 		ppwms[pindexB]->pwmWrite(true, motorPower);
-	}
-	fault_flag = 0;
-	watchdog = watchdogMax;
-	shutdownRequested = false;
-	shutdownLogged = false;
-	last_command_time = (motorPower == 0 ? 0 : time_us_64());
-	return fault_flag;
+    }
+    last_command_time[motorChannel-1] = (motorPower == 0 ? 0 : time_us_64());
+  }
+  fault_flag = 0;
+  watchdog = watchdogMax;
+  shutdownRequested = false;
+  shutdownLogged = false;
+  return fault_flag;
 }
 
 void SplitBridgeDriver::getDriverInfo(uint8_t ch, char * outStr) {
@@ -245,7 +247,7 @@ void SplitBridgeDriver::getDriverInfo(uint8_t ch, char * outStr) {
 	char dout5[10];
 	char dout7[10];
 	char dout9[10];
-	char dout10[20];
+	char dout10[21];
 	
 	if( motorDrive[ch-1][0] == 255 ) {
 		itoa(-1, dout1, 10);
@@ -253,7 +255,7 @@ void SplitBridgeDriver::getDriverInfo(uint8_t ch, char * outStr) {
 		itoa(ppwms[motorDrive[ch-1][0]]->pin, dout1, 10);
 		itoa(get_slice(ch), dout5, 10);
 		itoa(ppwms[motorDrive[ch-1][0]]->get_pwm_channel(), dout7, 10);
-		itoa(get_on_time_us(), dout10, 20);
+		snprintf(dout10, 21, "%lu", (unsigned long)get_on_time_us(ch));
 	}
 	if( motorDriveB[ch-1][0] == 255 ) {
 		itoa(-1, dout2, 10);

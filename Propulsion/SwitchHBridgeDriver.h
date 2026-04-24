@@ -31,7 +31,7 @@ class SwitchHBridgeDriver : public SwitchBridgeDriver {
 	public:
 	SwitchHBridgeDriver(int maxPower) : SwitchBridgeDriver(maxPower){};
     void createDigital(uint8_t channel, uint8_t pin_number, uint8_t dir_pin, uint8_t dir_default);
-	int commandMotorPower(uint8_t channel, int16_t motorPower) override;
+	int commandMotorPower(int16_t p[10]) override;
 	int commandEmergencyStop(int status) override;
 	void getDriverInfo(uint8_t ch, char* outStr) override;
 	int checkSafeShutdown() override { return 0; }

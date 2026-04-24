@@ -34,7 +34,7 @@ protected:
 private:
 public:
 	DelayHBridgeDriver(int maxPower) : HBridgeDriver(maxPower){};
-	int commandMotorPower(uint8_t ch, int16_t p) override;
+	int commandMotorPower(int16_t motorPower[10]) override;
 	void getDriverInfo(uint8_t ch, char* outStr) override;
 	int checkSafeShutdown() override { return HBridgeDriver::checkSafeShutdown(); }
 

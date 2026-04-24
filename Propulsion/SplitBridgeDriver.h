@@ -40,7 +40,7 @@ public:
 	SplitBridgeDriver(int maxPower) : HBridgeDriver(maxPower){};
 	int commandEmergencyStop(int status);
 	int createPWM(uint8_t channel, uint8_t pin_numberA, uint8_t pin_numberB, uint8_t enb_pin, uint8_t dir_default);
-	int commandMotorPower(uint8_t motorChannel, int16_t motorPower) override;
+	int commandMotorPower(int16_t p[10]) override;
 	uint8_t getMotorPWMPinB(uint8_t channel) { return motorDriveB[channel-1][0]; }
 	void getDriverInfo(uint8_t ch, char* outStr) override;
 	int checkSafeShutdown() override;

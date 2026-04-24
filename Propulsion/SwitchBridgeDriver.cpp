@@ -102,12 +102,13 @@ void SwitchBridgeDriver::createDigital(uint8_t channel, uint8_t pin_numberA, uin
 * Command the power level. Manage enable pin. This inherits from AbstractMotorControl, but the motorPower is merely a +/- 
 * forward/back value since we have a switched on/off control. It always max on forward, max on back
 */
-int SwitchBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPower) {
+int SwitchBridgeDriver::commandMotorPower(int16_t p[10]) {
 	// check shutdown override
 	if( MOTORSHUTDOWN )
 		return 0;
 	int foundPin = 0;
-
+	for(int motorChannel = 1; motorChannel <= getChannels(); motorChannel++) {
+		int motorPower = p[motorChannel-1];
 	// set enable pin
 	for(int i = 0; i < 32; i++) {
 		if(pdigitals[i] && pdigitals[i]->pin == motorDrive[motorChannel-1][1]) {
@@ -117,6 +118,9 @@ int SwitchBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPow
 			foundPin = 1;
 			break;
 		}
+	}
+	if(!foundPin) {
+		return commandEmergencyStop(6);
 	}
 	// get mapping of channel to pin
 	// see if we need to make a direction change, check array of [PWM pin][dir pin][dir]
@@ -141,9 +145,6 @@ int SwitchBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPow
 			if( motorPower ) motorPower = -motorPower;
 		}
 	}
-	if(!foundPin) {
-		return commandEmergencyStop(6);
-	}
 	//
 	// Reset encoders on new speed setting
 	resetEncoders();
@@ -166,6 +167,7 @@ int SwitchBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPow
 		pdigitals[pindexB]->pinMode(PinMode::OUTPUT);
 		pdigitals[pindex]->digitalWrite(false);
 		pdigitals[pindexB]->digitalWrite(true);
+	}
 	}
 	fault_flag = 0;
 	return 0;

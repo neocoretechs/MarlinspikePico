@@ -37,7 +37,7 @@ private:
 //functions
 public:
 	VariablePWMDriver(): AbstractPWMControl(){};
-	int commandPWMLevel(uint8_t ch, int16_t p) override;
+	int commandPWMLevel(int16_t p[10]) override;
 	int commandEmergencyStop(int status) override;
 	int isConnected(void) override { return true; }
 	void setPWMs(PWM** pwm) { ppwms = pwm; }

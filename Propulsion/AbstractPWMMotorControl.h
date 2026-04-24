@@ -17,7 +17,7 @@ class AbstractPWMMotorControl : public AbstractMotorControl
 //functions
 public:
 	AbstractPWMMotorControl(int maxPower) : AbstractMotorControl(maxPower){}
-	virtual int commandMotorPower(uint8_t ch, int16_t p)=0;//make AbstractMotorControl not inst
+	virtual int commandMotorPower(int16_t p[10])=0;//make AbstractMotorControl not inst
 	void setMinMotorPower(uint8_t ch, int mpow) { 
 		if (ch >= 1 && ch <= getChannels())
             minMotorPower[ch - 1] = mpow;

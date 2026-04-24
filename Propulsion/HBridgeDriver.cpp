@@ -100,8 +100,8 @@ int HBridgeDriver::createPWM(uint8_t channel, uint8_t pin_number, uint8_t dir_pi
 }
 int HBridgeDriver::checkSafeShutdown() {
 	int fault_flag = 0;
-	if(get_on_time_us() > watchdogMax) {
-		for(int i = 1; i <= getChannels(); i++) {
+	for(int i = 1; i <= getChannels(); i++) {
+		if(get_on_time_us(i) > watchdogMax) {
 			int pindex = motorDrive[i-1][0];
 			if(pindex != 255 && ppwms[pindex]) {
 				ppwms[pindex]->pwmOff();
@@ -116,11 +116,13 @@ int HBridgeDriver::checkSafeShutdown() {
 * scale to the MOTORPOWERSCALE if > 0. After calculation and saved values in the 0-1000 range scale it to 0-255 for 8 bit PWM.
 * Each channel is an axle/motor
 */
-int HBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPower) {
+int HBridgeDriver::commandMotorPower(int16_t p[10]) {
 		// check shutdown override
 		if( MOTORSHUTDOWN )
 			return 0;
 		int foundPin = 0;
+	for(int motorChannel = 1; motorChannel <= getChannels(); motorChannel++) {
+		int motorPower = p[motorChannel-1];
 		motorSpeed[motorChannel-1] = motorPower;
 		// get mapping of channel to pin
 		// see if we need to make a direction change, check array of [PWM pin][dir pin][dir]
@@ -183,11 +185,12 @@ int HBridgeDriver::commandMotorPower(uint8_t motorChannel, int16_t motorPower) {
 		} else {
 			fault_flag = 16;
 		}
-		watchdog = watchdogMax;
-		shutdownRequested = false;
-		shutdownLogged = false;
-		last_command_time = (motorPower == 0 ? 0 : time_us_64());
-		return fault_flag;
+		last_command_time[motorChannel-1] = (motorPower == 0 ? 0 : time_us_64());
+	}
+	watchdog = watchdogMax;
+	shutdownRequested = false;
+	shutdownLogged = false;
+	return fault_flag;
 }
 
 void HBridgeDriver::getDriverInfo(uint8_t ch, char* outStr) {

@@ -1,6 +1,6 @@
 
 /*
- * RoboCore robotic controller platform.
+ * Marlinspike RoboCore robotic controller platform.
  *
  * Processes a variation of M and G code from CNC and 3D printing to control a range of motor controllers and drivers
  * and GPIO pins for smart machine and robotics hardware functionality.
@@ -9,11 +9,12 @@
  * this code unifies the microcontroller platform and allows it to be easily accessed through
  * the standard CNC-derived 'language'. 
  *
- * As an example, it unifies the timers to deliver consistent PWM functions across all available pins, and allows
- * various motor controllers like H-bridge, half bridge, and smart controllers to be controlled through UART, PWM, and GPIO functions.
+ * As an example, it unifies PWM functions across all available pins, and allows
+ * various motor controllers like H-bridge, half bridge, and smart controllers to be 
+ * easily configuredcontrolled through UART, PWM, and GPIO functions.
  *
  * It contains a main processing loop that receives M and G code commands through the UART via USB or TTL, like a CNC machine or 3D printer,
- * then uses a pure C++, rewritten, unified version of the Wiring library for arduino to handle the functions provided in Wiring through the 
+ * then uses a hybrid C++, analog of the Wiring library for arduino to handle the functions provided in Wiring through the 
  * main CNC-derived M and G code processing loop.
  *
  * Servos, ADCs, Timers, Pin change interrupts, Analog and Digital IO pins, SPI, I2C, PWM, UARTs, and motor controllers are all unified and
@@ -21,10 +22,13 @@
  * realtime, robotic smart controller can be attached to a single board computer (SBC), or used standalone and accessed through a UART, 
  * or potentially be attached via SPI, I2C or TWI to function as a realtime hardware controller.
  *
- * Another example is the way in which ultrasonic sensors can be attached to any motor driver through main loop processing commands and used to
+ * A full set of delimited status reporting codes are available to report on the state of the controller, the state of the motors, and the state of the peripherals. 
+ * These are designed to be easily parsed by a host computer or SBC.
+ * 
+ * A high-level control example is the way in which ultrasonic sensors can be attached to any motor driver through main loop processing commands and used to
  * set up a minimum distance to detect an object before issuing a command to shut down the motor driver.
  *
- * To continue the examples, through the processing loop, hall effect sensors can be attached to any motor driver through pins designated in the main
+ * Peripheral components like hall effect sensors can be attached to any motor driver through pins designated in the main
  * processing loop M and G code commands and used to detect wheel rotations, then set up pin change interrupts for those sensors through other
  * M and G code commands, then perform actions based on the wheel rotations and the interrupts generated and processed through other M and G code commands.
  *
@@ -36,9 +40,13 @@
  */
 
 #include "RoboCore.h"
-// look here for descriptions of gcodes: http://linuxcnc.org/handbook/gcode/g-code.html, protocol here is different but similar
+#define STEPS_PER_TURN 2048 // number of steps in 360deg;
 // When 'stopped' is true the Gcodes G0-G5 are ignored as a safety interlock.
-
+// G-code are similar to CNC and 3D printer G-code but with some differences, 
+// for example, M codes are used for motor control and PWM control functions instead of just machine functions.
+// M codes are used for motor control and PWM control functions instead of just machine functions.
+// M1-M5,M16 are used for motor control, M100-M105 are used for PWM control, and M200-M299 are used for pin control. 
+// G0-G5 are used for motion control, and when 'stopped' is true, G0-G5 are ignored
 //===========================================================================
 //=============================private variables=============================
 //===========================================================================
@@ -105,11 +113,31 @@ char irqbuf[128];
 
 static AbstractMotorControl* motorControl[10]={0,0,0,0,0,0,0,0,0,0};
 static AbstractPWMControl* pwmControl[10]={0,0,0,0,0,0,0,0,0,0};
-	
-#define STEPS_PER_TURN 2048 // number of steps in 360deg;	
+
+queue_t call_queue;
+queue_t results_queue;
+int32_t res;
+
+typedef struct
+{
+    int32_t (*func)(int32_t);
+    int32_t data;
+} queue_entry_t;
 //===========================================================================
 //=============================ROUTINES=============================
 //===========================================================================
+void core1_entry() {
+    while (1) {
+        // Function pointer is passed to us via the queue_entry_t which also
+        // contains the function parameter.
+        // We provide an int32_t return value by simply pushing it back on the
+        // return queue which also indicates the result is ready.
+        queue_entry_t entry;
+        queue_remove_blocking(&call_queue, &entry);
+        int32_t result = entry.func(entry.data);
+        queue_add_blocking(&results_queue, &result);
+    }
+}
 
 #define POLY 0x8408
 int crc_ok = 0x470F;
@@ -141,7 +169,6 @@ void setup_photpin()
     WRITE(PHOTOGRAPH_PIN, LOW);
   #endif
 }
-
 
 const char* itoa(int value) {
     static char buf[16];   // enough for -2147483648\0
@@ -196,13 +223,12 @@ void manage_inactivity() {
 		//tud_cdc_write(tmpbuf,strlen(tmpbuf));
 		//tud_cdc_write_flush();
 		if( motorControl[j]->isConnected() ) {
-			motorControl[j]->checkSafeShutdown();
+			//motorControl[j]->checkSafeShutdown();
 			motorControl[j]->checkEncoderShutdown();
 			motorControl[j]->checkUltrasonicShutdown();
 			if( motorControl[j]->queryFaultFlag() != fault ) {
 				fault = motorControl[j]->queryFaultFlag();
 				publishMotorFaultCode(fault);
-				tud_cdc_write_flush();
 			}
 		}
 	  }
@@ -212,7 +238,6 @@ void manage_inactivity() {
 		for(int i = 0 ; i < 10; i++) {
 			if( psonics[i] ) {
 				printUltrasonic(psonics[i], i);
-				tud_cdc_write_flush();
 			}
 		}  
   	}// realtime output
@@ -289,6 +314,7 @@ void publishMotorFaultCode(int fault) {
 	tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
 	tud_cdc_write(motorFaultCntrlHdr, strlen(motorFaultCntrlHdr));
 	tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
+	tud_cdc_write_flush();
 }
 /*
 * Deliver the battery voltage from smart controller
@@ -302,6 +328,7 @@ void publishBatteryVolts(int volts) {
 	tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
 	tud_cdc_write(batteryCntrlHdr, strlen(batteryCntrlHdr));
 	tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
+	tud_cdc_write_flush();
 }
 /************************************************************************/
 /* only call this if we know code is stall                              */
@@ -312,9 +339,10 @@ void publishMotorStatCode(int stat) {
 	tud_cdc_write(MSG_DELIMIT, strlen(MSG_DELIMIT));
 	tud_cdc_write("1 ", 2);
 	tud_cdc_write(MSG_MOTORCONTROL_9, strlen(MSG_MOTORCONTROL_9));
-	tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
+	    int32_t res;tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
 	tud_cdc_write(motorFaultCntrlHdr, strlen(motorFaultCntrlHdr));
 	tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
+	tud_cdc_write_flush();
 }
 
 /*
@@ -335,6 +363,7 @@ void printUltrasonic(Ultrasonic* us, int index) {
 			tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
 			tud_cdc_write(sonicCntrlHdr, strlen(sonicCntrlHdr));
 			tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
+			tud_cdc_write_flush();
 		}
 }
 void checkSmartController(void)
@@ -362,6 +391,7 @@ void printAnalog(Analog* apin, int index) {
 	tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
 	tud_cdc_write(analogPinHdr, strlen(analogPinHdr));
 	tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
+	tud_cdc_write_flush();
 	//delete pin;
 }
 /*
@@ -383,6 +413,7 @@ void printDigital(Digital* dpin, int target) {
 		tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
 		tud_cdc_write(digitalPinHdr, strlen(digitalPinHdr));
 		tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
+		tud_cdc_write_flush();
 	}
 }
 
@@ -393,6 +424,14 @@ void setup()
 {
   stdio_init_all();   // enables USB CDC
   tud_init(0);        // initialize TinyUSB
+ 
+  // This example dispatches arbitrary functions to run on the second core
+  // To do this we run a dispatcher on the second core that accepts a function
+  // pointer and runs it. The data is passed over using the queue library from pico_utils
+  queue_init(&call_queue, sizeof(queue_entry_t), 2);
+  queue_init(&results_queue, sizeof(int32_t), 2);
+  multicore_launch_core1(core1_entry);
+
   //Config_PrintSettings();
   //watchdog_init();
 }
@@ -405,6 +444,7 @@ void loop() {
   if(!comment_mode) {
     process_commands();
   }
+  manage_inactivity();
 }
   
 void get_command() {
@@ -415,7 +455,6 @@ void get_command() {
 	do {
         tud_task();
         if (!tud_cdc_available()) {
-			manage_inactivity();
             continue;
 		}
         uint32_t n = tud_cdc_read(temp, sizeof(temp));
@@ -439,7 +478,7 @@ void get_command() {
 	comment_mode = true;
 	if(serial_count <= 0) {
 		comment_mode = true; //for new command
-		return;
+		return;			tud_cdc_write_flush();
 	}
 	serial_char = cmdbuffer[serial_count-1];
 	  comment_mode = false;
@@ -529,7 +568,7 @@ float code_value()
 }
 
 long code_value_long()
-{
+{			tud_cdc_write_flush();
   return (strtol(&cmdbuffer[strchr_pointer - cmdbuffer + 1], NULL, 10));
 }
 
@@ -562,14 +601,33 @@ void process_commands() {
 	  }
   }
 }
-
+/*---------------------------------------------------------
+* Queue a function to run on the second core and get the result back
+*----------------------------------------------------------
+*/
+void queue_command(queue_entry_t entry) {
+  // queue_entry_t entry = {factorial, TEST_NUM};
+  queue_add_blocking(&call_queue, &entry);
+  // We could now do a load of stuff on core 0 and get our result later
+  //printf("Factorial %d is %d\n", TEST_NUM, res);
+  // Now try a different function
+  //entry.func = fibonacci;
+  //queue_add_blocking(&call_queue, &entry);
+  //queue_remove_blocking(&results_queue, &res);
+}
+int32_t core1_result() {
+	queue_remove_blocking(&results_queue, &res);
+	return res;
+}
 /*--------------------------
 * Process the Gcode command sequence
 *---------------------------
 */
 void processGCode(int cval) {
 	int result;
-	int motorController, PWMDriver, motorChannel, motorPower, PWMLevel;
+	int motorController, PWMDriver, motorChannel;
+	int16_t motorPower[10] = {0};
+	int16_t pwmLevel[10] = {0};
 	unsigned long codenum;
 	char *starpos = NULL;
 
@@ -585,7 +643,7 @@ void processGCode(int cval) {
       previous_millis_cmd = 0;//millis();
       while(++previous_millis_cmd  < codenum ){
         manage_inactivity();
-		sleep_ms(1);
+		sleep_ms(10);
       }
 	  tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 	  tud_cdc_write("G4", strlen("G4"));
@@ -593,7 +651,7 @@ void processGCode(int cval) {
 	  tud_cdc_write_flush();
       break;
 
-	case 5: // G5 - Absolute command motor [Z<controller>] C<Channel> [P<motor power -1000 to 1000>] [X<PWM power -1000 to 1000>(scaled 0-2000)]
+	case 5: // G5 - Absolute command motor [Z<controller>] [P<motor power -1000 to 1000>] Q[P] R[P] S[P] T[P] U[P] V[P] W[P] X[P] Y[P] [X<PWM power -1000 to 1000>(scaled 0-2000)]
 	    if(!Stopped) {
 			if(code_seen('Z')) {
 				 motorController = code_value();
@@ -611,71 +669,96 @@ void processGCode(int cval) {
 				tud_cdc_write_flush();
 				break;
 			}
-		    if(code_seen('C')) {
-				motorChannel = code_value(); // channel 1,2
-				if(motorControl[motorController]->getChannels() < motorChannel || motorChannel == 0) {
-					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-					tud_cdc_write("G5 CHANNEL ERROR",strlen("G5 CHANNEL ERROR"));
-					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-					tud_cdc_write_flush();
-					break;
-				}
-				if(code_seen('P')) {
-					motorPower = code_value(); // motor power -1000,1000
-					fault = 0; // clear fault flag
-					if( (status=motorControl[motorController]->commandMotorPower(motorChannel, motorPower)) ) {
-							tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-							tud_cdc_write(MSG_BAD_MOTOR,strlen(MSG_BAD_MOTOR));
-							tud_cdc_write(itoa(status),strlen(itoa(status)));
-							tud_cdc_write(" ", 1);
-							tud_cdc_write(itoa(motorChannel), strlen(itoa(motorChannel)));
-							tud_cdc_write(" ", 1);
-							tud_cdc_write(itoa(motorPower), strlen(itoa(motorPower)));
-							tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-							tud_cdc_write_flush();
-					} else {
-							tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-							tud_cdc_write("G5", strlen("G5"));
-							tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-							tud_cdc_write_flush();
-					}
-				} else {// code P or X
-					if(code_seen('X')) {
-						PWMLevel = code_value(); // PWM level -1000,1000, scaled to 0-2000 in PWM controller, as no reverse
-						fault = 0; // clear fault flag
-						// use motor related index and value, as we have them
-						if( (status=pwmControl[motorController]->commandPWMLevel(motorChannel, PWMLevel)) ) {
-							tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-							tud_cdc_write(MSG_BAD_PWM,strlen(MSG_BAD_PWM));
-							tud_cdc_write(itoa(status),strlen(itoa(status)));
-							tud_cdc_write(" ", 1);
-							tud_cdc_write(itoa(motorChannel), strlen(itoa(motorChannel)));
-							tud_cdc_write(" ", 1);
-							tud_cdc_write(itoa(PWMLevel), strlen(itoa(PWMLevel)));
-							tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-							tud_cdc_write_flush();
-						} else {
-							tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-							tud_cdc_write("G5", strlen("G5"));
-							tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-							tud_cdc_write_flush();
-						}
-					} else {
+			if(code_seen('P'))
+					motorPower[0] = code_value(); // motor power -1000,1000
+			if(code_seen('Q'))
+					motorPower[1] = code_value(); // motor power -1000,1000
+			if(code_seen('R'))
+					motorPower[2] = code_value(); // motor power -1000,1000
+			if(code_seen('S'))
+					motorPower[3] = code_value(); // motor power -1000,1000
+			if(code_seen('T'))	
+					motorPower[4] = code_value(); // motor power -1000,1000
+			if(code_seen('U'))
+					motorPower[5] = code_value(); // motor power -1000,1000
+			if(code_seen('V'))
+					motorPower[6] = code_value(); // motor power -1000,1000
+			if(code_seen('W'))
+					motorPower[7] = code_value(); // motor power -1000,1000
+			if(code_seen('X'))
+					motorPower[8] = code_value(); // motor power -1000,1000
+			if(code_seen('Y'))
+					motorPower[9] = code_value(); // motor power -1000,1000
+			fault = 0; // clear fault flag
+			if( (status=motorControl[motorController]->commandMotorPower(motorPower)) ) {
 						tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-						tud_cdc_write("G5 NO P OR X ERROR",strlen("G5 NO P OR X ERROR"));
+						tud_cdc_write(MSG_BAD_MOTOR,strlen(MSG_BAD_MOTOR));
+						tud_cdc_write(itoa(status),strlen(itoa(status)));
 						tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 						tud_cdc_write_flush();
-					}// P or X
-			 	} 
 			} else {
-				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));	
-				tud_cdc_write("G5 CHANNEL ERROR",strlen("G5 CHANNEL ERROR"));
-				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));	
-				tud_cdc_write_flush();
+						tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+						tud_cdc_write("G5", strlen("G5"));
+						tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+						tud_cdc_write_flush();
 			}
 	    } // stopped
 	    break;
-	  
+
+	case 6: // G6 - Absolute command PWM [Z<controller>] [P<PWM power 0 to 2000>] Q[P] R[P] S[P] T[P] U[P] V[P] W[P] X[P] Y[P] (scaled 0-2000)]
+	    if(!Stopped) {
+			if(code_seen('Z')) {
+				 motorController = code_value();
+			} else {
+				 tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				 tud_cdc_write("G6 SLOT ERROR",strlen("G6 SLOT ERROR"));
+				 tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				 tud_cdc_write_flush();
+				 break;
+			}
+			if(!motorControl[motorController]) {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("G6 SLOT UNASSIGNED ERROR",strlen("G6 SLOT UNASSIGNED ERROR"));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
+				break;
+			}
+			if(code_seen('P'))
+					pwmLevel[0] = code_value(); //  power 0,2000
+			if(code_seen('Q'))
+					pwmLevel[1] = code_value(); // power 0,1000
+			if(code_seen('R'))
+					pwmLevel[2] = code_value(); //  power 0,2000
+			if(code_seen('S'))
+					pwmLevel[3] = code_value(); // power 0,2000
+			if(code_seen('T'))	
+					pwmLevel[4] = code_value(); // power 0,2000
+			if(code_seen('U'))
+					pwmLevel[5] = code_value(); // power 0,2000
+			if(code_seen('V'))
+					pwmLevel[6] = code_value(); // power 0,2000
+			if(code_seen('W'))
+					pwmLevel[7] = code_value(); // power 0,2000
+			if(code_seen('X'))
+					pwmLevel[8] = code_value(); // power 0,2000
+			if(code_seen('Y'))
+					pwmLevel[9] = code_value(); // power 0,2000
+			fault = 0; // clear fault flag
+			if( (status=pwmControl[motorController]->commandPWMLevel(pwmLevel)) ) {
+						tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+						tud_cdc_write(MSG_BAD_PWM,strlen(MSG_BAD_PWM));
+						tud_cdc_write(itoa(status),strlen(itoa(status)));
+						tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+						tud_cdc_write_flush();
+			} else {
+						tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+						tud_cdc_write("G6", strlen("G6"));
+						tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+						tud_cdc_write_flush();
+			}
+	    } // stopped
+	    break;
+
 	case 99: // G99 start watchdog timer. G99 T<time_in_millis> values are 15,30,60,120,250,500,1000,4000,8000 default 4000
 		if( code_seen('T') ) {
 			int time_val = code_value();
