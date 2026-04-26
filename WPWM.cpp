@@ -73,7 +73,7 @@
 		return pwm_get_counter(this->slice);
 	}
 	void PWM::pwmOff() {
-		uint slice = this->slice;
+		//uint slice = this->slice;
 		//uint32_t mask = 1u << slice;
 		//pwm_clear_irq(mask);
 		//pwm_set_chan_level(slice, PWM_CHAN_A, 0);

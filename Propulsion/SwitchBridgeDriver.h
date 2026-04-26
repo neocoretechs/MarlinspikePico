@@ -42,13 +42,13 @@ private:
 //functions
 public:
 	SwitchBridgeDriver(int maxPower) : AbstractMotorControl(maxPower){};
-	uint8_t getMotorDigitalPin(uint8_t channel) { return motorDrive[channel-1][0]; }
-	uint8_t getMotorDigitalPinB(uint8_t channel) { return motorDriveB[channel-1][0]; }
+	uint8_t getMotorDigitalPin(uint8_t channel) { if(channel <= 0 || channel >=11) return 255;return motorDrive[channel-1][0]; }
+	uint8_t getMotorDigitalPinB(uint8_t channel) { if(channel <= 0 || channel >=11) return 255;return motorDriveB[channel-1][0]; }
 	int commandMotorPower(int16_t p[10]) override;
 	int commandEmergencyStop(int status) override;
 	int isConnected(void) override { return true; }
 	void setPins(Digital** pins) { pdigitals = pins; }
-	uint8_t getMotorEnablePin(uint8_t channel) {return motorDrive[channel-1][1]; }
+	uint8_t getMotorEnablePin(uint8_t channel) {if(channel <= 0 || channel >=11) return 0;return motorDrive[channel-1][1]; }
 	void createDigital(uint8_t channel, uint8_t pin_number, uint8_t pin_numberB, uint8_t dir_pin, uint8_t dir_default);
 	void getDriverInfo(uint8_t ch, char* outStr) override;
 	int queryFaultFlag(void) override { return fault_flag; }

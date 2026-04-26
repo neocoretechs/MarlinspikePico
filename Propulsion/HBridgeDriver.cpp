@@ -46,6 +46,7 @@ int HBridgeDriver::commandEmergencyStop(int status)
 * dir_default - the default direction the motor starts in
 */ 
 int HBridgeDriver::createPWM(uint8_t channel, uint8_t pin_number, uint8_t dir_pin, uint8_t dir_default) {
+	if(channel <= 0 || channel >=11) return -1;
 	// See if pin assigned
 	int foundPin = -1;
 	int pinSlot = -1;
@@ -105,6 +106,7 @@ int HBridgeDriver::checkSafeShutdown() {
 			int pindex = motorDrive[i-1][0];
 			if(pindex != 255 && ppwms[pindex]) {
 				ppwms[pindex]->pwmOff();
+				last_command_time[i-1] = 0;
 				fault_flag |= (1 << (i-1)); // set bit for this channel
 			}
 		}
@@ -194,6 +196,7 @@ int HBridgeDriver::commandMotorPower(int16_t p[10]) {
 }
 
 void HBridgeDriver::getDriverInfo(uint8_t ch, char* outStr) {
+	if(ch <= 0 || ch >=11) return;
 	char cout[OUT_BUFFER_SIZE];
 	char dout1[10];
 	char dout3[10];

@@ -41,7 +41,7 @@ public:
 	int commandEmergencyStop(int status);
 	int createPWM(uint8_t channel, uint8_t pin_numberA, uint8_t pin_numberB, uint8_t enb_pin, uint8_t dir_default);
 	int commandMotorPower(int16_t p[10]) override;
-	uint8_t getMotorPWMPinB(uint8_t channel) { return motorDriveB[channel-1][0]; }
+	uint8_t getMotorPWMPinB(uint8_t channel) { if(channel <= 0 || channel >=11) return 255;return motorDriveB[channel-1][0]; }
 	void getDriverInfo(uint8_t ch, char* outStr) override;
 	int checkSafeShutdown() override;
 	int get_dma_chan(uint8_t channel) override { return HBridgeDriver::get_dma_chan(channel); }

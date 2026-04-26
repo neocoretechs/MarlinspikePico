@@ -557,6 +557,7 @@ void RoboteqDevice::getDriverInfo(uint8_t ch, char* outStr) {
 	char dout2[10];
 	char dout3[10];
 	char dout4[10];
+	char dout10[21];
 	if( !isConnected() ) {
 		itoa(ch, dout1, 10);
 		sprintf(cout, "Controller channel %s is not connected.\0", dout1);
@@ -565,7 +566,8 @@ void RoboteqDevice::getDriverInfo(uint8_t ch, char* outStr) {
 		itoa(queryBatteryAmps(), dout2, 10);
 		itoa(queryFaultFlag(), dout3, 10);
 		itoa(queryStatusFlag(), dout4, 10);
-		sprintf(cout,"Voltage:%s Amps:%s Fault:%s Status:%s\0",dout1 , dout2, dout3, dout4);
+		snprintf(dout10, 21, "%lu", (unsigned long)get_on_time_us(ch));
+		sprintf(cout,"Voltage:%s Amps:%s Fault:%s Status:%s On Time:%s\0",dout1 , dout2, dout3, dout4, dout10);
 	}
 	 for(int i=0; i < 80; ++i){
 		 outStr[i] = cout[i];

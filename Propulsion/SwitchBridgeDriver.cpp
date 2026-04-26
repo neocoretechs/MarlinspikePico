@@ -46,8 +46,7 @@ int SwitchBridgeDriver::commandEmergencyStop(int status)
 * dir_default - the default direction the motor starts in
 */
 void SwitchBridgeDriver::createDigital(uint8_t channel, uint8_t pin_numberA, uint8_t pin_numberB, uint8_t enable_pin, uint8_t dir_default) {
-	if( getChannels() < channel )
-	 setChannels(channel);
+	if(channel <= 0 || channel >=11) return;
 	// Set up the digital direction pin
 	int foundPin = 0;
 	// Set up the digital enable pin, we want to be able to re-use these pins for multiple channels on 1 controller
@@ -109,71 +108,73 @@ int SwitchBridgeDriver::commandMotorPower(int16_t p[10]) {
 	int foundPin = 0;
 	for(int motorChannel = 1; motorChannel <= getChannels(); motorChannel++) {
 		int motorPower = p[motorChannel-1];
-	// set enable pin
-	for(int i = 0; i < 32; i++) {
-		if(pdigitals[i] && pdigitals[i]->pin == motorDrive[motorChannel-1][1]) {
-			//pdigitals[i]->setPin(motorDrive[motorChannel-1][1]);
-			pdigitals[i]->pinMode(PinMode::OUTPUT);
-			pdigitals[i]->digitalWrite(HIGH);
-			foundPin = 1;
-			break;
+		// set enable pin
+		for(int i = 0; i < 32; i++) {
+			if(pdigitals[i] && pdigitals[i]->pin == motorDrive[motorChannel-1][1]) {
+				//pdigitals[i]->setPin(motorDrive[motorChannel-1][1]);
+				pdigitals[i]->pinMode(PinMode::OUTPUT);
+				pdigitals[i]->digitalWrite(HIGH);
+				foundPin = 1;
+				break;
+			}
 		}
-	}
-	if(!foundPin) {
-		return commandEmergencyStop(6);
-	}
-	// get mapping of channel to pin
-	// see if we need to make a direction change, check array of [PWM pin][dir pin][dir]
-	if( currentDirection[motorChannel-1]) { // if dir 1, we are going what we define as 'forward'
-		if( motorPower < 0 ) { // and we want to go backward
-			// reverse dir, depending on default direction, we either send to PWM pin or PWM pin+1
-			// default is 0 (LOW), if we changed the direction to reverse wheel rotation call the opposite dir change signal
-			//defaultDirection[motorChannel-1] ? pdigitals[i]->digitalWrite(HIGH) : pdigitals[i]->digitalWrite(LOW);
-			defaultDirection[motorChannel-1] ? motorDriveB[motorChannel-1][1] = 1 : motorDriveB[motorChannel-1][1] = 0;
-			currentDirection[motorChannel-1] = 0; // set new direction value
-			motorPower = -motorPower; // absolute val
+		if(!foundPin) {
+			return commandEmergencyStop(6);
 		}
-	} else { // dir is 0
-		if( motorPower > 0 ) { // we are going 'backward' as defined by our initial default direction and we want 'forward'
-			// reverse, indicate an alteration of the input pin
-			// default is 0 (HIGH), if we changed the direction to reverse wheel rotation call the opposite dir change signal
-			//defaultDirection[motorChannel-1] ? pdigitals[i]->digitalWrite(LOW) : pdigitals[i]->digitalWrite(HIGH);
-			defaultDirection[motorChannel-1] ? motorDriveB[motorChannel-1][1] = 0 : motorDriveB[motorChannel-1][1] = 1;
-			currentDirection[motorChannel-1] = 1;
-		} else { // backward with more backwardness
-			// If less than 0 take absolute value, if zero dont play with sign
-			if( motorPower ) motorPower = -motorPower;
+		// get mapping of channel to pin
+		// see if we need to make a direction change, check array of [PWM pin][dir pin][dir]
+		if( currentDirection[motorChannel-1]) { // if dir 1, we are going what we define as 'forward'
+			if( motorPower < 0 ) { // and we want to go backward
+				// reverse dir, depending on default direction, we either send to PWM pin or PWM pin+1
+				// default is 0 (LOW), if we changed the direction to reverse wheel rotation call the opposite dir change signal
+				//defaultDirection[motorChannel-1] ? pdigitals[i]->digitalWrite(HIGH) : pdigitals[i]->digitalWrite(LOW);
+				defaultDirection[motorChannel-1] ? motorDriveB[motorChannel-1][1] = 1 : motorDriveB[motorChannel-1][1] = 0;
+				currentDirection[motorChannel-1] = 0; // set new direction value
+				motorPower = -motorPower; // absolute val
+			}
+		} else { // dir is 0
+			if( motorPower > 0 ) { // we are going 'backward' as defined by our initial default direction and we want 'forward'
+				// reverse, indicate an alteration of the input pin
+				// default is 0 (HIGH), if we changed the direction to reverse wheel rotation call the opposite dir change signal
+				//defaultDirection[motorChannel-1] ? pdigitals[i]->digitalWrite(LOW) : pdigitals[i]->digitalWrite(HIGH);
+				defaultDirection[motorChannel-1] ? motorDriveB[motorChannel-1][1] = 0 : motorDriveB[motorChannel-1][1] = 1;
+				currentDirection[motorChannel-1] = 1;
+			} else { // backward with more backwardness
+				// If less than 0 take absolute value, if zero dont play with sign
+				if( motorPower ) motorPower = -motorPower;
+			}
 		}
-	}
-	//
-	// Reset encoders on new speed setting
-	resetEncoders();
-	// If we have a linked distance sensor. check range and possibly skip
-	// If we are setting power 0, we are stopping anyway
-	int pindex = motorDrive[motorChannel-1][0];
-	int pindexB = motorDriveB[motorChannel-1][0];
-	if(motorDriveB[motorChannel-1][1]) { // if dir change signal is 1, send to PWM pin+1
-		int temp = pindex;
-		pindex = pindexB;
-		pindexB = temp;
-	}
-	if(motorPower > 0) {
-		pdigitals[pindex]->pinMode(PinMode::OUTPUT);
-		pdigitals[pindexB]->pinMode(PinMode::OUTPUT);
-		pdigitals[pindex]->digitalWrite(true);
-		pdigitals[pindexB]->digitalWrite(false);
-	} else { // motorPower < 0
-		pdigitals[pindex]->pinMode(PinMode::OUTPUT);
-		pdigitals[pindexB]->pinMode(PinMode::OUTPUT);
-		pdigitals[pindex]->digitalWrite(false);
-		pdigitals[pindexB]->digitalWrite(true);
-	}
+		//
+		// Reset encoders on new speed setting
+		resetEncoders();
+		// If we have a linked distance sensor. check range and possibly skip
+		// If we are setting power 0, we are stopping anyway
+		int pindex = motorDrive[motorChannel-1][0];
+		int pindexB = motorDriveB[motorChannel-1][0];
+		if(motorDriveB[motorChannel-1][1]) { // if dir change signal is 1, send to PWM pin+1
+			int temp = pindex;
+			pindex = pindexB;
+			pindexB = temp;
+		}
+		if(motorPower > 0) {
+			pdigitals[pindex]->pinMode(PinMode::OUTPUT);
+			pdigitals[pindexB]->pinMode(PinMode::OUTPUT);
+			pdigitals[pindex]->digitalWrite(true);
+			pdigitals[pindexB]->digitalWrite(false);
+		} else { // motorPower < 0
+			pdigitals[pindex]->pinMode(PinMode::OUTPUT);
+			pdigitals[pindexB]->pinMode(PinMode::OUTPUT);
+			pdigitals[pindex]->digitalWrite(false);
+			pdigitals[pindexB]->digitalWrite(true);
+		}
+		last_command_time[motorChannel-1] = (motorPower == 0 ? 0 : time_us_64());
 	}
 	fault_flag = 0;
 	return 0;
 }
 
 void SwitchBridgeDriver::getDriverInfo(uint8_t ch, char* outStr) {
+	if(ch <= 0 || ch >=11) return;
 	char cout[OUT_BUFFER_SIZE];
 	char dout1[10];
 	char dout2[10];

@@ -60,6 +60,7 @@ void AbstractMotorControl::linkDistanceSensor(Ultrasonic **us, uint8_t upin, uin
 * Returns the time the PWM signal has been on in microseconds
 */
 int64_t AbstractMotorControl::get_on_time_us(int ch) {
+	if(ch <= 0 || ch >=11) ch=1;
 	if(last_command_time[ch-1] == 0 ) 
 		return 0;
 	return time_us_64() - last_command_time[ch-1];
@@ -100,6 +101,7 @@ bool AbstractMotorControl::checkUltrasonicShutdown()
 
 void AbstractMotorControl::createEncoder(uint8_t channel, uint8_t encode_pin)
 {
+	if(channel <= 0 || channel >=11) channel=1;
 	wheelEncoderService[channel - 1] = new CounterInterruptService((int)maxMotorDuration[channel - 1]);
 	wheelEncoderService[channel - 1]->attachInterrupt(encode_pin, CHANGE);
 }
@@ -132,6 +134,7 @@ bool AbstractMotorControl::checkEncoderShutdown()
 
 int AbstractMotorControl::getEncoderCount(uint8_t ch)
 {
+	if(ch <= 0 || ch >=11) ch=1;
 	if (wheelEncoderService[ch - 1])
 		return wheelEncoderService[ch - 1]->get_counter();
 	return -1;

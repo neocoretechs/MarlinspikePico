@@ -31,7 +31,6 @@ int VariablePWMDriver::commandEmergencyStop(int status) {
 		}
 		pindex = pwmDrive[j][0];
 		if(pindex != 255) {
-			ppwms[pindex]->init();
 			ppwms[pindex]->pwmOff();
 		}
 	}
@@ -144,6 +143,7 @@ int VariablePWMDriver::commandPWMLevel(int16_t p[10]) {
 	ppwms[pindex]->init();
 	//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
 	ppwms[pindex]->pwmWrite(true, pwmPower);
+
   }
 	fault_flag = 0;
 	return 0;

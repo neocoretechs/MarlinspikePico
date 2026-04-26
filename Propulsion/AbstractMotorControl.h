@@ -95,25 +95,25 @@ public:
 	bool checkUltrasonicShutdown(void);
 	bool checkEncoderShutdown(void);
 	void createEncoder(uint8_t channel, uint8_t encode_pin);
-	void setCurrentDirection(uint8_t ch, uint8_t val) { currentDirection[ch-1] = val; }
+	void setCurrentDirection(uint8_t ch, uint8_t val) { if(ch <= 0 || ch >=11) return; currentDirection[ch-1] = val; }
 	// If the wheel is mirrored to speed commands or commutation, 0 - normal, 1 - mirror
-	void setDefaultDirection(uint8_t ch, uint8_t val) { defaultDirection[ch-1] = val; }
-	void setDuration(uint8_t ch, uint32_t durx) { maxMotorDuration[ch-1] = durx; }
-	virtual void setMinMotorPower(uint8_t ch, int mpow) { minMotorPower[ch-1] = mpow; }
+	void setDefaultDirection(uint8_t ch, uint8_t val) { if(ch <= 0 || ch >=11) return;defaultDirection[ch-1] = val; }
+	void setDuration(uint8_t ch, uint32_t durx) { if(ch <= 0 || ch >=11) return;maxMotorDuration[ch-1] = durx; }
+	virtual void setMinMotorPower(uint8_t ch, int mpow) { if(ch <= 0 || ch >=11) return;minMotorPower[ch-1] = mpow; }
 	int  getEncoderCount(uint8_t ch);
 	int totalUltrasonics(void) {  int j = 0; for(int i = 0; i < 10; i++) if(ultrasonicIndex[i][0] != 255)++j; return j; }
-	uint8_t getUltrasonicFacing(uint8_t ch) { return ultrasonicIndex[ch-1][1]; }
-	uint32_t getMinMotorDist(uint8_t ch) { return minMotorDist[ch-1]; }
-	uint8_t getUltrasonicIndex(uint8_t ch) { return ultrasonicIndex[ch-1][0]; }
-	int getMaxMotorDuration(uint8_t ch) { return maxMotorDuration[ch-1]; }
-	int getMinMotorPower(uint8_t ch) { return minMotorPower[ch-1] ; }
+	uint8_t getUltrasonicFacing(uint8_t ch) { if(ch <= 0 || ch >=11) return 0;return ultrasonicIndex[ch-1][1]; }
+	uint32_t getMinMotorDist(uint8_t ch) { if(ch <= 0 || ch >=11) return 0;return minMotorDist[ch-1]; }
+	uint8_t getUltrasonicIndex(uint8_t ch) { if(ch <= 0 || ch >=11) return 255;return ultrasonicIndex[ch-1][0]; }
+	int getMaxMotorDuration(uint8_t ch) { if(ch <= 0 || ch >=11) return 0;return maxMotorDuration[ch-1]; }
+	int getMinMotorPower(uint8_t ch) { if(ch <= 0 || ch >=11) return 0;return minMotorPower[ch-1] ; }
 	virtual void setMaxMotorPower(int p) { MAXMOTORPOWER = p; }
 	int getMaxMotorPower() { return MAXMOTORPOWER; }
-	int getMotorSpeed(uint8_t ch) { return motorSpeed[ch-1]; }
-	uint8_t getCurrentDirection(uint8_t ch) { return currentDirection[ch-1]; }
-	uint8_t getDefaultDirection(uint8_t ch) { return defaultDirection[ch-1]; }
-	InterruptService* getWheelEncoder(uint8_t ch) { return wheelEncoderService[ch-1]; }
-	CounterInterruptService* getWheelEncoderService(uint8_t ch) { return wheelEncoderService[ch-1]; }
+	int getMotorSpeed(uint8_t ch) { if(ch <= 0 || ch >=11) return 0;return motorSpeed[ch-1]; }
+	uint8_t getCurrentDirection(uint8_t ch) { if(ch <= 0 || ch >=11) return 0;return currentDirection[ch-1]; }
+	uint8_t getDefaultDirection(uint8_t ch) { if(ch <= 0 || ch >=11) return 0;return defaultDirection[ch-1]; }
+	InterruptService* getWheelEncoder(uint8_t ch) { if(ch <= 0 || ch >=11) ch=1;return wheelEncoderService[ch-1]; }
+	CounterInterruptService* getWheelEncoderService(uint8_t ch) { if(ch <= 0 || ch >=11) ch=1;return wheelEncoderService[ch-1]; }
 	void setChannels(uint8_t ch) { channels = ch; }
 	uint8_t getChannels(void) { return channels; }
 	void resetSpeeds(void);

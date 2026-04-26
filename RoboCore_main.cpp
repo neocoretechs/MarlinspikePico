@@ -102,7 +102,6 @@ uint8_t channel;
 int slot = -1;
 int digitarg;
 int uspin = 0;
-unsigned long t;
 int pin_number, pin_numberB;
 int dir_pin, dir_default, enable_pin;
 int encode_pin = 0;
@@ -223,7 +222,7 @@ void manage_inactivity() {
 		//tud_cdc_write(tmpbuf,strlen(tmpbuf));
 		//tud_cdc_write_flush();
 		if( motorControl[j]->isConnected() ) {
-			//motorControl[j]->checkSafeShutdown();
+			motorControl[j]->checkSafeShutdown();
 			motorControl[j]->checkEncoderShutdown();
 			motorControl[j]->checkUltrasonicShutdown();
 			if( motorControl[j]->queryFaultFlag() != fault ) {
@@ -455,6 +454,7 @@ void get_command() {
 	do {
         tud_task();
         if (!tud_cdc_available()) {
+			manage_inactivity();
             continue;
 		}
         uint32_t n = tud_cdc_read(temp, sizeof(temp));
@@ -478,11 +478,11 @@ void get_command() {
 	comment_mode = true;
 	if(serial_count <= 0) {
 		comment_mode = true; //for new command
-		return;			tud_cdc_write_flush();
+		return;
 	}
 	serial_char = cmdbuffer[serial_count-1];
-	  comment_mode = false;
-      if(strchr(cmdbuffer, 'N') != NULL) {
+	comment_mode = false;
+    if(strchr(cmdbuffer, 'N') != NULL) {
           strchr_pointer = strchr(cmdbuffer, 'N');
           gcode_N = (strtol(&cmdbuffer[strchr_pointer - cmdbuffer + 1], NULL, 10));
           if(gcode_N != gcode_LastN+1 && (strstr(cmdbuffer, "M110") == NULL) ) {
@@ -490,14 +490,12 @@ void get_command() {
             tud_cdc_write(MSG_ERR_LINE_NO, strlen(MSG_ERR_LINE_NO));
             tud_cdc_write(itoa(gcode_LastN),strlen(itoa(gcode_LastN)));
 			tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
-            //Serial.println(gcode_N);
             FlushSerialRequestResend();
 			comment_mode = true;
             return;
-          }
-          if(strchr(cmdbuffer, '*') != NULL) {
+    	  }
+    	  if(strchr(cmdbuffer, '*') != NULL) {
             unsigned short checksum = 0;
-            //while(cmdbuffer[bufindw][count] != '*') checksum = checksum^cmdbuffer[bufindw][count++];
             strchr_pointer = strchr(cmdbuffer, '*');
 			checksum = crc16(&cmdbuffer[strchr_pointer - cmdbuffer + 1],(strchr_pointer - cmdbuffer + 1) );
             if( (int)(strtod(&cmdbuffer[strchr_pointer - cmdbuffer + 1], NULL)) != checksum) {
@@ -509,8 +507,8 @@ void get_command() {
 			  comment_mode = true;
               return;
             }
-            //if no errors, continue parsing
-          } else {
+          //if no errors, continue parsing
+    	  } else {
 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
             tud_cdc_write(MSG_ERR_NO_CHECKSUM,strlen(MSG_ERR_NO_CHECKSUM));
             tud_cdc_write(itoa(gcode_LastN),strlen(itoa(gcode_LastN)));
@@ -518,10 +516,10 @@ void get_command() {
             FlushSerialRequestResend();
 			comment_mode = true;
             return;
-          }
-          gcode_LastN = gcode_N;
-          //if no errors, continue parsing
-      } else { // if we don't receive 'N' but still see '*'
+    	  }
+    	  gcode_LastN = gcode_N;
+    	  //if no errors, continue parsing
+    } else { // if we don't receive 'N' but still see '*'
           if((strchr(cmdbuffer, '*') != NULL)) {
 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
             tud_cdc_write(MSG_ERR_NO_LINENUMBER_WITH_CHECKSUM,strlen(MSG_ERR_NO_LINENUMBER_WITH_CHECKSUM));
@@ -531,13 +529,13 @@ void get_command() {
 			comment_mode = true;
             return;
           }
-      }
-      if(strchr(cmdbuffer, ';') != NULL) {
-		  comment_mode = true;
-		  return;
-	  }
-	  // Determine if an outstanding error caused safety shutdown. If so respond with header
-      if((strchr(cmdbuffer, 'G') != NULL)){
+    }
+    if(strchr(cmdbuffer, ';') != NULL) {
+		comment_mode = true;
+		return;
+	}
+	// Determine if an outstanding error caused safety shutdown. If so respond with header
+    if((strchr(cmdbuffer, 'G') != NULL)){
           strchr_pointer = strchr(cmdbuffer, 'G');
           switch((int)((strtod(&cmdbuffer[strchr_pointer - cmdbuffer + 1], NULL)))) {
 			case 0:
@@ -557,10 +555,10 @@ void get_command() {
 				break;
 			default:
 				break;
-          }
-        }
-		// finished processing c/r terminated cmdl
-}
+          } // switch
+    }
+	// finished processing c/r terminated cmdl
+} // get_command
 
 float code_value()
 {

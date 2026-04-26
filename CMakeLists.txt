@@ -89,7 +89,7 @@ target_link_libraries(Marlinspike pico_stdlib
 hardware_uart hardware_timer hardware_pwm hardware_gpio hardware_adc hardware_i2c hardware_spi
 hardware_watchdog hardware_clocks hardware_sync hardware_dma hardware_flash hardware_rtc
 hardware_resets hardware_vreg hardware_xosc hardware_structs hardware_exception hardware_divider
-tinyusb_device tinyusb_board 
+tinyusb_device tinyusb_board pico_multicore pico_sync pico_time pico_unique_id
 )
 
 if (PICO_CYW43_SUPPORTED)

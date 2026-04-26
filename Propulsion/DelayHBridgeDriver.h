@@ -17,7 +17,7 @@
 * the range that comes from the main controller, before any processing into a timer value.
 * the top level abstract class AbstractMotorControl contains these values.
 * Created: 3/11/2026 1:42:24 PM
-* Author: Jonathan Grof Copyright (C) NeoCoreTechs 2026
+* Author: Jonathan Groff Copyright (C) NeoCoreTechs 2026
 */
 
 #ifndef __DELAYHBRIDGEDRIVER_H__
