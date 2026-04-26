@@ -34,7 +34,7 @@ protected:
 private:
 public:
 	DelayHBridgeDriver(int maxPower) : HBridgeDriver(maxPower){};
-	int commandMotorPower(int16_t motorPower[10]) override;
+	int commandMotorPower(int16_t motorPower[10]) { return HBridgeDriver::commandMotorPower(motorPower); }
 	void getDriverInfo(uint8_t ch, char* outStr) override;
 	int checkSafeShutdown() override { return HBridgeDriver::checkSafeShutdown(); }
 
@@ -42,7 +42,8 @@ public:
 	int commandEmergencyStop(int status) override { return HBridgeDriver::commandEmergencyStop(status); }
 	int queryFaultFlag(void) override { return HBridgeDriver::queryFaultFlag(); }
 	int queryStatusFlag(void) override { return HBridgeDriver::queryStatusFlag(); }
-	int get_dma_chan(uint8_t channel) override { return HBridgeDriver::get_dma_chan(channel); }	
+	int get_dma_chan(uint8_t channel) override { return HBridgeDriver::get_dma_chan(channel); }
+	void set_reverse_delay(uint32_t ms) { HBridgeDriver::reverse_delay = ms; }
 protected:
 private:
 	DelayHBridgeDriver( const DelayHBridgeDriver &c ) = delete;

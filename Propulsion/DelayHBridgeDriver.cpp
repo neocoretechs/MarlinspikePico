@@ -24,86 +24,6 @@
 #include "DelayHBridgeDriver.h"
 #include "../Configuration_adv.h"
 
-/*
-* Command the bridge driver power level. Manage direction pin. If necessary limit min and max power and
-* scale to the MOTORPOWERSCALE if > 0. After calculation and saved values in the 0-1000 range scale it to 0-255 for 8 bit PWM.
-* Each channel is an axle/motor
-*/
-int DelayHBridgeDriver::commandMotorPower(int16_t p[10]) {
-	// check shutdown override
-	if( MOTORSHUTDOWN )
-		return 0;
-	int foundPin = 0;
-	for(int motorChannel = 1; motorChannel <= getChannels(); motorChannel++) {
-		int motorPower = p[motorChannel-1];
-		motorSpeed[motorChannel-1] = motorPower;
-		// get mapping of channel to pin
-		// see if we need to make a direction change, check array of [PWM pin][dir pin][dir]
-		if( currentDirection[motorChannel-1]) { // if dir 1, we are going what we define as 'forward' 
-			if( motorPower < 0 ) { // and we want to go backward
-				// reverse dir, send dir change to pin
-				for(int i = 0; i < 10; i++) {
-					if(pdigitals[i] && pdigitals[i]->pin == motorDrive[motorChannel-1][1]) {
-							//pdigitals[i]->setPin(motorDrive[motorChannel-1][1]);
-							ppwms[motorDrive[motorChannel-1][0]]->pwmOff(); // turn off PWM to allow motor to stop before changing direction
-							sleep_ms(200); // delay to allow motor to stop before reversing direction
-							// default is 0 (LOW), if we changed the direction to reverse wheel rotation call the opposite dir change signal
-							defaultDirection[motorChannel-1] ? pdigitals[i]->digitalWrite(HIGH) : pdigitals[i]->digitalWrite(LOW);
-							currentDirection[motorChannel-1] = 0; // set new direction value
-							motorPower = -motorPower; // absolute val
-							foundPin = 1;
-							break;
-					}
-				}
-			} else { // wieter weiter
-				foundPin = 1;
-			}
-		} else { // dir is 0
-			if( motorPower > 0 ) { // we are going 'backward' as defined by our initial default direction and we want 'forward'
-				// reverse, send dir change to pin
-				for(int i = 0; i < 10; i++) {
-					if(pdigitals[i] && pdigitals[i]->pin == motorDrive[motorChannel-1][1]) {
-						//pdigitals[i]->setPin(motorDrive[motorChannel-1][1]);
-						ppwms[motorDrive[motorChannel-1][0]]->pwmOff(); // turn off PWM to allow motor to stop before changing direction
-						sleep_ms(200); // delay to allow motor to stop before changing direction
-						// default is 0 (HIGH), if we changed the direction to reverse wheel rotation call the opposite dir change signal
-						defaultDirection[motorChannel-1] ? pdigitals[i]->digitalWrite(LOW) : pdigitals[i]->digitalWrite(HIGH);
-						currentDirection[motorChannel-1] = 1;
-						foundPin = 1;
-						break;
-					}
-				}
-			} else { // backward with more backwardness
-				// If less than 0 take absolute value, if zero dont play with sign
-				if( motorPower ) motorPower = -motorPower;
-				foundPin = 1;
-			}
-		}
-		if(!foundPin) {
-			return commandEmergencyStop(2);
-		}	
-
-		if( motorPower != 0 && motorPower < minMotorPower[motorChannel-1])
-				motorPower = minMotorPower[motorChannel-1];
-		if( motorPower > MAXMOTORPOWER ) // cap it at max
-				motorPower = MAXMOTORPOWER;
-		// Scale motor power if necessary and save it in channel speed array with proper sign for later use
-		if( MOTORPOWERSCALE != 0 )
-				motorPower /= MOTORPOWERSCALE;
-		//
-		// Reset encoders on new speed setting
-		resetEncoders();
-		// If we have a linked distance sensor. check range and possibly skip
-		// If we are setting power 0, we are stopping anyway
-		// element 0 of motorDrive has index to PWM array
-		int pindex = motorDrive[motorChannel-1][0];
-		//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
-		ppwms[pindex]->pwmWrite(true,motorPower);
-		last_command_time[motorChannel-1] = (motorPower == 0 ? 0 : time_us_64());
-	}
-	fault_flag = 0;
-	return 0;
-}
 
 void DelayHBridgeDriver::getDriverInfo(uint8_t ch, char* outStr) {
 	if(ch <= 0 || ch >=11) return;
@@ -112,6 +32,7 @@ void DelayHBridgeDriver::getDriverInfo(uint8_t ch, char* outStr) {
 	char dout3[10];
 	char dout5[10];
 	char dout7[10];
+	char dout9[10];
 	char dout10[21];
 	
 	if( motorDrive[ch-1][0] == 255 ) {
@@ -120,6 +41,7 @@ void DelayHBridgeDriver::getDriverInfo(uint8_t ch, char* outStr) {
 		itoa(ppwms[motorDrive[ch-1][0]]->pin, dout1, 10);
 		itoa(get_slice(ch), dout5, 10);
 		itoa(ppwms[motorDrive[ch-1][0]]->get_pwm_channel(), dout7, 10);
+		itoa(reverse_delay, dout9, 10);
 		snprintf(dout10, 21, "%lu", (unsigned long)get_on_time_us(ch));
 	}
 	itoa(motorDrive[ch-1][1], dout3, 10);
@@ -127,7 +49,7 @@ void DelayHBridgeDriver::getDriverInfo(uint8_t ch, char* outStr) {
 	if( motorDrive[ch-1][0] == 255 ) {
 		sprintf(cout,"DelayHB-PWM UNINITIALIZED Pin:%s, Dir Pin:%s\r\n\0", dout1, dout3);
 	} else {
-		sprintf(cout,"DelayHB-PWM Pin:%s, Dir Pin:%s, Slice:%s, PWM Channel:%s, On Time:%s\r\n\0", dout1, dout3, dout5, dout7, dout10);
+		sprintf(cout,"DelayHB-PWM Pin:%s, Dir Pin:%s, Slice:%s, PWM Channel:%s, Reverse Delay:%d, On Time:%s\r\n\0", dout1, dout3, dout5, dout7, dout9, dout10);
 	}
 	
 	for(int i=0; i < OUT_BUFFER_SIZE; ++i){

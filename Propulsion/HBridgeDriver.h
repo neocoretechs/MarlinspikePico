@@ -41,6 +41,7 @@ protected:
 	// 1-direction pin
 	uint8_t motorDrive[10][4]={{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8}};
 	int status_flag = 0;
+	uint32_t reverse_delay = 20;
 //functions
 private:
 public:

@@ -119,10 +119,11 @@ int HBridgeDriver::checkSafeShutdown() {
 * Each channel is an axle/motor
 */
 int HBridgeDriver::commandMotorPower(int16_t p[10]) {
-		// check shutdown override
-		if( MOTORSHUTDOWN )
-			return 0;
-		int foundPin = 0;
+	// check shutdown override
+	if( MOTORSHUTDOWN )
+		return 0;
+	int foundPin = 0;
+	int pindex;
 	for(int motorChannel = 1; motorChannel <= getChannels(); motorChannel++) {
 		int motorPower = p[motorChannel-1];
 		motorSpeed[motorChannel-1] = motorPower;
@@ -132,9 +133,11 @@ int HBridgeDriver::commandMotorPower(int16_t p[10]) {
 			if( motorPower < 0 ) { // and we want to go backward
 				// reverse dir, send dir change to pin
 				for(int i = 0; i < 10; i++) {
-					if(pdigitals[i] && pdigitals[i]->pin == motorDrive[motorChannel-1][1]) {
-							//pdigitals[i]->setPin(motorDrive[motorChannel-1][1]);
+					if(pdigitals[i] && pdigitals[i]->pin == motorDrive[motorChannel-1][1]) {		
+							pindex = motorDrive[motorChannel-1][0];
+							ppwms[pindex]->pwmWrite(false,0);
 							pdigitals[i]->pinMode(OUTPUT);
+							sleep_ms(reverse_delay);
 							// default is 0 (LOW), if we changed the direction to reverse wheel rotation call the opposite dir change signal
 							defaultDirection[motorChannel-1] ? pdigitals[i]->digitalWrite(HIGH) : pdigitals[i]->digitalWrite(LOW);
 							currentDirection[motorChannel-1] = 0; // set new direction value
@@ -151,8 +154,10 @@ int HBridgeDriver::commandMotorPower(int16_t p[10]) {
 				// reverse, send dir change to pin
 				for(int i = 0; i < 10; i++) {
 					if(pdigitals[i] && pdigitals[i]->pin == motorDrive[motorChannel-1][1]) {
-						//pdigitals[i]->setPin(motorDrive[motorChannel-1][1]);
+						pindex = motorDrive[motorChannel-1][0];
+						ppwms[pindex]->pwmWrite(false,0);
 						pdigitals[i]->pinMode(OUTPUT);
+						sleep_ms(reverse_delay);
 						// default is 0 (HIGH), if we changed the direction to reverse wheel rotation call the opposite dir change signal
 						defaultDirection[motorChannel-1] ? pdigitals[i]->digitalWrite(LOW) : pdigitals[i]->digitalWrite(HIGH);
 						currentDirection[motorChannel-1] = 1;
@@ -180,7 +185,7 @@ int HBridgeDriver::commandMotorPower(int16_t p[10]) {
 		// Reset encoders on new speed setting
 		resetEncoders();
 		if(motorDrive[motorChannel-1][0] != 255 && ppwms[motorDrive[motorChannel-1][0]]) {
-			int pindex = motorDrive[motorChannel-1][0];
+			pindex = motorDrive[motorChannel-1][0];
 			//ppwms[pindex]->attachInterrupt(motorDurationService[motorChannel-1]);// last param TRUE indicates an overflow interrupt
 			ppwms[pindex]->pwmWrite(true,motorPower);
 			fault_flag = 0;
