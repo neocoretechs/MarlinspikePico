@@ -49,7 +49,7 @@ void DelayHBridgeDriver::getDriverInfo(uint8_t ch, char* outStr) {
 	if( motorDrive[ch-1][0] == 255 ) {
 		sprintf(cout,"DelayHB-PWM UNINITIALIZED Pin:%s, Dir Pin:%s\r\n\0", dout1, dout3);
 	} else {
-		sprintf(cout,"DelayHB-PWM Pin:%s, Dir Pin:%s, Slice:%s, PWM Channel:%s, Reverse Delay:%d, On Time:%s\r\n\0", dout1, dout3, dout5, dout7, dout9, dout10);
+		sprintf(cout,"DelayHB-PWM Pin:%s, Dir Pin:%s, Slice:%s, PWM Channel:%s, Reverse Delay:%s, On Time:%s\r\n\0", dout1, dout3, dout5, dout7, dout9, dout10);
 	}
 	
 	for(int i=0; i < OUT_BUFFER_SIZE; ++i){
