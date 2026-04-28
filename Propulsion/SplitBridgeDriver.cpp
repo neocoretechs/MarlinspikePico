@@ -131,7 +131,7 @@ int SplitBridgeDriver::checkSafeShutdown() {
 	int fault_flag = 0;
 	for(int i = 1; i <= getChannels(); i++) {
 		if(get_on_time_us(i) < watchdogMax) 
-			return 0;
+			continue;
 		int pindex = motorDrive[i-1][0];
 		if(pindex == 255)
 			continue;
