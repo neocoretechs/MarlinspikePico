@@ -214,22 +214,26 @@ volatile bool runaway_detected = false;
 * If any of the safety shutdowns are triggered, an emergency stop command is issued to the motor controllers.
 * ---------------------------------------------------
 */
-void manage_inactivity() {
+void safety_interlocks() {
 	// check motor controllers
   	for(int j = 0; j < 10; j++) {
 	  if(motorControl[j]) {
-		//sprintf(tmpbuf, "MI: j=%d ptr=%p vtable=%p\r\n\0", j, motorControl[j], *(void**)motorControl[j]);
-		//tud_cdc_write(tmpbuf,strlen(tmpbuf));
-		//tud_cdc_write_flush();
 		if( motorControl[j]->isConnected() ) {
 			motorControl[j]->checkSafeShutdown();
 			motorControl[j]->checkEncoderShutdown();
 			motorControl[j]->checkUltrasonicShutdown();
+		}
+	  }
+	}
+}
+void check_status() {
+	// check motor controllers
+  	for(int j = 0; j < 10; j++) {
+	  if(motorControl[j]) {
 			if( motorControl[j]->queryFaultFlag() != fault ) {
 				fault = motorControl[j]->queryFaultFlag();
 				publishMotorFaultCode(fault);
 			}
-		}
 	  }
 	}
   	if( realtime_output ) {		
@@ -443,7 +447,8 @@ void loop() {
   if(!comment_mode) {
     process_commands();
   }
-  manage_inactivity();
+  safety_interlocks();
+  check_status();
 }
   
 void get_command() {
@@ -454,6 +459,7 @@ void get_command() {
 	do {
         tud_task();
         if (!tud_cdc_available()) {
+			safety_interlocks();
             continue;
 		}
         uint32_t n = tud_cdc_read(temp, sizeof(temp));
@@ -639,7 +645,8 @@ void processGCode(int cval) {
       //codenum += millis();  // keep track of when we started waiting
       previous_millis_cmd = 0;//millis();
       while(++previous_millis_cmd  < codenum ){
-        manage_inactivity();
+        safety_interlocks();
+		check_status();
 		sleep_ms(10);
       }
 	  tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
