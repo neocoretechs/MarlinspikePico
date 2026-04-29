@@ -100,7 +100,7 @@ int SplitBridgeDriver::createPWM(uint8_t channel, uint8_t pin_numberA, uint8_t p
 	dpin->pinMode(PinMode::OUTPUT);
 
 	int pindex;
-	for(pindex = 0; pindex < 9; pindex++) {
+	for(pindex = 0; pindex < 10; pindex++) {
 		if( !ppwms[pindex] && !ppwms[pindex+1])
 		break;
 	}

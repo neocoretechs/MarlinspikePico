@@ -99,6 +99,7 @@ int HBridgeDriver::createPWM(uint8_t channel, uint8_t pin_number, uint8_t dir_pi
 	ppwms[pindex]->init();
 	return 0;
 }
+
 int HBridgeDriver::checkSafeShutdown() {
 	int fault_flag = 0;
 	for(int i = 1; i <= getChannels(); i++) {
@@ -132,7 +133,7 @@ int HBridgeDriver::commandMotorPower(int16_t p[10]) {
 		if( currentDirection[motorChannel-1]) { // if dir 1, we are going what we define as 'forward' 
 			if( motorPower < 0 ) { // and we want to go backward
 				// reverse dir, send dir change to pin
-				for(int i = 0; i < 10; i++) {
+				for(int i = 0; i < 32; i++) {
 					if(pdigitals[i] && pdigitals[i]->pin == motorDrive[motorChannel-1][1]) {		
 							pindex = motorDrive[motorChannel-1][0];
 							ppwms[pindex]->pwmWrite(false,0);

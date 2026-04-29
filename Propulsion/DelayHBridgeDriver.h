@@ -44,6 +44,7 @@ public:
 	int queryStatusFlag(void) override { return HBridgeDriver::queryStatusFlag(); }
 	int get_dma_chan(uint8_t channel) override { return HBridgeDriver::get_dma_chan(channel); }
 	void set_reverse_delay(uint32_t ms) { HBridgeDriver::reverse_delay = ms; }
+	~DelayHBridgeDriver() override {}
 protected:
 private:
 	DelayHBridgeDriver( const DelayHBridgeDriver &c ) = delete;

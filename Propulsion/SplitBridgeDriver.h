@@ -46,6 +46,16 @@ public:
 	int checkSafeShutdown() override;
 	int get_dma_chan(uint8_t channel) override { return HBridgeDriver::get_dma_chan(channel); }
 	int get_slice(uint8_t channel) override { return HBridgeDriver::get_slice(channel); };
+	virtual ~SplitBridgeDriver() override  {
+		for(int channel = 1; channel <= getChannels(); channel++) {
+		if(motorDriveB[channel-1][0] && motorDriveB[channel-1][0] != 255 && ppwms[motorDriveB[channel-1][0]]) {
+			delete ppwms[motorDriveB[channel-1][0]];
+			ppwms[motorDriveB[channel-1][0]] = nullptr;
+			motorDriveB[channel-1][0] = 255;
+		}
+		}
+	}
+
 protected:
 private:
 	SplitBridgeDriver( const SplitBridgeDriver &c ) = delete;

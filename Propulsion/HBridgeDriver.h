@@ -55,6 +55,7 @@ public:
 	uint8_t getMotorPWMPin(uint8_t channel) { return motorDrive[channel-1][0]; }
 	uint8_t getMotorEnablePin(uint8_t channel) {return motorDrive[channel-1][1]; }
 	int createPWM(uint8_t channel, uint8_t pin_number, uint8_t dir_pin, uint8_t dir_default) override;
+	int destroyPWM();
 	void getDriverInfo(uint8_t ch, char* outStr) override;
 	int queryFaultFlag(void) override { return fault_flag; }
     int queryStatusFlag(void) override { return status_flag; }
@@ -89,6 +90,24 @@ public:
 		}
 		return -1;
 	}
+	virtual ~HBridgeDriver() {
+		for(int channel = 1; channel <= getChannels(); channel++) {
+		for(int i = 0; i < 32; i++) {
+			if(pdigitals[i] && pdigitals[i]->pin == motorDrive[channel-1][1]) {
+				delete pdigitals[i];
+				pdigitals[i] = nullptr;
+				motorDrive[channel-1][1]= 0;
+				break;
+			}
+		}
+		if(motorDrive[channel-1][0] && motorDrive[channel-1][0] != 255 && ppwms[motorDrive[channel-1][0]]) {
+			delete ppwms[motorDrive[channel-1][0]];
+			ppwms[motorDrive[channel-1][0]] = nullptr;
+			motorDrive[channel-1][0] = 255;
+		}
+		}
+	}
+
 protected:
 private:
 	HBridgeDriver( const HBridgeDriver &c ) = delete;

@@ -454,7 +454,6 @@ void get_command() {
 	do {
         tud_task();
         if (!tud_cdc_available()) {
-			manage_inactivity();
             continue;
 		}
         uint32_t n = tud_cdc_read(temp, sizeof(temp));
