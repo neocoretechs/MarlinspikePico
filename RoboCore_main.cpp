@@ -2721,7 +2721,7 @@ void processMCode(int cval) {
 					case PinMode::INPUT_PULLUP:
 						tud_cdc_write(" INPUT_PULLUP", strlen(" INPUT_PULLUP"));
 						break;
-				       	case PinMode::OUTPUT:
+				    case PinMode::OUTPUT:
 						tud_cdc_write(" OUTPUT", strlen(" OUTPUT"));
 						break;
 					default:
@@ -2789,8 +2789,10 @@ void processMCode(int cval) {
 			if( ppwms[i] ) {
 				tud_cdc_write("Pin:", strlen("Pin:"));
 				tud_cdc_write(itoa(ppwms[i]->pin), strlen(itoa(ppwms[i]->pin)));
-				tud_cdc_write(" Timer channel:", strlen(" Timer channel:"));
+				tud_cdc_write(" Channel:", strlen(" Channel:"));
 				tud_cdc_write(itoa(ppwms[i]->channel), strlen(itoa(ppwms[i]->channel)));
+				tud_cdc_write(" Slice:", strlen(" Slice:"));
+				tud_cdc_write(itoa(ppwms[i]->slice), strlen(itoa(ppwms[i]->slice)));
 			}
 		}
 		tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));

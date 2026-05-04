@@ -100,7 +100,7 @@ public:
 				break;
 			}
 		}
-		if(motorDrive[channel-1][0] && motorDrive[channel-1][0] != 255 && ppwms[motorDrive[channel-1][0]]) {
+		if(motorDrive[channel-1][0] != 255 && ppwms[motorDrive[channel-1][0]]) {
 			delete ppwms[motorDrive[channel-1][0]];
 			ppwms[motorDrive[channel-1][0]] = nullptr;
 			motorDrive[channel-1][0] = 255;

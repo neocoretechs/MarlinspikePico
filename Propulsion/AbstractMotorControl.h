@@ -75,11 +75,11 @@ protected:
 	uint MOTORSHUTDOWN = 0; // Override of motor controls, puts it up on blocks
 	int MAXMOTORPOWER = 1000; // Max motor power in PWM final timer units
 	int fault_flag = 0;
-	volatile int watchdog = 0;
 	volatile int watchdogMax = 500000;
 	volatile bool shutdownRequested = false;
 	volatile bool shutdownLogged = false;
 	volatile uint64_t last_command_time[10] = {0,0,0,0,0,0,0,0,0,0};
+	volatile int watchdogCount[10] = {0,0,0,0,0,0,0,0,0,0};
 public:
   	AbstractMotorControl(int maxPower) : MAXMOTORPOWER(maxPower) {}
 	virtual int commandMotorPower(int16_t p[10])=0;//make AbstractMotorControl not instantiable
@@ -127,6 +127,14 @@ public:
 	virtual int get_dma_chan(uint8_t channel)=0;
 	virtual int get_slice(uint8_t channel)=0;
 	int64_t get_on_time_us(int ch);
+	virtual ~AbstractMotorControl() {
+		for(int i = 0; i < 10; i++) {
+			if(wheelEncoderService[i]) {
+				delete wheelEncoderService[i];
+				wheelEncoderService[i] = nullptr;
+			}
+		}
+	}
 }; //AbstractMotorControl
 
 #endif //__ABSTRACTMOTORCONTROL_H__

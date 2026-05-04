@@ -154,8 +154,8 @@ void AbstractMotorControl::resetSpeeds(void)
 	for (int i = 0; i < 10; i++) {
 		motorSpeed[i] = 0; // all channels down
 		last_command_time[i] = 0;
+		watchdogCount[i] = 0;
 	}
-	watchdog = watchdogMax;
 	shutdownRequested = false;
 	shutdownLogged = false;
 

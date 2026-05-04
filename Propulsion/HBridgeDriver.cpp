@@ -103,11 +103,12 @@ int HBridgeDriver::createPWM(uint8_t channel, uint8_t pin_number, uint8_t dir_pi
 int HBridgeDriver::checkSafeShutdown() {
 	int fault_flag = 0;
 	for(int i = 1; i <= getChannels(); i++) {
-		if(get_on_time_us(i) > watchdogMax) {
+		if(get_on_time_us(i) > watchdogCount[i-1]) {
 			int pindex = motorDrive[i-1][0];
 			if(pindex != 255 && ppwms[pindex]) {
 				ppwms[pindex]->pwmOff();
 				last_command_time[i-1] = 0;
+				watchdogCount[i-1] = 0;
 				fault_flag |= (1 << (i-1)); // set bit for this channel
 			}
 		}
@@ -194,8 +195,8 @@ int HBridgeDriver::commandMotorPower(int16_t p[10]) {
 			fault_flag = 16;
 		}
 		last_command_time[motorChannel-1] = (motorPower == 0 ? 0 : time_us_64());
+		watchdogCount[motorChannel-1] = watchdogMax - (motorPower*200);
 	}
-	watchdog = watchdogMax;
 	shutdownRequested = false;
 	shutdownLogged = false;
 	return fault_flag;

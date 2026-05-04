@@ -130,8 +130,9 @@ int SplitBridgeDriver::createPWM(uint8_t channel, uint8_t pin_numberA, uint8_t p
 int SplitBridgeDriver::checkSafeShutdown() {
 	int fault_flag = 0;
 	for(int i = 1; i <= getChannels(); i++) {
-		if(get_on_time_us(i) < watchdogMax) 
+		if(get_on_time_us(i) < watchdogCount[i-1]) {
 			continue;
+		}
 		int pindex = motorDrive[i-1][0];
 		if(pindex == 255)
 			continue;
@@ -142,6 +143,7 @@ int SplitBridgeDriver::checkSafeShutdown() {
 			//get_dma_chan(i) != -1 && !dma_channel_is_busy(get_dma_chan(i))) {
 			ppwms[pindex]->pwmOff();
 			last_command_time[i-1] = 0;
+			watchdogCount[i-1] = 0;
 			//pwm_set_enabled(get_slice(i), false); // disable the slice to stop the PWM
 			//pwm_set_chan_level(get_slice(i), ppwms[pindex]->get_pwm_channel(), 0); // set level to 0 to ensure it is off
 			pindex = motorDriveB[i-1][0];
@@ -234,9 +236,9 @@ int SplitBridgeDriver::commandMotorPower(int16_t p[10]) {
 		ppwms[pindexB]->pwmWrite(true, motorPower);
     }
     last_command_time[motorChannel-1] = (motorPower == 0 ? 0 : time_us_64());
+	watchdogCount[motorChannel-1] = watchdogMax - (motorPower*200);
   }
   fault_flag = 0;
-  watchdog = watchdogMax;
   shutdownRequested = false;
   shutdownLogged = false;
   return fault_flag;

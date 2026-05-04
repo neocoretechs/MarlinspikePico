@@ -123,6 +123,7 @@ int SwitchHBridgeDriver::commandMotorPower(int16_t p[10]) {
 			pdigitals[pindexB]->digitalWrite(true);
 		}
 		last_command_time[motorChannel-1] = (motorPower == 0 ? 0 : time_us_64());
+		watchdogCount[motorChannel-1] = watchdogMax - (motorPower*200);
 	}
 	fault_flag = 0;
 	return 0;
