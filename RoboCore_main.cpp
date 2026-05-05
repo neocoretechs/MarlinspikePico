@@ -909,26 +909,18 @@ void processMCode(int cval) {
 		}
 	break;
 		
-	// Set HBridge PWM motor driver, map pin to channel, this will check to prevent free running motors during inactivity
+	// Set HBridge PWM motor driver, map pins to PWM slices and channels and create instances of AbstractMotorControl.
+	// All motor instanceswill check to prevent free running motors during inactivity.
 	// For a PWM motor control subsequent G5 commands are affected here.
-	// and then D a direction pin that determines forward/backward , then E, the default value of the direction pin.
+	// In general, you provide a Z slot, a P pin, a C channel and a direction D. 
+	// the slot refers to the controller, its channels and other attributes as a whole. 
+	// The pin and channel refer to the PWM output on the pico that will be used for this motor channel.
+	// The D pin determines forward/backward, then E is the default value of the direction pin.
 	// The D and E pins determine whether a HIGH or LOW determines FORWARD/BACK on the given controller channel. This is
 	// to compensate for 'backward' motors mounted left/right, or differences in controller design. Using a combination of
 	// these 2 parameters you can tune any controller/motor setup properly for forward/back.
-	// Finally, W<encoder pin>  to receive hall wheel sensor signals and
-	// optionally PWM timer setup [R<resolution 8,9,10 bits>] [X<prescale 0-7>].
-	// The Timer mode (0-3) is preset to 2 in the individual driver. Page 129 in datasheet. Technically we are using a 'non PWM'
-	// where the 'compare output mode' is defined by 3 operating modes. Since we are unifying all the timers to use all available PWM
-	// pins, the common mode among them all is the 'non PWM', within which the 3 available operating modes can be chosen from.
-	// There are essentially three main operating modes:
-	// 0 - Stop
-	// 1 - Toggle on compare match
-	// 2 - Clear on match
-	// 3 - Set on match
-	// For motor operation and general purpose PWM, mode 2 the most universally applicable.
-	case 3: // M3 [Z<slot>] P<pin> C<channel> D<direction pin> E<default dir> W<encoder pin> [R<resolution 8,9,10 bits>] [X<prescale 0-7>]
-		//timer_res = 8; // resolution in bits
-		//timer_pre = 1; // 1 is no prescale
+	// Finally, an optional W<encoder pin>  to receive hall wheel sensor signals.
+	case 3: // M3 [Z<slot>] P<pin> C<channel> D<direction pin> E<default dir> W<encoder pin>
 		pin_number = -1;
 		encode_pin = 0;
 		if(code_seen('Z')) {
@@ -940,83 +932,81 @@ void processMCode(int cval) {
 			tud_cdc_write_flush();
 			break;
 		}
-	 // motorControl = (AbstractMotorControl*)&hBridgeDriver;
-	 if(motorControl[motorController]) {
-	  ((HBridgeDriver*)motorControl[motorController])->setMotors((PWM**)&ppwms);
-	  ((HBridgeDriver*)motorControl[motorController])->setDirectionPins((Digital**)&pdigitals);
-	  if(code_seen('P')) {
-          pin_number = code_value();
-	  } else {
-		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-		tud_cdc_write("M3 PIN ERROR", strlen("M3 PIN ERROR"));
-		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-		tud_cdc_write_flush();
-		break;
-	  }
-      if(code_seen('C')) {
-        channel = code_value();
-		if(channel <= 0) {
+		if(motorControl[motorController]) {
+			((HBridgeDriver*)motorControl[motorController])->setMotors((PWM**)&ppwms);
+			((HBridgeDriver*)motorControl[motorController])->setDirectionPins((Digital**)&pdigitals);
+			if(code_seen('P')) {
+				pin_number = code_value();
+			} else {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("M3 PIN ERROR", strlen("M3 PIN ERROR"));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
+				break;
+	  		}
+			if(code_seen('C')) {
+        		channel = code_value();
+				if(channel <= 0) {
+					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+					tud_cdc_write("M3 CHANNEL ERROR", strlen("M3 CHANNEL ERROR"));
+					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+					tud_cdc_write_flush();
+					break;
+				}
+				if( code_seen('D')) {
+					dir_pin = code_value();
+				} else {
+					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+					tud_cdc_write("M3 DIRECTION PIN ERROR", strlen("M3 DIRECTION PIN ERROR"));
+					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+					tud_cdc_write_flush();
+					break;
+				}
+				if( code_seen('E')) {
+					dir_default = code_value();
+				} else {
+					tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+					tud_cdc_write("M3 DEFAULT DIRECTION ERROR", strlen("M3 DEFAULT DIRECTION ERROR"));
+					tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+					tud_cdc_write_flush();
+					break;
+				}
+				if( code_seen('W')) {
+					encode_pin = code_value();
+				}
+			}
+			int createStatus = 0;
+			createStatus = ((HBridgeDriver*)motorControl[motorController])->createPWM(channel, pin_number, dir_pin, dir_default);
+			if(createStatus) {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write("M3 PWM ERROR ", strlen("M3 PWM ERROR "));
+				tud_cdc_write(itoa(createStatus),strlen(itoa(createStatus)));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				tud_cdc_write_flush();
+				delete motorControl[motorController];
+				motorControl[motorController] = 0;
+				break;
+			}
+			if(encode_pin) {
+				motorControl[motorController]->createEncoder(channel, encode_pin);
+			}
 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-			tud_cdc_write("M3 CHANNEL ERROR", strlen("M3 CHANNEL ERROR"));
+			tud_cdc_write("M3", strlen("M3"));
 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 			tud_cdc_write_flush();
 			break;
-		}
-		if( code_seen('D')) {
-			dir_pin = code_value();
-		} else {
+		} else {// if motorControl[motorController]
 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-			tud_cdc_write("M3 DIRECTION PIN ERROR", strlen("M3 DIRECTION PIN ERROR"));
+			tud_cdc_write("M3 SLOT UNASSIGNED ERROR", strlen("M3 SLOT UNASSIGNED ERROR"));
 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 			tud_cdc_write_flush();
-			break;
 		}
-		if( code_seen('E')) {
-			dir_default = code_value();
-		} else {
-			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-			tud_cdc_write("M3 DEFAULT DIRECTION ERROR", strlen("M3 DEFAULT DIRECTION ERROR"));
-			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-			tud_cdc_write_flush();
-			break;
-		}
-		if( code_seen('W')) {
-			encode_pin = code_value();
-		}
-		int createStatus = 0;
-		createStatus = ((HBridgeDriver*)motorControl[motorController])->createPWM(channel, pin_number, dir_pin, dir_default);
-		if(createStatus) {
-			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-			tud_cdc_write("M3 PWM ERROR ", strlen("M3 PWM ERROR "));
-			tud_cdc_write(itoa(createStatus),strlen(itoa(createStatus)));
-			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-			tud_cdc_write_flush();
-			delete motorControl[motorController];
-			motorControl[motorController] = 0;
-			break;
-		}
-		if(encode_pin) {
-			motorControl[motorController]->createEncoder(channel, encode_pin);
-		}
-		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-		tud_cdc_write("M3", strlen("M3"));
-		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-		tud_cdc_write_flush();
-		break;
-	   } // code_seen['C']
-      } else {// if motorControl[motorController]
-		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-		tud_cdc_write("M3 SLOT UNASSIGNED ERROR", strlen("M3 SLOT UNASSIGNED ERROR"));
-		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-		tud_cdc_write_flush();
-	  }
-	  break;
+	break;
 	  
 	// Split bridge or 2 half bridge motor controller. Takes 2 inputs: one for forward,called P, one for backward,called Q, then motor channel, 
 	// and then D, an enable pin. Finally, W<encoder pin>  to receive hall wheel sensor signals 
 	// Everything derived from HBridgeDriver can be done here.
-	case 4:// M4 [Z<slot>] P<pin> Q<pin> C<channel> D<enable pin> E<default dir> [W<encoder pin>] [R<resolution 8,9,10 bits>] [X<prescale 0-7>]
-		pin_number = -1;
+	case 4:// M4 [Z<slot>] P<pin> Q<pin> C<channel> D<enable pin> E<default dir> [W<encoder pin>] 
 		pin_numberB = -1;
 		encode_pin = 0;
 		if(code_seen('Z')) {
@@ -1029,7 +1019,6 @@ void processMCode(int cval) {
 			break;
 	  	}
 	  	if(motorControl[motorController]) {
-	  	//motorControl = (AbstractMotorControl*)&splitBridgeDriver;
 	  		((SplitBridgeDriver*)motorControl[motorController])->setMotors((PWM**)&ppwms);
 	  		((SplitBridgeDriver*)motorControl[motorController])->setDirectionPins((Digital**)&pdigitals);
 	  		if(code_seen('P')) {
@@ -1128,7 +1117,6 @@ void processMCode(int cval) {
 		  		if(encode_pin) {
 					motorControl[motorController]->createEncoder(channel, encode_pin);
 		  		}
-
 		  		tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
 		  		tud_cdc_write("M4", strlen("M4"));
 		  		tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
