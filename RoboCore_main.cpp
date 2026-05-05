@@ -454,7 +454,7 @@ void loop() {
 void get_command() {
 	serial_count = 0;
 	uint8_t temp[64];
-	memcpy(cmdbuffer,0,MAX_CMD_SIZE);
+	memset(cmdbuffer, 0, MAX_CMD_SIZE);
 	bool eol = false;
 	do {
         tud_task();
@@ -470,79 +470,77 @@ void get_command() {
 				eol = true;
 				break;
 		 	} else {
-            	if (serial_count < MAX_CMD_SIZE - 1)
+            	if (serial_count < MAX_CMD_SIZE - 1) {
                 	cmdbuffer[serial_count++] = c;
-				else {
+                } else {
 					eol = true;
 					break;
 				}
         	}
 		}
-
     } while(!eol);
 	comment_mode = true;
 	if(serial_count <= 0) {
-		comment_mode = true; //for new command
 		return;
 	}
 	serial_char = cmdbuffer[serial_count-1];
 	comment_mode = false;
     if(strchr(cmdbuffer, 'N') != NULL) {
-          strchr_pointer = strchr(cmdbuffer, 'N');
-          gcode_N = (strtol(&cmdbuffer[strchr_pointer - cmdbuffer + 1], NULL, 10));
-          if(gcode_N != gcode_LastN+1 && (strstr(cmdbuffer, "M110") == NULL) ) {
+		strchr_pointer = strchr(cmdbuffer, 'N');
+		gcode_N = (strtol(&cmdbuffer[strchr_pointer - cmdbuffer + 1], NULL, 10));
+		if(gcode_N != gcode_LastN+1 && (strstr(cmdbuffer, "M110") == NULL) ) {
 			tud_cdc_write(MSG_BEGIN, strlen(MSG_BEGIN));
-            tud_cdc_write(MSG_ERR_LINE_NO, strlen(MSG_ERR_LINE_NO));
-            tud_cdc_write(itoa(gcode_LastN),strlen(itoa(gcode_LastN)));
+			tud_cdc_write(MSG_ERR_LINE_NO, strlen(MSG_ERR_LINE_NO));
+			tud_cdc_write(itoa(gcode_LastN),strlen(itoa(gcode_LastN)));
 			tud_cdc_write(MSG_TERMINATE, strlen(MSG_TERMINATE));
-            FlushSerialRequestResend();
+			FlushSerialRequestResend();
 			comment_mode = true;
-            return;
-    	  }
-    	  if(strchr(cmdbuffer, '*') != NULL) {
-            unsigned short checksum = 0;
-            strchr_pointer = strchr(cmdbuffer, '*');
+			return;
+		}
+		if(strchr(cmdbuffer, '*') != NULL) {
+			unsigned short checksum = 0;
+			strchr_pointer = strchr(cmdbuffer, '*');
 			checksum = crc16(&cmdbuffer[strchr_pointer - cmdbuffer + 1],(strchr_pointer - cmdbuffer + 1) );
-            if( (int)(strtod(&cmdbuffer[strchr_pointer - cmdbuffer + 1], NULL)) != checksum) {
-			  tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-              tud_cdc_write(MSG_ERR_CHECKSUM_MISMATCH,strlen(MSG_ERR_CHECKSUM_MISMATCH));
-              tud_cdc_write(itoa(gcode_LastN),strlen(itoa(gcode_LastN)));
-			  tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-              FlushSerialRequestResend();
-			  comment_mode = true;
-              return;
-            }
-          //if no errors, continue parsing
-    	  } else {
+			if( (int)(strtod(&cmdbuffer[strchr_pointer - cmdbuffer + 1], NULL)) != checksum) {
+				tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
+				tud_cdc_write(MSG_ERR_CHECKSUM_MISMATCH,strlen(MSG_ERR_CHECKSUM_MISMATCH));
+				tud_cdc_write(itoa(gcode_LastN),strlen(itoa(gcode_LastN)));
+				tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
+				FlushSerialRequestResend();
+				comment_mode = true;
+				return;
+			}
+		//if no errors, continue parsing
+		} else {
 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-            tud_cdc_write(MSG_ERR_NO_CHECKSUM,strlen(MSG_ERR_NO_CHECKSUM));
-            tud_cdc_write(itoa(gcode_LastN),strlen(itoa(gcode_LastN)));
+			tud_cdc_write(MSG_ERR_NO_CHECKSUM,strlen(MSG_ERR_NO_CHECKSUM));
+			tud_cdc_write(itoa(gcode_LastN),strlen(itoa(gcode_LastN)));
 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
-            FlushSerialRequestResend();
+			FlushSerialRequestResend();
 			comment_mode = true;
-            return;
-    	  }
-    	  gcode_LastN = gcode_N;
-    	  //if no errors, continue parsing
-    } else { // if we don't receive 'N' but still see '*'
-          if((strchr(cmdbuffer, '*') != NULL)) {
+			return;
+		}
+		gcode_LastN = gcode_N;
+		//if no errors, continue parsing
+	} else { // if we don't receive 'N' but still see '*'
+		if((strchr(cmdbuffer, '*') != NULL)) {
 			tud_cdc_write(MSG_BEGIN,strlen(MSG_BEGIN));
-            tud_cdc_write(MSG_ERR_NO_LINENUMBER_WITH_CHECKSUM,strlen(MSG_ERR_NO_LINENUMBER_WITH_CHECKSUM));
-            tud_cdc_write(itoa(gcode_LastN),strlen(itoa(gcode_LastN)));
+			tud_cdc_write(MSG_ERR_NO_LINENUMBER_WITH_CHECKSUM,strlen(MSG_ERR_NO_LINENUMBER_WITH_CHECKSUM));
+			tud_cdc_write(itoa(gcode_LastN),strlen(itoa(gcode_LastN)));
 			tud_cdc_write(MSG_TERMINATE,strlen(MSG_TERMINATE));
 			tud_cdc_write_flush();
 			comment_mode = true;
-            return;
-          }
-    }
-    if(strchr(cmdbuffer, ';') != NULL) {
+			return;
+		}
+	}
+	if(strchr(cmdbuffer, ';') != NULL) {
 		comment_mode = true;
 		return;
 	}
 	// Determine if an outstanding error caused safety shutdown. If so respond with header
-    if((strchr(cmdbuffer, 'G') != NULL)){
-          strchr_pointer = strchr(cmdbuffer, 'G');
-          switch((int)((strtod(&cmdbuffer[strchr_pointer - cmdbuffer + 1], NULL)))) {
+	if((strchr(cmdbuffer, 'G') != NULL)){
+		strchr_pointer = strchr(cmdbuffer, 'G');
+		switch((int)((strtod(&cmdbuffer[strchr_pointer - cmdbuffer + 1], NULL)))) {
 			case 0:
 			case 1:
 			case 2:
@@ -560,8 +558,8 @@ void get_command() {
 				break;
 			default:
 				break;
-          } // switch
-    }
+		} // switch
+	}
 	// finished processing c/r terminated cmdl
 } // get_command
 

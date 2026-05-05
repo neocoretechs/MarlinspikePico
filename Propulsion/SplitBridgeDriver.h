@@ -35,6 +35,7 @@ public:
 protected:
 private:
 	uint8_t motorDriveB[10][4]={{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8},{255,0,1,8}};
+	bool dirChanged;
 //functions
 public:
 	SplitBridgeDriver(int maxPower) : HBridgeDriver(maxPower){};

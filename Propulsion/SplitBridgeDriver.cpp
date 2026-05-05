@@ -164,79 +164,84 @@ int SplitBridgeDriver::checkSafeShutdown() {
 */
 int SplitBridgeDriver::commandMotorPower(int16_t p[10]) {
 	// check shutdown override
-  if( MOTORSHUTDOWN )
+	if( MOTORSHUTDOWN )
 		return 0;
-  int foundPin = 0;
-  for(int motorChannel = 1; motorChannel <= getChannels(); motorChannel++) {
-	int motorPower = p[motorChannel-1];
-	// set enable pin
-	for(int i = 0; i < 32; i++) {
-		if(pdigitals[i] && pdigitals[i]->pin == motorDrive[motorChannel-1][1]) {
-			//pdigitals[i]->setPin(motorDrive[motorChannel-1][1]);
-			pdigitals[i]->pinMode(PinMode::OUTPUT);
-			pdigitals[i]->digitalWrite(HIGH);
-			foundPin = 1;
-			break;
+	dirChanged = false;
+	int foundPin = 0;
+	for(int motorChannel = 1; motorChannel <= getChannels(); motorChannel++) {
+		int motorPower = p[motorChannel-1];
+		// set enable pin
+		for(int i = 0; i < 32; i++) {
+			if(pdigitals[i] && pdigitals[i]->pin == motorDrive[motorChannel-1][1]) {
+				//pdigitals[i]->setPin(motorDrive[motorChannel-1][1]);
+				pdigitals[i]->pinMode(PinMode::OUTPUT);
+				pdigitals[i]->digitalWrite(HIGH);
+				foundPin = 1;
+				break;
+			}
 		}
-	}
-	if(!foundPin) {
-		return commandEmergencyStop(4);
-	}
-	// get mapping of channel to pin
-	// see if we need to make a direction change, check array of [PWM pin][dir pin][dir]
-	if( currentDirection[motorChannel-1]) { // if dir 1, we are going what we define as 'forward'
-		if( motorPower < 0 ) { // and we want to go backward
-			// reverse dir, depending on default direction, we either send to PWM pin or PWM pin+1
-			// default is 0 (LOW), if we changed the direction to reverse wheel rotation call the opposite dir change signal
-			//defaultDirection[motorChannel-1] ? pdigitals[i]->digitalWrite(HIGH) : pdigitals[i]->digitalWrite(LOW);
-			defaultDirection[motorChannel-1] ? motorDriveB[motorChannel-1][1] = 1 : motorDriveB[motorChannel-1][1] = 0;
-			currentDirection[motorChannel-1] = 0; // set new direction value
-			motorPower = -motorPower; // absolute val
+		if(!foundPin) {
+			return commandEmergencyStop(4);
 		}
-	} else { // dir is 0
-		if( motorPower > 0 ) { // we are going 'backward' as defined by our initial default direction and we want 'forward'
-			// reverse, indicate an alteration of the input pin
-			// default is 0 (HIGH), if we changed the direction to reverse wheel rotation call the opposite dir change signal
-			//defaultDirection[motorChannel-1] ? pdigitals[i]->digitalWrite(LOW) : pdigitals[i]->digitalWrite(HIGH);
-			defaultDirection[motorChannel-1] ? motorDriveB[motorChannel-1][1] = 0 : motorDriveB[motorChannel-1][1] = 1;
-			currentDirection[motorChannel-1] = 1;
-		} else { // backward with more backwardness
-			// If less than 0 take absolute value, if zero dont play with sign
-			if( motorPower ) motorPower = -motorPower;
+		// get mapping of channel to pin
+		// see if we need to make a direction change, check array of [PWM pin][dir pin][dir]
+		if( currentDirection[motorChannel-1]) { // if dir 1, we are going what we define as 'forward'
+			if( motorPower < 0 ) { // and we want to go backward
+				// reverse dir, depending on default direction, we either send to PWM pin or PWM pin+1
+				// default is 0 (LOW), if we changed the direction to reverse wheel rotation call the opposite dir change signal
+				//defaultDirection[motorChannel-1] ? pdigitals[i]->digitalWrite(HIGH) : pdigitals[i]->digitalWrite(LOW);
+				defaultDirection[motorChannel-1] ? motorDriveB[motorChannel-1][1] = 1 : motorDriveB[motorChannel-1][1] = 0;
+				currentDirection[motorChannel-1] = 0; // set new direction value
+				motorPower = -motorPower; // absolute val
+				dirChanged = true;
+			}
+		} else { // dir is 0
+			if( motorPower > 0 ) { // we are going 'backward' as defined by our initial default direction and we want 'forward'
+				// reverse, indicate an alteration of the input pin
+				// default is 0 (HIGH), if we changed the direction to reverse wheel rotation call the opposite dir change signal
+				//defaultDirection[motorChannel-1] ? pdigitals[i]->digitalWrite(LOW) : pdigitals[i]->digitalWrite(HIGH);
+				defaultDirection[motorChannel-1] ? motorDriveB[motorChannel-1][1] = 0 : motorDriveB[motorChannel-1][1] = 1;
+				currentDirection[motorChannel-1] = 1;
+				dirChanged = true;
+			} else { // backward with more backwardness
+				// If less than 0 take absolute value, if zero dont play with sign
+				if( motorPower ) motorPower = -motorPower;
+			}
 		}
-	}
-	if( motorPower != 0 && motorPower < minMotorPower[motorChannel-1])
-		motorPower = minMotorPower[motorChannel-1];
-	if( motorPower > MAXMOTORPOWER ) // cap it at max
-		motorPower = MAXMOTORPOWER;
-	// Scale motor power if necessary and save it in channel speed array with proper sign for later use
-	if( MOTORPOWERSCALE != 0 )
-		motorPower /= MOTORPOWERSCALE;
-	//
-	// Reset encoders on new speed setting
-	resetEncoders();
-	// find the PWM pin and get the object we set up in M3 to write to power level
-	// element 0 of motorDrive has index to PWM array
-	int pindex = motorDrive[motorChannel-1][0];
-	int pindexB = motorDriveB[motorChannel-1][0];
-	// writing power 0 sets mode 0 and timer turnoff
-	motorSpeed[motorChannel-1] = motorPower; //why? +/-
-	if(motorDriveB[motorChannel-1][1]) { // if dir change signal is 1, send to PWM pin+1
-		int temp = pindex;
-		pindex = pindexB;
-		pindexB = temp;
-	}
-	if(motorPower > 0) {
-		ppwms[pindexB]->pwmWrite(false, 0);
-		sleep_ms(200); // delay to allow motor to stop before reversing direction
-		ppwms[pindex]->pwmWrite(true, motorPower);
-	} else { // motorPower < 0
-		ppwms[pindex]->pwmWrite(false, 0);
-		sleep_ms(200); // delay to allow motor to stop before reversing direction
-		ppwms[pindexB]->pwmWrite(true, motorPower);
-    }
-    last_command_time[motorChannel-1] = (motorPower == 0 ? 0 : time_us_64());
-	watchdogCount[motorChannel-1] = watchdogMax - (motorPower*200);
+		if( motorPower != 0 && motorPower < minMotorPower[motorChannel-1])
+			motorPower = minMotorPower[motorChannel-1];
+		if( motorPower > MAXMOTORPOWER ) // cap it at max
+			motorPower = MAXMOTORPOWER;
+		// Scale motor power if necessary and save it in channel speed array with proper sign for later use
+		if( MOTORPOWERSCALE != 0 )
+			motorPower /= MOTORPOWERSCALE;
+		//
+		// Reset encoders on new speed setting
+		resetEncoders();
+		// find the PWM pin and get the object we set up in M3 to write to power level
+		// element 0 of motorDrive has index to PWM array
+		int pindex = motorDrive[motorChannel-1][0];
+		int pindexB = motorDriveB[motorChannel-1][0];
+		// writing power 0 sets mode 0 and timer turnoff
+		motorSpeed[motorChannel-1] = motorPower; //why? +/-
+		if(motorDriveB[motorChannel-1][1]) { // if dir change signal is 1, send to PWM pin+1
+			int temp = pindex;
+			pindex = pindexB;
+			pindexB = temp;
+		}
+		if(motorPower > 0) {
+			ppwms[pindexB]->pwmWrite(false, 0);
+			if(dirChanged) 
+				sleep_ms(25); // delay to allow motor to stop before reversing direction
+			ppwms[pindex]->pwmWrite(true, motorPower);
+		} else { // motorPower < 0
+			ppwms[pindex]->pwmWrite(false, 0);
+			if(dirChanged)
+				sleep_ms(25); // delay to allow motor to stop before reversing direction
+			ppwms[pindexB]->pwmWrite(true, motorPower);
+    	}
+    	last_command_time[motorChannel-1] = (motorPower == 0 ? 0 : time_us_64());
+		watchdogCount[motorChannel-1] = watchdogMax - (motorPower*200);
   }
   fault_flag = 0;
   shutdownRequested = false;
